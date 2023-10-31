@@ -2,7 +2,7 @@
 
 use std::{sync::Arc};
 use sp_runtime::traits::Block as BlockT;
-use sc_client_api::{BlockBackend, Backend};
+use sc_client_api::{BlockBackend};
 use sc_consensus_babe::SlotProportion;
 use sc_network::NetworkService;
 use sc_network_common::sync::warp::WarpSyncParams;
@@ -15,7 +15,7 @@ use frame_benchmarking_cli::SUBSTRATE_REFERENCE_HARDWARE;
 use pocs_runtime::RuntimeApi;
 use node_primitives::Block;
 use sc_transaction_pool_api::OffchainTransactionPoolFactory;
-use sc_statement_store::Store as StatementStore;
+
 
 use crate::cli::Cli;
 use crate::rpc::{FullDeps, BabeDeps, GrandpaDeps, create_full};

@@ -105,7 +105,7 @@ pub fn create_full<C, P, SC, B>(
 		babe,
 		grandpa,
 		//statement_store,
-		backend,
+		backend: _,
 	}: FullDeps<C, P, SC, B>,
 ) -> Result<RpcModule<()>, Box<dyn std::error::Error + Send + Sync>>
 where

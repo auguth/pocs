@@ -1,8 +1,8 @@
 use hex_literal::hex;
 
 use pocs_runtime::{
-	AccountId, BabeConfig, BalancesConfig, RuntimeGenesisConfig, GrandpaConfig, Signature, SudoConfig,
-	SystemConfig, WASM_BINARY, BABE_GENESIS_EPOCH_CONFIG, SessionConfig, StakingConfig, SessionKeys,
+	AccountId, BabeConfig, BalancesConfig, RuntimeGenesisConfig, Signature, SudoConfig,
+	SystemConfig, WASM_BINARY, SessionConfig, StakingConfig, SessionKeys,
 	constants::currency::*, StakerStatus, MaxNominations, ImOnlineConfig,NominationPoolsConfig,
 };
 use sc_service::ChainType;
