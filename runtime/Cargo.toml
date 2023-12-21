@@ -130,7 +130,10 @@ std = [
 	"sp-transaction-pool/std",
 	"sp-version/std",
 	"substrate-wasm-builder",
-
+	"pallet-assets/std",
+	"pallet-contracts/std",
+	"pallet-contracts-primitives/std",
+	"pallet-insecure-randomness-collective-flip/std",
 	"pallet-nomination-pools/std",
 	"pallet-nomination-pools-runtime-api/std",
 	"pallet-nomination-pools-benchmarking?/std",
@@ -150,7 +153,10 @@ runtime-benchmarks = [
 	"sp-runtime/runtime-benchmarks",
 	"pallet-assets/runtime-benchmarks",
 	"pallet-contracts/runtime-benchmarks",
+<<<<<<< HEAD
 
+=======
+>>>>>>> 7e2a96b (pallet_contracts added to node)
 	"pallet-nomination-pools-benchmarking/runtime-benchmarks",
 ]
 try-runtime = [
@@ -166,7 +172,10 @@ try-runtime = [
 	"pallet-transaction-payment/try-runtime",
 	"pallet-assets/try-runtime",
 	"pallet-contracts/try-runtime",
+<<<<<<< HEAD
 
+=======
+>>>>>>> 7e2a96b (pallet_contracts added to node)
 	"pallet-nomination-pools/try-runtime",
 ]
 
