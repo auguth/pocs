@@ -121,7 +121,8 @@ pub fn native_version() -> NativeVersion {
 pub struct BaseFilter;
 impl Contains<RuntimeCall> for BaseFilter {
 	fn contains(call: &RuntimeCall) -> bool {
-		!matches!(call, RuntimeCall::TemplateModule(..))
+		//!matches!(call, RuntimeCall::TemplateModule(..))
+		true
 	}
 }
 
