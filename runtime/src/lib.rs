@@ -176,8 +176,6 @@ impl frame_system::Config for Runtime {
 	type Block = Block;
 	/// Block & extrinsics weights: base values and limits.
 	type BlockWeights = RuntimeBlockWeights;
-	//type BlockLength = BlockLength;
-	type BlockLength = RuntimeBlockLength;
 	/// The maximum length of a block (in bytes).
 	type BlockLength = RuntimeBlockLength;
 	/// The identifier used to distinguish between accounts.
@@ -307,6 +305,8 @@ impl pallet_contracts::Config for Runtime {
 	type MaxStorageKeyLen = ConstU32<128>;
 	type UnsafeUnstableInterface = ConstBool<false>;
 	type MaxDebugBufferLen = ConstU32<{ 2 * 1024 * 1024 }>;
+	#[cfg(not(feature = "runtime-benchmarks"))]
+	type Migrations = ();
 }
 
 impl pallet_insecure_randomness_collective_flip::Config for Runtime {}
