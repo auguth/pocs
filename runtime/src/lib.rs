@@ -51,11 +51,7 @@ pub use frame_support::{
 	construct_runtime, parameter_types,
 	traits::{
 		ConstU128, ConstU32, ConstU64, ConstU8, KeyOwnerProofSystem, Randomness, StorageInfo,
-<<<<<<< HEAD
 		Contains, AsEnsureOriginWithArg, Nothing, ConstBool, Currency
-=======
-		Contains,AsEnsureOriginWithArg, Nothing, ConstBool, Currency
->>>>>>> 7e2a96b (pallet_contracts added to node)
 	},
 	weights::{
 		constants::{
@@ -862,14 +858,9 @@ construct_runtime!(
 		NominationPools: pallet_nomination_pools,
 		VoterList: pallet_bags_list::<Instance1>,
 		Historical: pallet_session::historical::{Pallet},
-<<<<<<< HEAD
-=======
-		// Include the custom logic from the pallet-template in the runtime.
-		TemplateModule: pallet_template,
-		Assets: pallet_assets,
+
 		RandomnessCollectiveFlip: pallet_insecure_randomness_collective_flip,
 		Contracts: pallet_contracts,
->>>>>>> 7e2a96b (pallet_contracts added to node)
 	}
 );
 

@@ -53,7 +53,6 @@ sp-session = { version = "4.0.0-dev", default-features = false, git = "https://g
 sp-std = { version = "8.0.0", default-features = false, git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v1.0.0" }
 sp-transaction-pool = { version = "4.0.0-dev", default-features = false, git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v1.0.0" }
 sp-version = { version = "22.0.0", default-features = false, git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v1.0.0" }
-<<<<<<< HEAD
 
 # Used for pocs
 pallet-contracts = { version = "4.0.0-dev", default-features = false,path = "../pallets/contracts"}
@@ -154,10 +153,7 @@ runtime-benchmarks = [
 	"sp-runtime/runtime-benchmarks",
 	"pallet-assets/runtime-benchmarks",
 	"pallet-contracts/runtime-benchmarks",
-<<<<<<< HEAD
 
-=======
->>>>>>> 7e2a96b (pallet_contracts added to node)
 	"pallet-nomination-pools-benchmarking/runtime-benchmarks",
 ]
 try-runtime = [
@@ -173,10 +169,7 @@ try-runtime = [
 	"pallet-transaction-payment/try-runtime",
 	"pallet-assets/try-runtime",
 	"pallet-contracts/try-runtime",
-<<<<<<< HEAD
 
-=======
->>>>>>> 7e2a96b (pallet_contracts added to node)
 	"pallet-nomination-pools/try-runtime",
 ]
 
