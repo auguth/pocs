@@ -27,7 +27,7 @@ use crate::{
 	storage::DeletionQueueManager,
 	tests::test_utils::{get_contract, get_contract_checked},
 	wasm::{Determinism, ReturnCode as RuntimeReturnCode},
-	weights::WeightInfo,
+	weights::ContractWeightInfo,
 	BalanceOf, Code, CollectEvents, Config, ContractInfo, ContractInfoOf, DebugInfo,
 	DefaultAddressGenerator, DeletionQueueCounter, Error, MigrationInProgress, NoopMigration,
 	Origin, Pallet, PristineCode, Schedule,
@@ -340,7 +340,7 @@ impl pallet_balances::Config for Test {
 	type DustRemoval = ();
 	type ExistentialDeposit = ExistentialDeposit;
 	type AccountStore = System;
-	type WeightInfo = ();
+	type ContractWeightInfo = ();
 	type FreezeIdentifier = ();
 	type MaxFreezes = ();
 	type RuntimeHoldReason = ();
@@ -351,7 +351,7 @@ impl pallet_timestamp::Config for Test {
 	type Moment = u64;
 	type OnTimestampSet = ();
 	type MinimumPeriod = ConstU64<1>;
-	type WeightInfo = ();
+	type ContractWeightInfo = ();
 }
 impl pallet_utility::Config for Test {
 	type RuntimeEvent = RuntimeEvent;
@@ -368,7 +368,7 @@ impl pallet_proxy::Config for Test {
 	type ProxyDepositBase = ConstU64<1>;
 	type ProxyDepositFactor = ConstU64<1>;
 	type MaxProxies = ConstU32<32>;
-	type WeightInfo = ();
+	type ContractWeightInfo = ();
 	type MaxPending = ConstU32<32>;
 	type CallHasher = BlakeTwo256;
 	type AnnouncementDepositBase = ConstU64<1>;
@@ -437,7 +437,7 @@ impl Config for Test {
 	type CallFilter = TestFilter;
 	type CallStack = [Frame<Self>; 5];
 	type WeightPrice = Self;
-	type WeightInfo = ();
+	type ContractWeightInfo = ();
 	type ChainExtension =
 		(TestExtension, DisabledExtension, RevertingExtension, TempStorageExtension);
 	type Schedule = MySchedule;

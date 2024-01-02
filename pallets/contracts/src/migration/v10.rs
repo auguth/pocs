@@ -22,7 +22,7 @@ use crate::{
 	address::AddressGenerator,
 	exec::AccountIdOf,
 	migration::{IsFinished, MigrationStep},
-	weights::WeightInfo,
+	weights::ContractWeightInfo,
 	BalanceOf, CodeHash, Config, Pallet, TrieId, Weight, LOG_TARGET,
 };
 use codec::{Decode, Encode};
@@ -120,7 +120,7 @@ impl<T: Config> MigrationStep for Migration<T> {
 	const VERSION: u16 = 10;
 
 	fn max_step_weight() -> Weight {
-		T::WeightInfo::v10_migration_step()
+		T::ContractWeightInfo::v10_migration_step()
 	}
 
 	fn step(&mut self) -> (IsFinished, Weight) {
@@ -148,7 +148,7 @@ impl<T: Config> MigrationStep for Migration<T> {
 
 			// Unreserve the existing deposit
 			// Note we can't use repatriate_reserve, because it only works with existing accounts
-			let remaining = T::Currency::unreserve(&account, old_deposit);
+			let remaining = T::ContractCurrency::unreserve(&account, old_deposit);
 			if !remaining.is_zero() {
 				log::warn!(
 					target: LOG_TARGET,
@@ -161,9 +161,9 @@ impl<T: Config> MigrationStep for Migration<T> {
 			// Attempt to transfer the old deposit to the deposit account.
 			let amount = old_deposit
 				.saturating_sub(min_balance)
-				.min(T::Currency::reducible_balance(&account, Preserve, Polite));
+				.min(T::ContractCurrency::reducible_balance(&account, Preserve, Polite));
 
-			let new_deposit = T::Currency::transfer(
+			let new_deposit = T::ContractCurrency::transfer(
 				&account,
 				&deposit_account,
 				amount,
@@ -184,7 +184,7 @@ impl<T: Config> MigrationStep for Migration<T> {
 					"Failed to transfer the base deposit, reason: {:?}",
 					err
 				);
-				T::Currency::deposit_creating(&deposit_account, min_balance);
+				T::ContractCurrency::deposit_creating(&deposit_account, min_balance);
 				min_balance
 			});
 
@@ -229,10 +229,10 @@ impl<T: Config> MigrationStep for Migration<T> {
 			// Store last key for next migration step
 			self.last_account = Some(account);
 
-			(IsFinished::No, T::WeightInfo::v10_migration_step())
+			(IsFinished::No, T::ContractWeightInfo::v10_migration_step())
 		} else {
 			log::debug!(target: LOG_TARGET, "Done Migrating contract info");
-			(IsFinished::Yes, T::WeightInfo::v10_migration_step())
+			(IsFinished::Yes, T::ContractWeightInfo::v10_migration_step())
 		}
 	}
 
@@ -260,7 +260,7 @@ impl<T: Config> MigrationStep for Migration<T> {
 			ensure!(old_contract.storage_items == contract.storage_items, "invalid storage_items");
 
 			let deposit =
-				<<T as Config>::Currency as frame_support::traits::Currency<_>>::total_balance(
+				<<T as Config>::ContractCurrency as frame_support::traits::Currency<_>>::total_balance(
 					&contract.deposit_account,
 				);
 			ensure!(

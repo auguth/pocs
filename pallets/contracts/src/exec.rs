@@ -1095,7 +1095,7 @@ where
 		to: &T::AccountId,
 		value: BalanceOf<T>,
 	) -> DispatchResult {
-		T::Currency::transfer(from, to, value, existence_requirement)
+		T::ContractCurrency::transfer(from, to, value, existence_requirement)
 			.map_err(|_| Error::<T>::TransferFailed)?;
 		Ok(())
 	}
@@ -1276,10 +1276,10 @@ where
 		let info = frame.terminate();
 		frame.nested_storage.terminate(&info);
 		System::<T>::dec_consumers(&frame.account_id);
-		T::Currency::transfer(
+		T::ContractCurrency::transfer(
 			&frame.account_id,
 			beneficiary,
-			T::Currency::reducible_balance(&frame.account_id, Expendable, Polite),
+			T::ContractCurrency::reducible_balance(&frame.account_id, Expendable, Polite),
 			ExistenceRequirement::AllowDeath,
 		)?;
 		info.queue_trie_for_deletion();
@@ -1359,7 +1359,7 @@ where
 	}
 
 	fn balance(&self) -> BalanceOf<T> {
-		T::Currency::free_balance(&self.top_frame().account_id)
+		T::ContractCurrency::free_balance(&self.top_frame().account_id)
 	}
 
 	fn value_transferred(&self) -> BalanceOf<T> {
@@ -1375,7 +1375,7 @@ where
 	}
 
 	fn minimum_balance(&self) -> BalanceOf<T> {
-		T::Currency::minimum_balance()
+		T::ContractCurrency::minimum_balance()
 	}
 
 	fn deposit_event(&mut self, topics: Vec<T::Hash>, data: Vec<u8>) {

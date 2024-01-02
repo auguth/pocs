@@ -20,7 +20,7 @@
 
 use crate::{
 	migration::{IsFinished, MigrationStep},
-	weights::WeightInfo,
+	weights::ContractWeightInfo,
 	AccountIdOf, BalanceOf, CodeHash, Config, Determinism, Pallet, Weight, LOG_TARGET,
 };
 use codec::{Decode, Encode};
@@ -119,7 +119,7 @@ impl<T: Config> MigrationStep for Migration<T> {
 	const VERSION: u16 = 12;
 
 	fn max_step_weight() -> Weight {
-		T::WeightInfo::v12_migration_step(T::MaxCodeLen::get())
+		T::ContractWeightInfo::v12_migration_step(T::MaxCodeLen::get())
 	}
 
 	fn step(&mut self) -> (IsFinished, Weight) {
@@ -183,7 +183,7 @@ impl<T: Config> MigrationStep for Migration<T> {
 
 			let amount = old_info.deposit.saturating_sub(info.deposit);
 			if !amount.is_zero() {
-				T::Currency::unreserve(&info.owner, amount);
+				T::ContractCurrency::unreserve(&info.owner, amount);
 				log::debug!(
 					target: LOG_TARGET,
 					"Deposit refunded: {:?} Balance, to: {:?}",
@@ -202,10 +202,10 @@ impl<T: Config> MigrationStep for Migration<T> {
 
 			self.last_code_hash = Some(hash);
 
-			(IsFinished::No, T::WeightInfo::v12_migration_step(code_len as u32))
+			(IsFinished::No, T::ContractWeightInfo::v12_migration_step(code_len as u32))
 		} else {
 			log::debug!(target: LOG_TARGET, "No more OwnerInfo to migrate");
-			(IsFinished::Yes, T::WeightInfo::v12_migration_step(0))
+			(IsFinished::Yes, T::ContractWeightInfo::v12_migration_step(0))
 		}
 	}
 

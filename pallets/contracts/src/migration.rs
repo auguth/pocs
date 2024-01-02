@@ -61,7 +61,7 @@ pub mod v11;
 pub mod v12;
 pub mod v9;
 
-use crate::{weights::WeightInfo, Config, Error, MigrationInProgress, Pallet, Weight, LOG_TARGET};
+use crate::{weights::ContractWeightInfo, Config, Error, MigrationInProgress, Pallet, Weight, LOG_TARGET};
 use codec::{Codec, Decode};
 use frame_support::{
 	codec,
@@ -268,7 +268,7 @@ impl<T: Config, const TEST_ALL_STEPS: bool> OnRuntimeUpgrade for Migration<T, TE
 				"{name}: No Migration performed storage_version = latest_version = {:?}",
 				&storage_version
 			);
-			return T::WeightInfo::on_runtime_upgrade_noop()
+			return T::ContractWeightInfo::on_runtime_upgrade_noop()
 		}
 
 		// In case a migration is already in progress we create the next migration
@@ -280,7 +280,7 @@ impl<T: Config, const TEST_ALL_STEPS: bool> OnRuntimeUpgrade for Migration<T, TE
 				&storage_version
 			);
 
-			return T::WeightInfo::on_runtime_upgrade_in_progress()
+			return T::ContractWeightInfo::on_runtime_upgrade_in_progress()
 		}
 
 		log::info!(
@@ -296,7 +296,7 @@ impl<T: Config, const TEST_ALL_STEPS: bool> OnRuntimeUpgrade for Migration<T, TE
 			Self::run_all_steps().unwrap();
 		}
 
-		T::WeightInfo::on_runtime_upgrade()
+		T::ContractWeightInfo::on_runtime_upgrade()
 	}
 
 	#[cfg(feature = "try-runtime")]
@@ -360,13 +360,13 @@ impl<T: Config, const TEST_ALL_STEPS: bool> Migration<T, TEST_ALL_STEPS> {
 		let name = <Pallet<T>>::name();
 		let mut weight_left = weight_limit;
 
-		if weight_left.checked_reduce(T::WeightInfo::migrate()).is_none() {
+		if weight_left.checked_reduce(T::ContractWeightInfo::migrate()).is_none() {
 			return (MigrateResult::NoMigrationPerformed, Weight::zero())
 		}
 
 		MigrationInProgress::<T>::mutate_exists(|progress| {
 			let Some(cursor_before) = progress.as_mut() else {
-				return (MigrateResult::NoMigrationInProgress, T::WeightInfo::migration_noop())
+				return (MigrateResult::NoMigrationInProgress, T::ContractWeightInfo::migration_noop())
 			};
 
 			// if a migration is running it is always upgrading to the next version
