@@ -7,7 +7,6 @@ use sp_runtime::{
 use sp_std::{prelude::*};
 use frame_system::{pallet_prelude::BlockNumberFor,};
 
-
 // the struct is defined to store the detiles on whom the deploied contract is delegated to and the block hight 
 #[derive(Encode, Decode, Clone, PartialEq, Eq, RuntimeDebug, TypeInfo, MaxEncodedLen)]
 #[scale_info(skip_type_params(T))]
@@ -32,8 +31,7 @@ impl<T: frame_system::Config> AccountStakeinfo<T> {
         delegate_to: T::AccountId,
 	) -> Self{
 		let current_block_number = <frame_system::Pallet<T>>::block_number();
-		Self {
-            
+		Self {          
 			owner,
             delegate_to,
 			delegate_at:current_block_number,
@@ -57,7 +55,6 @@ impl<T: frame_system::Config> AccountStakeinfo<T> {
 impl<T: frame_system::Config> ContractScarcityInfo<T>{
     //fn to set the reputation value of the contract on instantialte
 	pub fn set_scarcity_info()->Self{
-
 		let current_block_number = <frame_system::Pallet<T>>::block_number();
 		Self{
 			reputation: 1,
@@ -69,26 +66,19 @@ impl<T: frame_system::Config> ContractScarcityInfo<T>{
 		current_reputation: u64,
 		old_block_hight: BlockNumberFor<T>,
 	)-> Self{
-
 		let current_block_hight = <frame_system::Pallet<T>>::block_number();
-
 		if current_block_hight > old_block_hight{
 		let new_reputation = current_reputation + 1;
 		let new_recent_blockhight = current_block_hight;
-
 		Self{
-
 			reputation: new_reputation,
 			recent_blockhight: new_recent_blockhight,
 		}
 		}
 		else{
-
 		 let new_reputation = current_reputation;
 		 let new_recent_blockhight = old_block_hight;
-
 		 Self{
-
 			reputation: new_reputation,
 			recent_blockhight: new_recent_blockhight,
 		}
