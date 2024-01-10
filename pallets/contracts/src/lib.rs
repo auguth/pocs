@@ -98,6 +98,7 @@ mod wasm;
 pub mod chain_extension;
 pub mod migration;
 pub mod weights;
+pub mod gasstakeinfo;
 
 #[cfg(test)]
 mod tests;
@@ -106,6 +107,7 @@ use crate::{
 	gas::GasMeter,
 	storage::{meter::Meter as StorageMeter, ContractInfo, DeletionQueueManager},
 	wasm::{CodeInfo, WasmBlob},
+	gasstakeinfo::{AccountStakeinfo,ContractScarcityInfo},
 };
 use codec::{Codec, Decode, Encode, HasCompact};
 use environmental::*;
@@ -729,10 +731,71 @@ pub mod pallet {
 				}
 			}
 
+			output.result.as_ref().map(|(_address, _result)| {
+				let contract_stake_info = ContractScarcityInfo::<T>::set_scarcity_info();
+				let account_stake_info = AccountStakeinfo::<T>::set_new_stakeinfo(origin.clone(),origin.clone());
+				<ContractStakeinfoMap<T>>::insert(_address.clone(), contract_stake_info.clone());
+				<StakeScoreMap<T>>::insert(_address.clone(), 0);
+				<AccountStakeinfoMap<T>>::insert(_address.clone(),account_stake_info.clone());
+				let _contractinfoevent = Self::deposit_event(
+					vec![T::Hashing::hash_of(&_address.clone())],
+					Event::ContractStakeinfoevnet {
+						contract_address: _address.clone(),
+						reputation: contract_stake_info.reputation,
+						recent_blockhight: contract_stake_info.recent_blockhight,
+					},
+				);
+				let _accountinfoevent = Self::deposit_event(
+					vec![T::Hashing::hash_of(&_address.clone())],
+					Event::AccountStakeinfoevnet {
+						contract_address: _address.clone(),
+						owner: account_stake_info.owner,
+						delegate_to: account_stake_info.delegate_to,
+						delegate_at: account_stake_info.delegate_at,
+					},
+				);
+				}).ok();
+
 			output.gas_meter.into_dispatch_result(
 				output.result.map(|(_address, result)| result),
 				T::WeightInfo::instantiate_with_code(code_len, data_len, salt_len),
 			)
+		}
+
+		#[pallet::call_index(10)]
+			#[pallet::weight(T::DbWeight::get().reads(10))]
+			pub fn update_delegate(
+				origin: OriginFor<T>,
+				contract_address: T::AccountId,
+				delegate_to: T::AccountId,
+			)-> DispatchResult {
+				let origin = ensure_signed(origin)?;
+				let account_stake_info: AccountStakeinfo<T> = Self::getterstakeinfo(&contract_address).ok_or(<Error<T>>::ContractAddressNotFound)?;
+				let _contract_stake_info: ContractScarcityInfo<T> = Self::gettercontractinfo(&contract_address).ok_or(<Error<T>>::ContractAddressNotFound)?;
+				ensure!(origin == account_stake_info.owner, Error::<T>::InvalidOwner);
+				let new_account_stake_info: AccountStakeinfo<T> = AccountStakeinfo::set_new_stakeinfo(account_stake_info.owner,delegate_to);
+				let new_contract_stake_info: ContractScarcityInfo<T> = ContractScarcityInfo::set_scarcity_info();
+				<ContractStakeinfoMap<T>>::insert(&contract_address.clone(), new_contract_stake_info.clone());
+				<AccountStakeinfoMap<T>>::insert(&contract_address.clone(),new_account_stake_info.clone());
+				let _eventemit = Self::deposit_event(
+					vec![T::Hashing::hash_of(&contract_address.clone())],
+					Event::AccountStakeinfoevnet {
+						contract_address: contract_address.clone(),
+						owner: new_account_stake_info.owner,
+						delegate_to: new_account_stake_info.delegate_to,
+						delegate_at: new_account_stake_info.delegate_at,
+					},
+				);
+				let _contractinfoevent = Self::deposit_event(
+					vec![T::Hashing::hash_of(&contract_address.clone())],
+					Event::ContractStakeinfoevnet {
+						contract_address: contract_address.clone(),
+						reputation: new_contract_stake_info.reputation,
+						recent_blockhight: new_contract_stake_info.recent_blockhight,
+					},
+				);
+				let _currenct_stake_score = Self::getterstakescoreinfo(&contract_address.clone()).ok_or(<Error<T>>::ContractAddressNotFound)?;
+				Ok(())  
 		}
 
 		/// Instantiates a contract from a previously deployed wasm binary.
@@ -876,6 +939,20 @@ pub mod pallet {
 			/// The code hash that was delegate called.
 			code_hash: CodeHash<T>,
 		},
+
+		ContractStakeinfoevnet {
+			contract_address: T::AccountId,
+			reputation: u64,
+			recent_blockhight: BlockNumberFor<T>,
+		},
+
+
+		AccountStakeinfoevnet {
+			contract_address: T::AccountId,
+			owner: T::AccountId,
+			delegate_to: T::AccountId,
+			delegate_at: BlockNumberFor<T>,
+		},
 	}
 
 	#[pallet::error]
@@ -961,6 +1038,10 @@ pub mod pallet {
 		MigrationInProgress,
 		/// Migrate dispatch call was attempted but no migration was performed.
 		NoMigrationPerformed,
+		//invalidowener (pocs)
+		InvalidOwner,
+		//no adress found(pocs)
+		ContractAddressNotFound,
 	}
 
 	/// A mapping from a contract's code hash to its code.
@@ -1021,6 +1102,18 @@ pub mod pallet {
 	#[pallet::storage]
 	pub(crate) type MigrationInProgress<T: Config> =
 		StorageValue<_, migration::Cursor, OptionQuery>;
+
+	#[pallet::storage]
+	#[pallet::getter(fn getterstakeinfo)]
+	pub type AccountStakeinfoMap<T: Config> = StorageMap<_, Twox64Concat, T::AccountId, AccountStakeinfo<T>>;
+	///Added mapping of stakeinfo for pocs
+	#[pallet::storage]
+	#[pallet::getter(fn gettercontractinfo)]
+	pub type ContractStakeinfoMap<T: Config> = StorageMap<_, Twox64Concat, T::AccountId, ContractScarcityInfo<T>>;
+	//stake score value
+	#[pallet::storage]
+	#[pallet::getter(fn getterstakescoreinfo)]
+	pub type StakeScoreMap<T: Config> = StorageMap<_, Twox64Concat, T::AccountId, u128>;
 }
 
 /// The type of origins supported by the contracts pallet.
