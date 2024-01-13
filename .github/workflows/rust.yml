@@ -16,12 +16,21 @@ jobs:
 
     steps:
     - uses: actions/checkout@v3
+    - name: Install Rust nightly toolchain
+      uses: actions-rs/toolchain@v1
+      with:
+        profile: minimal
+        toolchain: nightly
+        override: true
     - name: Install Protocol Buffers Compiler
       run: sudo apt-get install -y protobuf-compiler
     - name: Set PROTOC Environment Variable
       run: echo "PROTOC=$(which protoc)" >> $GITHUB_ENV
+    
     - name: Build
       run: cargo build --verbose
     - name: Run tests
       run: cargo test --verbose
+
+
       
