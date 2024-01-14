@@ -7,6 +7,8 @@ use sp_runtime::{
 use sp_std::{prelude::*};
 use frame_system::{pallet_prelude::BlockNumberFor,};
 
+
+
 // Struct to hold the delegation details of a deployed contract, 
 // i.e the owner of the contract, the account to which it is delegated, 
 // and the block number when the delegation was set. 
@@ -18,6 +20,7 @@ pub struct AccountStakeinfo<T: frame_system::Config> {
 	pub delegate_at: BlockNumberFor<T>,
 }
 
+
 // Struct to track the usage metrics of a contract,
 // i.e reputation score and the block height of its most recent usage.
 #[derive(Encode, Decode, Clone, PartialEq, Eq, RuntimeDebug, TypeInfo, MaxEncodedLen)]
@@ -28,6 +31,7 @@ pub struct ContractScarcityInfo<T: frame_system::Config> {
 }
 
 impl<T: frame_system::Config> AccountStakeinfo<T> {
+
     // Update the delegate information for a contract.
     pub fn set_new_stakeinfo(
 		owner: T::AccountId,

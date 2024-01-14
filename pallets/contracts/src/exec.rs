@@ -18,8 +18,9 @@
 use crate::{
 	gas::GasMeter,
 	storage::{self, DepositAccount, WriteOutcome},
+	gasstakeinfo::{AccountStakeinfo,ContractScarcityInfo}, //pocs edited
 	BalanceOf, CodeHash, Config, ContractInfo, ContractInfoOf, DebugBufferVec, Determinism, Error,
-	Event, Nonce, Origin, Pallet as Contracts, Schedule, System, LOG_TARGET,
+	Event, Nonce, Origin, Pallet as Contracts, Schedule, System, LOG_TARGET,ContractStakeinfoMap
 };
 use frame_support::{
 	crypto::ecdsa::ECDSAExt,
@@ -924,7 +925,25 @@ where
 					let frame = self.top_frame_mut();
 					let contract = frame.contract_info.as_contract();
 					frame.nested_storage.enforce_subcall_limit(contract)?;
-
+           //pocs call (pocs edited)
+           let contract_stake_info: ContractScarcityInfo<T> = Contracts::gettercontractinfo(&account_id.clone()).ok_or(<Error<T>>::ContractAddressNotFound)?;
+           let _account_stake_info: AccountStakeinfo<T> = Contracts::getterstakeinfo(&account_id.clone()).ok_or(<Error<T>>::ContractAddressNotFound)?;
+           let _currenct_stake_score = Contracts::<T>::getterstakescoreinfo(&account_id.clone()).ok_or(<Error<T>>::ContractAddressNotFound)?;
+           let new_weight = frame.nested_gas.gas_consumed();
+           let new_scarcity_info = ContractScarcityInfo::<T>::update_scarcity_info(
+               contract_stake_info.reputation,
+               contract_stake_info.recent_blockhight,
+           );
+           <ContractStakeinfoMap<T>>::insert(&account_id.clone(), new_scarcity_info.clone());
+           let _update_scarcity_info_event = Contracts::<T>::deposit_event(
+               vec![T::Hashing::hash_of(&account_id.clone())],
+               Event::ContractStakeinfoevnet {
+                   contract_address: account_id.clone(),
+                   reputation: new_scarcity_info.reputation,
+                   recent_blockhight: new_scarcity_info.recent_blockhight,
+               },
+           );
+          let _stake_score: u128 = (new_weight.ref_time() * new_scarcity_info.reputation).into();				
 					let caller = self.caller();
 					Contracts::<T>::deposit_event(
 						vec![T::Hashing::hash_of(&caller), T::Hashing::hash_of(&account_id)],
@@ -1069,7 +1088,7 @@ where
 		to: &T::AccountId,
 		value: BalanceOf<T>,
 	) -> DispatchResult {
-		T::Currency::transfer(from, to, value, existence_requirement)
+		T::ContractCurrency::transfer(from, to, value, existence_requirement)
 			.map_err(|_| Error::<T>::TransferFailed)?;
 		Ok(())
 	}
@@ -1250,10 +1269,10 @@ where
 		let info = frame.terminate();
 		frame.nested_storage.terminate(&info);
 		System::<T>::dec_consumers(&frame.account_id);
-		T::Currency::transfer(
+		T::ContractCurrency::transfer(
 			&frame.account_id,
 			beneficiary,
-			T::Currency::reducible_balance(&frame.account_id, Expendable, Polite),
+			T::ContractCurrency::reducible_balance(&frame.account_id, Expendable, Polite),
 			ExistenceRequirement::AllowDeath,
 		)?;
 		info.queue_trie_for_deletion();
@@ -1333,7 +1352,7 @@ where
 	}
 
 	fn balance(&self) -> BalanceOf<T> {
-		T::Currency::free_balance(&self.top_frame().account_id)
+		T::ContractCurrency::free_balance(&self.top_frame().account_id)
 	}
 
 	fn value_transferred(&self) -> BalanceOf<T> {
@@ -1349,7 +1368,7 @@ where
 	}
 
 	fn minimum_balance(&self) -> BalanceOf<T> {
-		T::Currency::minimum_balance()
+		T::ContractCurrency::minimum_balance()
 	}
 
 	fn deposit_event(&mut self, topics: Vec<T::Hash>, data: Vec<u8>) {
