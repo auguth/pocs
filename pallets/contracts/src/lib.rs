@@ -716,7 +716,7 @@ pub mod pallet {
 			let data_len = data.len() as u32;
 			let salt_len = salt.len() as u32;
 			let common = CommonInput {
-				origin: Origin::from_account_id(origin),
+				origin: Origin::from_account_id(origin.clone()),
 				value,
 				data,
 				gas_limit,
@@ -759,7 +759,7 @@ pub mod pallet {
 
 			output.gas_meter.into_dispatch_result(
 				output.result.map(|(_address, result)| result),
-				T::WeightInfo::instantiate_with_code(code_len, data_len, salt_len),
+				T::ContractWeightInfo::instantiate_with_code(code_len, data_len, salt_len),
 			)
 		}
 
