@@ -38,9 +38,12 @@ environmental = { version = "1.1.4", default-features = false }
 frame-benchmarking = { version = "4.0.0-dev", default-features = false, git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v1.0.0" , optional = true }
 frame-support = { version = "4.0.0-dev", default-features = false, git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v1.0.0" }
 frame-system = { version = "4.0.0-dev", default-features = false, git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v1.0.0" }
+frame-election-provider-support = { version = "4.0.0-dev", default-features = false, git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v1.0.0" }
 pallet-contracts-primitives = { version = "24.0.0", default-features = false, path = "primitives" }
 pallet-contracts-proc-macro = { version = "4.0.0-dev", path = "proc-macro" }
 pallet-staking ={ version = "4.0.0-dev",default-features = false,git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v1.0.0"}
+pallet-session = { version = "4.0.0-dev",default-features = false,git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v1.0.0"}
+sp-session = { version = "4.0.0-dev",default-features = false,git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v1.0.0"}
 sp-staking = { version = "4.0.0-dev", default-features = false,git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v1.0.0"}
 sp-api = { version = "4.0.0-dev", default-features = false, git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v1.0.0" }
 sp-core = { version = "21.0.0", default-features = false, git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v1.0.0" }
@@ -54,6 +57,7 @@ assert_matches = "1"
 env_logger = "0.9"
 pretty_assertions = "1"
 wat = "1"
+pallet-staking-reward-curve = { version = "4.0.0-dev", git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v1.0.0" }
 
 # Substrate Dependencies
 pallet-balances = { version = "4.0.0-dev", git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v1.0.0" }
@@ -76,6 +80,7 @@ std = [
 	"frame-benchmarking?/std",
 	"frame-support/std",
 	"frame-system/std",
+	"frame-election-provider-support/std",
 	"wasm-instrument/std",
 	"wasmi/std",
 	"pallet-contracts-primitives/std",
@@ -84,7 +89,9 @@ std = [
 	"rand/std",
 	"environmental/std",
 	"pallet-staking/std",
+	"pallet-session/std",
 	"sp-staking/std",
+	"sp-session/std",
 ]
 runtime-benchmarks = [
 	"frame-benchmarking/runtime-benchmarks",

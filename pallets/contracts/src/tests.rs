@@ -41,23 +41,31 @@ use frame_support::{
 	storage::child,
 	traits::{
 		ConstU32, ConstU64, Contains, Currency, ExistenceRequirement, LockableCurrency, OnIdle,
-		OnInitialize, StorageVersion, WithdrawReasons,
+		OnInitialize, StorageVersion, WithdrawReasons,KeyOwnerProofSystem,
 	},
 	weights::{constants::WEIGHT_REF_TIME_PER_SECOND, Weight},
 };
 use frame_system::{EventRecord, Phase};
+use frame_election_provider_support::{onchain, SequentialPhragmen};
 use pretty_assertions::{assert_eq, assert_ne};
+use pallet_session::historical as pallet_session_historical;
 use sp_core::ByteArray;
 use sp_io::hashing::blake2_256;
 use sp_keystore::{testing::MemoryKeystore, KeystoreExt};
 use sp_runtime::{
-	testing::H256,
-	traits::{BlakeTwo256, Convert, Hash, IdentityLookup},
-	AccountId32, BuildStorage, TokenError,
+	testing::{H256,Digest, DigestItem, Header, TestXt},
+	traits::{BlakeTwo256, Convert, Hash, IdentityLookup,OpaqueKeys,Header as _},
+	AccountId32, BuildStorage, TokenError,Perbill,
 };
+use sp_staking::{EraIndex, SessionIndex};
 use std::ops::Deref;
 
+type AccountId64 = u64;
+type Nonce = u32;
+type Balance = u64;
+
 type Block = frame_system::mocking::MockBlock<Test>;
+
 
 frame_support::construct_runtime!(
 	pub enum Test
@@ -69,7 +77,9 @@ frame_support::construct_runtime!(
 		Utility: pallet_utility::{Pallet, Call, Storage, Event},
 		Contracts: pallet_contracts::{Pallet, Call, Storage, Event<T>},
 		Proxy: pallet_proxy::{Pallet, Call, Storage, Event<T>},
-		Dummy: pallet_dummy
+		Dummy: pallet_dummy,
+		Staking: pallet_staking::{Pallet, Call, Config<T>, Storage, Event<T>},
+		Session: pallet_session::{Pallet, Call, Storage, Event, Config<T>},
 	}
 );
 
@@ -330,6 +340,7 @@ impl frame_system::Config for Test {
 	type OnSetCode = ();
 	type MaxConsumers = frame_support::traits::ConstU32<16>;
 }
+
 impl pallet_insecure_randomness_collective_flip::Config for Test {}
 impl pallet_balances::Config for Test {
 	type MaxLocks = ();
@@ -373,6 +384,103 @@ impl pallet_proxy::Config for Test {
 	type CallHasher = BlakeTwo256;
 	type AnnouncementDepositBase = ConstU64<1>;
 	type AnnouncementDepositFactor = ConstU64<1>;
+}
+
+sp_runtime::impl_opaque_keys! {
+	pub struct SessionKeys {
+		pub foo: sp_runtime::testing::UintAuthorityId,
+	}
+}
+pub struct TestSessionHandler;
+impl pallet_session::SessionHandler<AccountId32> for TestSessionHandler {
+	const KEY_TYPE_IDS: &'static [sp_runtime::KeyTypeId] = &[];
+
+	fn on_genesis_session<Ks: sp_runtime::traits::OpaqueKeys>(_validators: &[(AccountId32, Ks)]) {}
+
+	fn on_new_session<Ks: sp_runtime::traits::OpaqueKeys>(
+		_: bool,
+		_: &[(AccountId32, Ks)],
+		_: &[(AccountId32, Ks)],
+	) {
+	}
+
+	fn on_disabled(_: u32) {}
+}
+
+impl pallet_session::Config for Test {
+	type SessionManager = pallet_session::historical::NoteHistoricalRoot<Self, Staking>;
+	type Keys = SessionKeys;
+	type ShouldEndSession = pallet_session::PeriodicSessions<(), ()>;
+	type NextSessionRotation = pallet_session::PeriodicSessions<(), ()>;
+	type SessionHandler = TestSessionHandler;
+	type RuntimeEvent = RuntimeEvent;
+	type ValidatorId = Self::AccountId;
+	type ValidatorIdOf = pallet_staking::StashOf<Self,>;
+	type WeightInfo = ();
+}
+
+impl pallet_session::historical::Config for Test {
+	type FullIdentification = pallet_staking::Exposure<AccountId32, u64>;
+	type FullIdentificationOf = pallet_staking::ExposureOf<Self>;
+}
+
+pallet_staking_reward_curve::build! {
+	const I_NPOS: sp_runtime::curve::PiecewiseLinear<'static> = curve!(
+		min_inflation: 0_025_000,
+		max_inflation: 0_100_000,
+		ideal_stake: 0_500_000,
+		falloff: 0_050_000,
+		max_piece_count: 40,
+		test_precision: 0_005_000,
+	);
+}
+parameter_types! {
+	pub const SessionsPerEra: SessionIndex = 3;
+	pub const BondingDuration: EraIndex = 3;
+	pub const SlashDeferDuration: EraIndex = 0;
+	pub const OffendingValidatorsThreshold: Perbill = Perbill::from_percent(16);
+	pub const RewardCurve: &'static sp_runtime::curve::PiecewiseLinear<'static> = &I_NPOS;
+}
+
+pub struct OnChainSeqPhragmen;
+impl onchain::Config for OnChainSeqPhragmen {
+	type System = Test;
+	type Solver = SequentialPhragmen<AccountId32, sp_runtime::Perbill>;
+	type DataProvider = Staking;
+	type WeightInfo = ();
+	type MaxWinners = ConstU32<100>;
+	type VotersBound = ConstU32<{ u32::MAX }>;
+	type TargetsBound = ConstU32<{ u32::MAX }>;
+}
+
+impl pallet_staking::Config for Test {
+	type MaxNominations = ConstU32<16>;
+	type RewardRemainder = ();
+	type CurrencyToVote = ();
+	type RuntimeEvent = RuntimeEvent;
+	type Currency = Balances;
+	type CurrencyBalance = <Self as pallet_balances::Config>::Balance;
+	type Slash = ();
+	type Reward = ();
+	type SessionsPerEra = SessionsPerEra;
+	type BondingDuration = BondingDuration;
+	type SlashDeferDuration = SlashDeferDuration;
+	type AdminOrigin = frame_system::EnsureRoot<Self::AccountId>;
+	type SessionInterface = Self;
+	type UnixTime = pallet_timestamp::Pallet<Test>;
+	type EraPayout = pallet_staking::ConvertCurve<RewardCurve>;
+	type MaxNominatorRewardedPerValidator = ConstU32<64>;
+	type OffendingValidatorsThreshold = OffendingValidatorsThreshold;
+	type NextNewSession = Session;
+	type ElectionProvider = onchain::OnChainExecution<OnChainSeqPhragmen>;
+	type GenesisElectionProvider = Self::ElectionProvider;
+	type VoterList = pallet_staking::UseNominatorsAndValidatorsMap<Self>;
+	type TargetList = pallet_staking::UseValidatorsMap<Self>;
+	type MaxUnlockingChunks = ConstU32<32>;
+	type HistoryDepth = ConstU32<84>;
+	type EventListeners = ();
+	type BenchmarkingConfig = pallet_staking::TestBenchmarkingConfig;
+	type WeightInfo = ();
 }
 
 impl pallet_dummy::Config for Test {}
