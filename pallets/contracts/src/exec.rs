@@ -18,7 +18,7 @@
 use crate::{
 	gas::GasMeter,
 	storage::{self, DepositAccount, WriteOutcome},
-	gasstakeinfo::{AccountStakeinfo,ContractScarcityInfo}, //pocs edited
+	gasstakeinfo::{AccountStakeinfo,ContractScarcityInfo}, //(PoCS)
 	BalanceOf, CodeHash, Config, ContractInfo, ContractInfoOf, DebugBufferVec, Determinism, Error,
 	Event, Nonce, Origin, Pallet as Contracts, Schedule, System, LOG_TARGET,ContractStakeinfoMap
 };
@@ -925,17 +925,23 @@ where
 					let frame = self.top_frame_mut();
 					let contract = frame.contract_info.as_contract();
 					frame.nested_storage.enforce_subcall_limit(contract)?;
-           //pocs call (pocs edited)
+		   // Retrieve contract scarcity information for the given account_id (PoCS)
            let contract_stake_info: ContractScarcityInfo<T> = Contracts::gettercontractinfo(&account_id.clone()).ok_or(<Error<T>>::ContractAddressNotFound)?;
-           let _account_stake_info: AccountStakeinfo<T> = Contracts::getterstakeinfo(&account_id.clone()).ok_or(<Error<T>>::ContractAddressNotFound)?;
-           let _currenct_stake_score = Contracts::<T>::getterstakescoreinfo(&account_id.clone()).ok_or(<Error<T>>::ContractAddressNotFound)?;
-           let new_weight = frame.nested_gas.gas_consumed();
-           let new_scarcity_info = ContractScarcityInfo::<T>::update_scarcity_info(
+           // Retrieve account stake information for the given account_id  (PoCS)
+		   let _account_stake_info: AccountStakeinfo<T> = Contracts::getterstakeinfo(&account_id.clone()).ok_or(<Error<T>>::ContractAddressNotFound)?;
+           // Retrieve current stake score information for the given account_id  (PoCS)
+		   let _currenct_stake_score = Contracts::<T>::getterstakescoreinfo(&account_id.clone()).ok_or(<Error<T>>::ContractAddressNotFound)?;
+           // Calculate the gas consumption for the current frame  (PoCS)
+		   let new_weight = frame.nested_gas.gas_consumed();
+           // Update scarcity information using contract_stake_info data  (PoCS)
+		   let new_scarcity_info = ContractScarcityInfo::<T>::update_scarcity_info(
                contract_stake_info.reputation,
                contract_stake_info.recent_blockhight,
            );
+		   // Insert the updated scarcity information into ContractStakeinfoMap  (PoCS)
            <ContractStakeinfoMap<T>>::insert(&account_id.clone(), new_scarcity_info.clone());
-           let _update_scarcity_info_event = Contracts::<T>::deposit_event(
+           // Deposit an event to indicate the update of scarcity information  (PoCS)
+		   let _update_scarcity_info_event = Contracts::<T>::deposit_event(
                vec![T::Hashing::hash_of(&account_id.clone())],
                Event::ContractStakeinfoevnet {
                    contract_address: account_id.clone(),

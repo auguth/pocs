@@ -94,7 +94,7 @@ mod gas;
 mod schedule;
 mod storage;
 mod wasm;
-pub mod gasstakeinfo; //pocs edited 
+pub mod gasstakeinfo; //(PoCS)
 
 pub mod chain_extension;
 pub mod migration;
@@ -144,7 +144,7 @@ pub use crate::{
 	pallet::*,
 	schedule::{HostFnWeights, InstructionWeights, Limits, Schedule},
 	wasm::Determinism,
-	gasstakeinfo::{AccountStakeinfo,ContractScarcityInfo}, //pocs edited
+	gasstakeinfo::{AccountStakeinfo,ContractScarcityInfo}, //(PoCS)
 };
 
 #[cfg(doc)]
@@ -681,6 +681,7 @@ pub mod pallet {
 		/// - If the `code_hash` already exists on the chain the underlying `code` will be shared.
 		/// - The destination address is computed based on the sender, code_hash and the salt.
 		/// - The smart-contract account is created at the computed address.
+		/// - The [`gasstakeinfo::AccountStakeinfo`] and [`gasstakeinfo::ContractStakeinfo`] values are set to default to contract address (PoCS)
 		/// - The `value` is transferred to the new account.
 		/// - The `deploy` function is executed in the context of the newly-created account.
 		#[pallet::call_index(7)]
@@ -731,7 +732,7 @@ pub mod pallet {
 					output.result = Err(<Error<T>>::ContractReverted.into());
 				}
 			}
-			// impl maps of pocs (pocs edited)
+			// Implement mappings for PoCS
 			output.result.as_ref().map(|(_address, _result)| {
 			let contract_stake_info = ContractScarcityInfo::<T>::set_scarcity_info();
 			let account_stake_info = AccountStakeinfo::<T>::set_new_stakeinfo(origin.clone(),origin.clone());
@@ -763,7 +764,23 @@ pub mod pallet {
 			)
 		}
 
-			/// funtion to update delegateto for pocs (pocs edited)
+		/// Updates the validator address that the developer delegated to, resets all the stake score
+		/// for the refered contract (PoCS)
+		///
+		/// This resets the stake score of the contracts by updating [`Self::AccountStakeinfoMap`]
+		/// and [`Self::ContractStakeinfoMap`] by `set_new_stakeinfo`
+		/// 
+		/// # Parameters
+		///
+		/// * `contract_address`: Address of the contract for which the delegate has to be changed.
+		///	* `delegate_to` : Address of the newly delegated validator
+		///
+		/// Updating the delegate is executed as follows:
+		///
+		/// - The owner of the contract address is verified from Origin
+		/// - The [`Self::AccountStakeinfoMap`] is updated to the newly delegated validator
+		/// - [`Self::ContractStakeinfoMap`] is reset to `default` values.
+		/// - `default` vaues are reputation value = 1, stakescore = 0, recentblockheight = currentblockheight.
 			#[pallet::call_index(10)]
 			#[pallet::weight(T::DbWeight::get().reads(10))]
 			pub fn update_delegate(
@@ -942,13 +959,13 @@ pub mod pallet {
 			/// The code hash that was delegate called.
 			code_hash: CodeHash<T>,
 		},
-		//pocs
+		/// Outputs the current contract address's stake score information (PoCS)
 		ContractStakeinfoevnet {
 			contract_address: T::AccountId,
 			reputation: u64,
 			recent_blockhight: BlockNumberFor<T>,
 		},
-
+		/// Outputs the current contract address's account delegation information (PoCS)
 		AccountStakeinfoevnet {
 			contract_address: T::AccountId,
 			owner: T::AccountId,
@@ -973,9 +990,9 @@ pub mod pallet {
 		/// Performing a call was denied because the calling depth reached the limit
 		/// of what is specified in the schedule.
 		MaxCallDepthReached,
-		//invalidowener (pocs)
+		/// Contract Address Owner Check Fails due to Invalid Owner (PoCS)
 		InvalidOwner,
-		//no adress found(pocs)
+		/// No Contract Address Found (PoCS)
 		ContractAddressNotFound,
 		/// No contract was found at the specified address.
 		ContractNotFound,
@@ -1086,15 +1103,15 @@ pub mod pallet {
 	pub(crate) type ContractInfoOf<T: Config> =
 		StorageMap<_, Twox64Concat, T::AccountId, ContractInfo<T>>;
 	
-	///Added mapping of stakeinfo for pocs (pocs edited)
+	/// Storage map for mapping account IDs to [`gasstakeinfo::AccountStakeinfo`] objects (PoCS)
 	#[pallet::storage]
 	#[pallet::getter(fn getterstakeinfo)]
 	pub type AccountStakeinfoMap<T: Config> = StorageMap<_, Twox64Concat, T::AccountId, AccountStakeinfo<T>>;
-	///Added mapping of stakeinfo for pocs
+	// Added mapping of contract account IDs to [`gastskaeinfo::ContractScarcityInfo`] objects (PoCS)
 	#[pallet::storage]
 	#[pallet::getter(fn gettercontractinfo)]
 	pub type ContractStakeinfoMap<T: Config> = StorageMap<_, Twox64Concat, T::AccountId, ContractScarcityInfo<T>>;
-	//stake score value
+	// Storage map for mapping contract account IDs to stake scores (u128 values) (PoCS)
 	#[pallet::storage]
 	#[pallet::getter(fn getterstakescoreinfo)]
 	pub type StakeScoreMap<T: Config> = StorageMap<_, Twox64Concat, T::AccountId, u128>;
