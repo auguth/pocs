@@ -767,8 +767,8 @@ pub mod pallet {
 		/// Updates the validator address that the developer delegated to, resets all the stake score
 		/// for the refered contract (PoCS)
 		///
-		/// This resets the stake score of the contracts by updating [`Self::AccountStakeinfoMap`]
-		/// and [`Self::ContractStakeinfoMap`] by `set_new_stakeinfo`
+		/// This resets the stake score of the contracts by updating [`pallet_contracts::pallet::AccountStakeinfoMap`]
+		/// and [`pallet_contracts::pallet::ContractStakeinfoMap`] by `set_new_stakeinfo`
 		/// 
 		/// # Parameters
 		///
@@ -778,8 +778,8 @@ pub mod pallet {
 		/// Updating the delegate is executed as follows:
 		///
 		/// - The owner of the contract address is verified from Origin
-		/// - The [`Self::AccountStakeinfoMap`] is updated to the newly delegated validator
-		/// - [`Self::ContractStakeinfoMap`] is reset to `default` values.
+		/// - The [`pallet_contracts::pallet::AccountStakeinfoMap`] is updated to the newly delegated validator
+		/// - [`pallet_contracts::pallet::ContractStakeinfoMap`] is reset to `default` values.
 		/// - `default` vaues are reputation value = 1, stakescore = 0, recentblockheight = currentblockheight.
 			#[pallet::call_index(10)]
 			#[pallet::weight(T::DbWeight::get().reads(10))]
@@ -1107,7 +1107,7 @@ pub mod pallet {
 	#[pallet::storage]
 	#[pallet::getter(fn getterstakeinfo)]
 	pub type AccountStakeinfoMap<T: Config> = StorageMap<_, Twox64Concat, T::AccountId, AccountStakeinfo<T>>;
-	// Added mapping of contract account IDs to [`gastskaeinfo::ContractScarcityInfo`] objects (PoCS)
+	// Added mapping of contract account IDs to [`gasstakeinfo::ContractScarcityInfo`] objects (PoCS)
 	#[pallet::storage]
 	#[pallet::getter(fn gettercontractinfo)]
 	pub type ContractStakeinfoMap<T: Config> = StorageMap<_, Twox64Concat, T::AccountId, ContractScarcityInfo<T>>;

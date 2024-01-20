@@ -15,9 +15,6 @@
 // limitations under the License.
 
 //! This module contains contract's stake score structure and implementation 
-//!
-//!	- `AccountStakeinfo` - Contains delegate information
-//! - `ContractStakeinfo` - Contains contract's stake score information
 
 use codec::{Decode, Encode, MaxEncodedLen};
 use scale_info::TypeInfo;
