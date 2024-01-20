@@ -1,4 +1,4 @@
-name: Rust Tests Validation
+name: Rust
 
 on:
   push:
@@ -10,7 +10,7 @@ env:
   CARGO_TERM_COLOR: always
 
 jobs:
-  test:
+  build:
     runs-on: ubuntu-latest
 
     steps:
