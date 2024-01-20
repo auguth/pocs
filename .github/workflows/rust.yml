@@ -16,6 +16,11 @@ jobs:
     steps:
     - uses: actions/checkout@v3
 
+    - name: Set up Python
+      uses: actions/setup-python@v2
+      with:
+        python-version: '3.x'
+
     - name: Install Rust nightly toolchain
       uses: actions-rs/toolchain@v1
       with:
@@ -36,28 +41,9 @@ jobs:
     - name: Build
       run: cargo build --verbose
 
-    - name: Run tests and generate JUnit XML
+    - name: Run tests
+      run: cargo test --verbose > test_results.txt
+
+    - name: Validate Test Results
       run: |
-        cargo test --verbose -- --format=terse | sed 's/^test \(.*\)... ok/\1: Passed/' | sed 's/^test \(.*\)... FAILED/\1: Failed/' > test_results.txt
-        cargo test --verbose -- --format=junit > test_results.xml
-        cat test_results.txt
-        TEST_EXIT_CODE=$?
-
-    - name: Upload JUnit test results
-      uses: actions/upload-artifact@v2
-      with:
-        name: test-results
-        path: test_results.xml
-
-    - name: Check test results and exit accordingly
-      run: |
-        PASS_COUNT=$(grep -o 'Passed' test_results.txt | wc -l)
-        FAIL_COUNT=$(grep -o 'Failed' test_results.txt | wc -l)
-        if [ $PASS_COUNT -eq 129 ] && [ $FAIL_COUNT -eq 99 ]; then
-          echo "CI Passed: 129 tests passed, 99 tests failed."
-          exit 0
-        else
-          echo "CI Failed: Number of passing or failing tests does not match the expected counts."
-          exit 1
-        fi
-
+        python validate_tests.py
