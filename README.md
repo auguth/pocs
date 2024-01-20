@@ -4,7 +4,7 @@
 
 ## Abstract
 
-Proof of Contract Stake (PoCS) is a staking system utilizing contract gas history introducing **code-mining** by incentivizing developers to secure the network. Contracts’ stake scores depend on age, reputation, and gas use, deterring collusion attacks. Further information on PoCS Protocol Design are detailed in the [PoCS Research Page](https://jobyreuben.in/pocs)
+Proof of Contract Stake (PoCS) is a staking system utilizing contract gas history introducing **code-mining** by incentivizing developers to secure the network. Contracts’ stake scores depend on age, reputation, and gas use, deterring collusion attacks. Further information on PoCS Protocol Design are detailed in the [PoCS Research Page](https://jobyreuben.in/JOURNALS/pocs)
 
 ## Implementation
 
@@ -80,7 +80,6 @@ Integration with `pallet-contracts` involves the addition of two essential maps:
    [Refer to Code](https://github.com/auguth/pocs/blob/d5ddfea4c992bab36832d1bf0aad7afaa2cb9a7b/pallets/contracts/src/exec.rs#L928)
 
 ### Tight Coupling Integration of Pallets
-
 In preparation for the integration of `pallet_contracts` and `pallet_staking` in the PoCS protocol, tight coupling has been established between the two pallets. This decision was made due to the interdependence of both pallets, as they function collaboratively within the PoCS protocol.
 
 To achieve this integration, the following steps were taken:
@@ -99,7 +98,6 @@ To achieve this integration, the following steps were taken:
    For a detailed reference, please visit: [GitHub Pull Request #10](https://github.com/auguth/pocs/pull/10/commits/b19898ed7ea1d22027b5abbdae3d2681d96e0dd1)
 
 ### Testing Implementation
-
 For successful test execution, the following pallets have been implemented in the test environment:
 
 1. `pallet_staking`
