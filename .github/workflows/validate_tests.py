@@ -1,31 +1,22 @@
-import xml.etree.ElementTree as ET
+import json
 
-def validate_test_results(xml_file):
-    tree = ET.parse(xml_file)
-    root = tree.getroot()
-
-    expected_failures = set()
-    unexpected_passes = set()
-    for testsuite in root.findall('testsuite'):
-        for testcase in testsuite:
-            if testcase.tag == 'testcase':
-                test_name = f"{testcase.attrib['classname']}.{testcase.attrib['name']}"
-                if testcase.find('failure') is not None:
-                    expected_failures.add(test_name)
-                else:
-                    unexpected_passes.add(test_name)
-
-    with open('test_results.txt', 'r') as file:
-        actual_results = file.read()
+def validate_test_results(json_file, test_results_file):
+    with open(json_file, 'r') as file:
+        expected_outcomes = json.load(file)
 
     errors = []
-    for test in expected_failures:
-        if test not in actual_results:
-            errors.append(f"Expected failure but passed: {test}")
 
-    for test in unexpected_passes:
-        if test in actual_results:
-            errors.append(f"Unexpected pass: {test}")
+    with open(test_results_file, 'r') as file:
+        for line in file:
+            if line.startswith('test') and ' ... ' in line:
+                parts = line.split(' ... ')
+                test_name = parts[0].split()[1]
+                actual_result = parts[1].strip()
+
+                if test_name in expected_outcomes and expected_outcomes[test_name] != actual_result:
+                    errors.append(f"Test result not matching for: {test_name}. Expected: {expected_outcomes[test_name]}, Found: {actual_result}")
+                elif test_name not in expected_outcomes:
+                   print(f"Test not found for {test_name}, with result {actual_result}")
 
     if errors:
         for error in errors:
@@ -33,4 +24,4 @@ def validate_test_results(xml_file):
         raise Exception("Test validation failed")
 
 if __name__ == "__main__":
-    validate_test_results('test_results.xml')
+    validate_test_results('test.json', 'test_results.txt')
