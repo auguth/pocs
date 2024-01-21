@@ -15,9 +15,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//! # Contracts Pallet
+//! # Contracts Pallet (PoCS Version)
 //!
-//! The Contracts module provides functionality for the runtime to deploy and execute WebAssembly
+//! The modified Contracts module provides functionality for the runtime to deploy and execute WebAssembly
 //! smart-contracts.
 //!
 //! - [`Config`]
@@ -29,6 +29,8 @@
 //! functionality. It can be used with other modules that implement accounts based on [`Currency`].
 //! These "smart-contract accounts" have the ability to instantiate smart-contracts and make calls
 //! to other contract and non-contract accounts.
+//! 
+//! The newly deployed contracts will include delegate and it's stake score information.
 //!
 //! The smart-contract code is stored once, and later retrievable via its hash.
 //! This means that multiple smart-contracts can be instantiated from the same hash, without
@@ -69,6 +71,7 @@
 //! calls its constructor to initialize the contract.
 //! * [`Pallet::instantiate`] - The same as `instantiate_with_code` but instead of uploading new
 //! code an existing `code_hash` is supplied.
+//! * [`Pallet::update_delegate`] - Updates the delegate information of the contract.
 //! * [`Pallet::call`] - Makes a call to an account, optionally transferring some balance.
 //! * [`Pallet::upload_code`] - Uploads new code without instantiating a contract from it.
 //! * [`Pallet::remove_code`] - Removes the stored code and refunds the deposit to its owner. Only
@@ -681,7 +684,7 @@ pub mod pallet {
 		/// - If the `code_hash` already exists on the chain the underlying `code` will be shared.
 		/// - The destination address is computed based on the sender, code_hash and the salt.
 		/// - The smart-contract account is created at the computed address.
-		/// - The [`gasstakeinfo::AccountStakeinfo`] and [`gasstakeinfo::ContractStakeinfo`] values are set to default to contract address (PoCS)
+		/// - The [`gasstakeinfo::AccountStakeinfo`] and [`gasstakeinfo::ContractScarcityinfo`] values are set to default to contract address (PoCS)
 		/// - The `value` is transferred to the new account.
 		/// - The `deploy` function is executed in the context of the newly-created account.
 		#[pallet::call_index(7)]
@@ -767,8 +770,8 @@ pub mod pallet {
 		/// Updates the validator address that the developer delegated to, resets all the stake score
 		/// for the refered contract (PoCS)
 		///
-		/// This resets the stake score of the contracts by updating [`pallet_contracts::pallet::AccountStakeinfoMap`]
-		/// and [`pallet_contracts::pallet::ContractStakeinfoMap`] by `set_new_stakeinfo`
+		/// This resets the stake score of the contracts by updating [`pallet::AccountStakeinfoMap`]
+		/// and [`pallet::ContractStakeinfoMap`] by `set_new_stakeinfo`
 		/// 
 		/// # Parameters
 		///
@@ -778,8 +781,8 @@ pub mod pallet {
 		/// Updating the delegate is executed as follows:
 		///
 		/// - The owner of the contract address is verified from Origin
-		/// - The [`pallet_contracts::pallet::AccountStakeinfoMap`] is updated to the newly delegated validator
-		/// - [`pallet_contracts::pallet::ContractStakeinfoMap`] is reset to `default` values.
+		/// - The [`pallet::AccountStakeinfoMap`] is updated to the newly delegated validator
+		/// - [`pallet::ContractStakeinfoMap`] is reset to `default` values.
 		/// - `default` vaues are reputation value = 1, stakescore = 0, recentblockheight = currentblockheight.
 			#[pallet::call_index(10)]
 			#[pallet::weight(T::DbWeight::get().reads(10))]
