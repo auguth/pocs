@@ -97,8 +97,16 @@ To achieve this integration, the following steps were taken:
 
    For a detailed reference, please visit: [GitHub Pull Request #10](https://github.com/auguth/pocs/pull/10/commits/b19898ed7ea1d22027b5abbdae3d2681d96e0dd1)
 
-### Testing Implementation
-For successful test execution, the following pallets have been implemented in the test environment:
+### Testing
+To test the functionality of added mappings and functions, 4 tests have been added to `test.rs`
+1. `contract_stake_event` - Tests the ContractStakeInfo mapping has been updated and the emitted event reflects correct values.
+2. `account_stake_event` - Tests the AccountStakeInfo mapping has been updated and the emitted event reflects correct values.
+3. `update_delegate_invalid_owner` - Test to check the update_delegate function for a contract does not succeed if not called by the contract owner.
+4. `update_delegate_valid_owner` - Test to check that update_delegate when called by owner updates the ContractStakeInfo and AccountStakeInfo and emitted events reflect correct values.
+
+[Test Code]()
+
+Additionally for successful test execution, the following pallets have been implemented in the test environment:
 
 1. `pallet_staking`
 2. `pallet_sessions`

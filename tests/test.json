@@ -264,5 +264,8 @@
     "wasm::tests::set_storage_works": "ok",
     "tests::__pallet_staking_reward_curve_test_module::reward_curve_piece_count": "ok",
     "tests::__pallet_staking_reward_curve_test_module::reward_curve_precision": "ok",
-    "tests::contract_stake_event": "ok"
+    "tests::contract_stake_event": "ok",
+    "tests::account_stake_event": "ok",
+    "tests::update_delegate_valid_owner": "ok",
+    "tests::update_delegate_invalid_owner": "ok"
 }
