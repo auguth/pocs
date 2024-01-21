@@ -117,7 +117,7 @@ For milestone-1 we have just benchmarked storage. There has not been significant
 
 ### How to run
 `cargo build --verbose` <br>
-`cargo test --verbose` - Will run all tests including ours. <br>
+`cargo test pocs` - Will run pocs tests. <br>
 Note : The failing tests from pallet-contract have been failing before our changes. Currently we have 170 tests passing and 64 failing tests
 
 For additional details and code references, please review the changes made in the test environment by visiting: [GitHub Pull Request #11](https://github.com/auguth/pocs/pull/11/commits/5787cd104f2aed59c0fd0a049c32e56a050d5557)
