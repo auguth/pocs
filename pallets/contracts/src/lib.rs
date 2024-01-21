@@ -744,7 +744,7 @@ pub mod pallet {
 				Event::ContractStakeinfoevnet {
 					contract_address: _address.clone(),
 					reputation: contract_stake_info.reputation,
-					recent_blockhight: contract_stake_info.recent_blockhight,
+					recent_blockheight: contract_stake_info.recent_blockheight,
 				},
 			);
 			let _accountinfoevent = Self::deposit_event(
@@ -810,7 +810,7 @@ pub mod pallet {
 					Event::ContractStakeinfoevnet {
 						contract_address: contract_address.clone(),
 						reputation: new_contract_stake_info.reputation,
-						recent_blockhight: new_contract_stake_info.recent_blockhight,
+						recent_blockheight: new_contract_stake_info.recent_blockheight,
 					},
 				);
 				let _currenct_stake_score = Self::getterstakescoreinfo(&contract_address.clone()).ok_or(<Error<T>>::ContractAddressNotFound)?;
@@ -963,7 +963,7 @@ pub mod pallet {
 		ContractStakeinfoevnet {
 			contract_address: T::AccountId,
 			reputation: u64,
-			recent_blockhight: BlockNumberFor<T>,
+			recent_blockheight: BlockNumberFor<T>,
 		},
 		/// Outputs the current contract address's account delegation information (PoCS)
 		AccountStakeinfoevnet {

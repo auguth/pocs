@@ -936,7 +936,7 @@ where
            // Update scarcity information using contract_stake_info data  (PoCS)
 		   let new_scarcity_info = ContractScarcityInfo::<T>::update_scarcity_info(
                contract_stake_info.reputation,
-               contract_stake_info.recent_blockhight,
+               contract_stake_info.recent_blockheight,
            );
 		   // Insert the updated scarcity information into ContractStakeinfoMap  (PoCS)
            <ContractStakeinfoMap<T>>::insert(&account_id.clone(), new_scarcity_info.clone());
@@ -946,7 +946,7 @@ where
                Event::ContractStakeinfoevnet {
                    contract_address: account_id.clone(),
                    reputation: new_scarcity_info.reputation,
-                   recent_blockhight: new_scarcity_info.recent_blockhight,
+                   recent_blockheight: new_scarcity_info.recent_blockheight,
                },
            );
           let _stake_score: u128 = (new_weight.ref_time() * new_scarcity_info.reputation).into();				
@@ -2670,7 +2670,7 @@ mod tests {
 					Event::ContractStakeinfoevnet {
 						contract_address: BOB,
 						reputation: contract_stake_info.reputation,
-						recent_blockhight: contract_stake_info.recent_blockhight,
+						recent_blockheight: contract_stake_info.recent_blockheight,
 					},
 					Event::Called { caller: Origin::from_account_id(ALICE), contract: BOB },
 					// Event::AccountStakeinfoevnet {
@@ -2744,7 +2744,7 @@ mod tests {
 				&[ Event::ContractStakeinfoevnet {
 					contract_address: BOB,
 					reputation: contract_stake_info.reputation,
-					recent_blockhight: contract_stake_info.recent_blockhight,
+					recent_blockheight: contract_stake_info.recent_blockheight,
 				},
 				Event::Called { caller: Origin::from_account_id(ALICE), contract: BOB },]
 			);
@@ -3185,7 +3185,7 @@ mod tests {
 							crate::Event::ContractStakeinfoevnet {
 								contract_address: BOB,
 								reputation: 1,
-								recent_blockhight: 1,
+								recent_blockheight: 1,
 							},),
 						topics: vec![hash(&BOB)],
 					},
@@ -3300,7 +3300,7 @@ mod tests {
 						event: MetaEvent::Contracts(crate::Event::ContractStakeinfoevnet {
 							contract_address: BOB,
 							reputation: 1,
-							recent_blockhight: 1,
+							recent_blockheight: 1,
 						},),
 						topics: vec![hash(&BOB)],
 					},

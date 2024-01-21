@@ -45,7 +45,7 @@ pub struct AccountStakeinfo<T: frame_system::Config> {
 #[scale_info(skip_type_params(T))]
 pub struct ContractScarcityInfo<T: frame_system::Config> {
 	pub reputation: u64,
-	pub recent_blockhight: BlockNumberFor<T>,
+	pub recent_blockheight: BlockNumberFor<T>,
 }
 
 impl<T: frame_system::Config> AccountStakeinfo<T> {
@@ -89,35 +89,35 @@ impl<T: frame_system::Config> ContractScarcityInfo<T>{
 		// Create and return a new ContractScarcityInfo instance with default values.
 		Self{
 			reputation: 1,
-			recent_blockhight: current_block_number,
+			recent_blockheight: current_block_number,
 		}
 	}
     /// Updates the contract's reputation based on its usage.
 	pub fn update_scarcity_info(
 		current_reputation: u64,
-		old_block_hight: BlockNumberFor<T>,
+		old_block_height: BlockNumberFor<T>,
 	)-> Self{
 		// Get the current block number.
-		let current_block_hight = <frame_system::Pallet<T>>::block_number();
+		let current_block_height = <frame_system::Pallet<T>>::block_number();
 		// Prevent updating stake score multiple times within the same block height.
-		if current_block_hight > old_block_hight{
+		if current_block_height > old_block_height{
 		// Increase reputation and update recent_block_height.
 		let new_reputation = current_reputation + 1;
-		let new_recent_blockhight = current_block_hight;
+		let new_recent_blockheight = current_block_height;
 		// Create and return a new ContractScarcityInfo instance.
 		Self{
 			reputation: new_reputation,
-			recent_blockhight: new_recent_blockhight,
+			recent_blockheight: new_recent_blockheight,
 		}
 		}
 		else{
 		 // Contract hasn't been used; no change in reputation.
          // Return a new ContractScarcityInfo instance with the same values.
 		 let new_reputation = current_reputation;
-		 let new_recent_blockhight = old_block_hight;
+		 let new_recent_blockheight = old_block_height;
 		 Self{
 			reputation: new_reputation,
-			recent_blockhight: new_recent_blockhight,
+			recent_blockheight: new_recent_blockheight,
 		}
 		}	
 	}
