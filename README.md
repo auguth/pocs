@@ -104,7 +104,7 @@ To test the functionality of added mappings and functions, 4 tests have been add
 3. `update_delegate_invalid_owner` - Test to check the update_delegate function for a contract does not succeed if not called by the contract owner.
 4. `update_delegate_valid_owner` - Test to check that update_delegate when called by owner updates the ContractStakeInfo and AccountStakeInfo and emitted events reflect correct values.
 
-[Test Code]()
+[Test Code](https://github.com/auguth/pocs/blob/1e311f83cd0e59b4b4b6224b7e50b5b983b5f508/pallets/contracts/src/tests.rs#L5888)
 
 Additionally for successful test execution, the following pallets have been implemented in the test environment:
 
