@@ -40,6 +40,16 @@
 // --output=./frame/contracts/src/weights.rs
 // --template=./.maintain/frame-weight-template.hbs
 
+// PoCS Executed Command:
+// ./target/release/pocs benchmark pallet \
+//     --extrinsic=\* \
+//     --pallet=pallet_contracts \
+//     --steps=50 \
+//     --repeat=20 \
+//     --wasm-execution=compiled \
+//     --chain=dev \
+//     --output=./pallets/contracts/src/weights.rs
+
 #![cfg_attr(rustfmt, rustfmt_skip)]
 #![allow(unused_parens)]
 #![allow(unused_imports)]
@@ -3694,3 +3704,4 @@ impl ContractWeightInfo for () {
 			.saturating_add(Weight::from_parts(10_213, 0).saturating_mul(r.into()))
 	}
 }
+
