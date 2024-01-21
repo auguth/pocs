@@ -24,4 +24,4 @@ def validate_test_results(json_file, test_results_file):
         raise Exception("Test validation failed")
 
 if __name__ == "__main__":
-    validate_test_results('tests/test.json', 'test_results.txt')
+    validate_test_results('test.json', 'test_results.txt')
