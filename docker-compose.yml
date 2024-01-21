@@ -1,17 +1,22 @@
-version: "3.2"
+version: '3.8'
 
 services:
-  dev:
+  pocs-node:
+    build: 
+      context: .
+      dockerfile: Dockerfile
     container_name: pocs
-    image: paritytech/ci-linux:974ba3ac-20201006
-    working_dir: /var/www/pocs
-    ports:
-      - "9944:9944"
-    environment:
-      - CARGO_HOME=/var/www/pocs/.cargo
     volumes:
-      - .:/var/www/pocs
-      - type: bind
-        source: ./.local
-        target: /root/.local
-    command: bash -c "cargo build --release && ./target/release/pocs --dev --ws-external"
+      - substrate-data:/pocs
+    ports:
+      - "9944:9944" # Maps WebSockets port
+      - "9933:9933" # Maps RPC port
+      - "30333:30333" # Maps P2P port
+    restart: unless-stopped
+    command: 
+      - "--dev"
+      - "--ws-external"
+      - "--rpc-cors=all"
+
+volumes:
+  substrate-data:
