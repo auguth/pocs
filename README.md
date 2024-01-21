@@ -85,20 +85,9 @@ Additionally for successful test execution, the following pallets have been impl
 1. `pallet_staking`
 2. `pallet_sessions`
 
-#### How to run
-
-```
-cargo build --verbose
-cargo test --verbose // Will run all tests including ours.
-``` 
-
-**Note** : The failing tests from pallet-contract have been failing before our changes. Currently we have **170 tests passing** and 64 failing tests
-
-For additional details, please review the changes made in the test environment by visiting: [GitHub Pull Request #11](https://github.com/auguth/pocs/pull/11/commits/5787cd104f2aed59c0fd0a049c32e56a050d5557)
-
 ### Benchmarks
-
 Currently storage is benchmarked. There has not been significant changes in runtime. Check out benchmarks folder for results
+
 ### How to run
 `cargo build --verbose` <br>
 `cargo test pocs` - Will run pocs tests. <br>
