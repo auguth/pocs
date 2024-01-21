@@ -5783,3 +5783,166 @@ fn contract_stake_event() {
     });
 }
 
+#[test]
+fn account_stake_event() {
+    let (wasm, _) = compile_module::<Test>("dummy").unwrap(); 
+    ExtBuilder::default().existential_deposit(50).build().execute_with(|| {
+        let _ = Balances::deposit_creating(&ALICE, 1_000_000);
+
+		let contract_owner = ALICE;
+
+        // Instantiate the contract
+        assert_ok!( Contracts::instantiate_with_code(
+            RuntimeOrigin::signed(ALICE),
+            100_000, // Endowment
+            GAS_LIMIT,
+            None, // Salt
+            wasm,
+            vec![], // Input data
+            vec![], // Storage deposits
+        ));
+
+		let events = frame_system::Module::<Test>::events();
+		let contract_address = if let Some(record) = events.iter().find(|e| 
+			matches!(e.event, RuntimeEvent::Contracts(crate::Event::Instantiated { .. }))
+		) {
+			if let RuntimeEvent::Contracts(crate::Event::Instantiated { contract, .. }) = &record.event {
+				contract.clone()
+			} else {
+				panic!("Expected Instantiated event");
+			}
+		} else {
+			panic!("Expected Instantiated event to be emitted");
+		};
+
+		let account_stake_info_event = events.iter().find_map(|record| {
+			if let RuntimeEvent::Contracts(crate::Event::AccountStakeinfoevnet { contract_address, owner, delegate_to, delegate_at }) = &record.event {
+				Some((contract_address.clone(), owner, delegate_to, delegate_at))
+			} else {
+				None
+			}
+		}).expect("Expected ContractStakeinfoevnet event to be emitted");
+		
+		assert_eq!(account_stake_info_event.0, contract_address);
+		assert_eq!(*account_stake_info_event.1, contract_owner);
+		assert_eq!(*account_stake_info_event.2, contract_owner);
+		assert_eq!(*account_stake_info_event.3, System::block_number());
+    });
+}
+
+#[test]
+fn update_delegate_invalid_owner() {
+	let (wasm, _) = compile_module::<Test>("dummy").unwrap(); 
+    ExtBuilder::default().existential_deposit(50).build().execute_with(|| {
+        let _ = Balances::deposit_creating(&ALICE, 1_000_000);
+
+        // Instantiate the contract
+        assert_ok!( Contracts::instantiate_with_code(
+            RuntimeOrigin::signed(ALICE),
+            100_000, // Endowment
+            GAS_LIMIT,
+            None, // Salt
+            wasm,
+            vec![], // Input data
+            vec![], // Storage deposits
+        ));
+
+		let events = frame_system::Module::<Test>::events();
+		let contract_address = if let Some(record) = events.iter().find(|e| 
+			matches!(e.event, RuntimeEvent::Contracts(crate::Event::Instantiated { .. }))
+		) {
+			if let RuntimeEvent::Contracts(crate::Event::Instantiated { contract, .. }) = &record.event {
+				contract.clone()
+			} else {
+				panic!("Expected Instantiated event");
+			}
+		} else {
+			panic!("Expected Instantiated event to be emitted");
+		};
+
+		// Update delegate with invalid owner
+		assert_noop!(
+            Contracts::update_delegate(
+                RuntimeOrigin::signed(BOB),
+                contract_address.clone(),
+                CHARLIE, 
+            ),
+            Error::<Test>::InvalidOwner
+        );
+	});
+}
+
+#[test]
+fn update_delegate_valid_owner() {
+	let (wasm, _) = compile_module::<Test>("dummy").unwrap(); 
+    ExtBuilder::default().existential_deposit(50).build().execute_with(|| {
+        let _ = Balances::deposit_creating(&ALICE, 1_000_000);
+
+        // Instantiate the contract
+        assert_ok!( Contracts::instantiate_with_code(
+            RuntimeOrigin::signed(ALICE),
+            100_000, // Endowment
+            GAS_LIMIT,
+            None, // Salt
+            wasm,
+            vec![], // Input data
+            vec![], // Storage deposits
+        ));
+
+		let events = frame_system::Module::<Test>::events();
+		let contract_address = if let Some(record) = events.iter().find(|e| 
+			matches!(e.event, RuntimeEvent::Contracts(crate::Event::Instantiated { .. }))
+		) {
+			if let RuntimeEvent::Contracts(crate::Event::Instantiated { contract, .. }) = &record.event {
+				contract.clone()
+			} else {
+				panic!("Expected Instantiated event");
+			}
+		} else {
+			panic!("Expected Instantiated event to be emitted");
+		};
+
+		// Update delegate with invalid owner
+		assert_ok!(
+            Contracts::update_delegate(
+                RuntimeOrigin::signed(ALICE),
+                contract_address.clone(),
+                CHARLIE, 
+            ),
+		);
+
+		let events = frame_system::Module::<Test>::events();
+		let contract_events: Vec<_> = events.iter().filter_map(|record| {
+			if let RuntimeEvent::Contracts(crate::Event::ContractStakeinfoevnet { contract_address, reputation, recent_blockheight }) = &record.event {
+				Some((contract_address.clone(), *reputation, *recent_blockheight))
+			} else {
+				None
+			}
+		}).collect();
+
+		assert!(contract_events.len() >= 2, "Expected at least two ContractStakeinfoevnet events");
+		
+		let contract_stake_info_event = &contract_events[1];
+
+		let account_events: Vec<_> = events.iter().filter_map(|record| {
+			if let RuntimeEvent::Contracts(crate::Event::AccountStakeinfoevnet { contract_address, owner, delegate_to, delegate_at }) = &record.event {
+				Some((contract_address.clone(), owner.clone(), delegate_to.clone(), delegate_at))
+			} else {
+				None
+			}
+		}).collect();
+		
+		assert!(account_events.len() >= 2, "Expected at least two AccountStakeinfoevnet events");
+		
+		let account_stake_info_event = &account_events[1];
+
+		assert_eq!(contract_stake_info_event.0, contract_address);
+		assert_eq!(contract_stake_info_event.1, 1);
+		assert_eq!(contract_stake_info_event.2, System::block_number());
+
+		assert_eq!(account_stake_info_event.0, contract_address);
+		assert_eq!(account_stake_info_event.1, ALICE);
+		assert_eq!(account_stake_info_event.2, CHARLIE);
+		assert_eq!(*account_stake_info_event.3, System::block_number());
+	});
+}
