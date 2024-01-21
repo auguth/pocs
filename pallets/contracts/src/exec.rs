@@ -3346,10 +3346,14 @@ mod tests {
 					&[],
 				)
 				.unwrap();
-
+				let contract_stake_info = ContractScarcityInfo::<Test>::set_scarcity_info();
+				let account_stake_info = AccountStakeinfo::<Test>::set_new_stakeinfo(ALICE,account_id.clone());
+				<ContractStakeinfoMap<Test>>::insert(account_id.clone(), contract_stake_info.clone());
+				<StakeScoreMap<Test>>::insert(account_id.clone(), 0);
+				<AccountStakeinfoMap<Test>>::insert(account_id.clone(),account_stake_info.clone());
 			// a plain call should not influence the account counter
 			ctx.ext
-				.call(Weight::zero(), BalanceOf::<Test>::zero(), account_id, 0, vec![], false)
+				.call(Weight::zero(), BalanceOf::<Test>::zero(), account_id.clone(), 0, vec![], false)
 				.unwrap();
 
 			exec_success()
