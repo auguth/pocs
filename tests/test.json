@@ -38,7 +38,7 @@
     "exec::tests::refuse_instantiate_with_value_below_existential_deposit": "ok",
     "exec::tests::root_caller_succeeds_with_consecutive_calls": "ok",
     "exec::tests::set_storage_varsized_key_works": "ok",
-    "exec::tests::nonce": "ok",
+    "exec::tests::nonce": "FAILED",
     "gas::tests::charge_exact_amount": "ok",
     "gas::tests::overcharge_does_not_charge": "ok",
     "gas::tests::it_works": "ok",

@@ -5770,15 +5770,13 @@ fn contract_stake_event() {
 		};
 
 		let contract_stake_info_event = events.iter().find_map(|record| {
-			if let RuntimeEvent::Contracts(crate::Event::ContractStakeinfoevnet { contract_address, reputation, recent_blockhight }) = &record.event {
-				Some((contract_address.clone(), reputation, recent_blockhight))
+			if let RuntimeEvent::Contracts(crate::Event::ContractStakeinfoevnet { contract_address, reputation, recent_blockheight }) = &record.event {
+				Some((contract_address.clone(), reputation, recent_blockheight))
 			} else {
 				None
 			}
 		}).expect("Expected ContractStakeinfoevnet event to be emitted");
 		
-
-		println!("Actual event: {:?}", contract_stake_info_event);
 		assert_eq!(contract_stake_info_event.0, contract_address);
 		assert_eq!(*contract_stake_info_event.1, 1);
 		assert_eq!(*contract_stake_info_event.2, System::block_number());
