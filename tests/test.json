@@ -265,5 +265,4 @@
     "tests::__pallet_staking_reward_curve_test_module::reward_curve_piece_count": "ok",
     "tests::__pallet_staking_reward_curve_test_module::reward_curve_precision": "ok",
     "tests::contract_stake_event": "ok"
-
 }
