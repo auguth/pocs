@@ -5736,3 +5736,52 @@ fn root_cannot_instantiate() {
 		);
 	});
 }
+
+// POCS Tests
+
+#[test]
+fn contract_stake_event() {
+    let (wasm, _) = compile_module::<Test>("dummy").unwrap(); 
+    ExtBuilder::default().existential_deposit(50).build().execute_with(|| {
+        let _ = Balances::deposit_creating(&ALICE, 1_000_000);
+
+        // Instantiate the contract
+        assert_ok!( Contracts::instantiate_with_code(
+            RuntimeOrigin::signed(ALICE),
+            100_000, // Endowment
+            GAS_LIMIT,
+            None, // Salt
+            wasm,
+            vec![], // Input data
+            vec![], // Storage deposits
+        ));
+
+		let events = frame_system::Module::<Test>::events();
+		let contract_address = if let Some(record) = events.iter().find(|e| 
+			matches!(e.event, RuntimeEvent::Contracts(crate::Event::Instantiated { .. }))
+		) {
+			if let RuntimeEvent::Contracts(crate::Event::Instantiated { contract, .. }) = &record.event {
+				contract.clone()
+			} else {
+				panic!("Expected Instantiated event");
+			}
+		} else {
+			panic!("Expected Instantiated event to be emitted");
+		};
+
+		let contract_stake_info_event = events.iter().find_map(|record| {
+			if let RuntimeEvent::Contracts(crate::Event::ContractStakeinfoevnet { contract_address, reputation, recent_blockhight }) = &record.event {
+				Some((contract_address.clone(), reputation, recent_blockhight))
+			} else {
+				None
+			}
+		}).expect("Expected ContractStakeinfoevnet event to be emitted");
+		
+
+		println!("Actual event: {:?}", contract_stake_info_event);
+		assert_eq!(contract_stake_info_event.0, contract_address);
+		assert_eq!(*contract_stake_info_event.1, 1);
+		assert_eq!(*contract_stake_info_event.2, System::block_number());
+    });
+}
+
