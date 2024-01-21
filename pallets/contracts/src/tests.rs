@@ -25,12 +25,13 @@ use crate::{
 	},
 	exec::{Frame, Key},
 	storage::DeletionQueueManager,
+	gasstakeinfo::{AccountStakeinfo,ContractScarcityInfo}, //(PoCS)
 	tests::test_utils::{get_contract, get_contract_checked},
 	wasm::{Determinism, ReturnCode as RuntimeReturnCode},
 	weights::ContractWeightInfo,
 	BalanceOf, Code, CollectEvents, Config, ContractInfo, ContractInfoOf, DebugInfo,
 	DefaultAddressGenerator, DeletionQueueCounter, Error, MigrationInProgress, NoopMigration,
-	Origin, Pallet, PristineCode, Schedule,
+	Origin, Pallet, PristineCode, Schedule,ContractStakeinfoMap,AccountStakeinfoMap,StakeScoreMap
 };
 use assert_matches::assert_matches;
 use codec::Encode;
@@ -994,6 +995,12 @@ fn run_out_of_fuel_host() {
 		.account_id;
 
 		let gas_limit = Weight::from_parts(u32::MAX as u64, GAS_LIMIT.proof_size());
+		
+		let contract_stake_info = ContractScarcityInfo::<Test>::set_scarcity_info();
+		let account_stake_info = AccountStakeinfo::<Test>::set_new_stakeinfo(ALICE,addr.clone());
+		<ContractStakeinfoMap<Test>>::insert(addr.clone(), contract_stake_info.clone());
+		<StakeScoreMap<Test>>::insert(addr.clone(), 0);
+		<AccountStakeinfoMap<Test>>::insert(addr.clone(),account_stake_info.clone());
 
 		// Use chain extension to charge more ref_time than it is available.
 		let result = Contracts::bare_call(
@@ -1067,9 +1074,27 @@ fn gas_syncs_work() {
 		.unwrap()
 		.account_id;
 
+		let contract_stake_info = ContractScarcityInfo::<Test>::set_scarcity_info();
+		let account_stake_info = AccountStakeinfo::<Test>::set_new_stakeinfo(ALICE,addr0.clone());
+		<ContractStakeinfoMap<Test>>::insert(addr0.clone(), contract_stake_info.clone());
+		<StakeScoreMap<Test>>::insert(addr0.clone(), 0);
+		<AccountStakeinfoMap<Test>>::insert(addr0.clone(),account_stake_info.clone());
+		
+		let contract_stake_info2 = ContractScarcityInfo::<Test>::set_scarcity_info();
+		let account_stake_info2 = AccountStakeinfo::<Test>::set_new_stakeinfo(ALICE,addr1.clone());
+		<ContractStakeinfoMap<Test>>::insert(addr1.clone(), contract_stake_info.clone());
+		<StakeScoreMap<Test>>::insert(addr1.clone(), 0);
+		<AccountStakeinfoMap<Test>>::insert(addr1.clone(),account_stake_info.clone());
+
+		let contract_stake_info3 = ContractScarcityInfo::<Test>::set_scarcity_info();
+		let account_stake_info3 = AccountStakeinfo::<Test>::set_new_stakeinfo(ALICE,addr2.clone());
+		<ContractStakeinfoMap<Test>>::insert(addr2.clone(), contract_stake_info.clone());
+		<StakeScoreMap<Test>>::insert(addr2.clone(), 0);
+		<AccountStakeinfoMap<Test>>::insert(addr2.clone(),account_stake_info.clone());
+
 		let result = Contracts::bare_call(
 			ALICE,
-			addr0,
+			addr0.clone(),
 			0,
 			GAS_LIMIT,
 			None,
@@ -1833,6 +1858,11 @@ fn crypto_hashes() {
 			// We offset data in the contract tables by 1.
 			let mut params = vec![(n + 1) as u8];
 			params.extend_from_slice(input);
+			let contract_stake_info = ContractScarcityInfo::<Test>::set_scarcity_info();
+			let account_stake_info = AccountStakeinfo::<Test>::set_new_stakeinfo(ALICE,addr.clone());
+			<ContractStakeinfoMap<Test>>::insert(addr.clone(), contract_stake_info.clone());
+			<StakeScoreMap<Test>>::insert(addr.clone(), 0);
+			<AccountStakeinfoMap<Test>>::insert(addr.clone(),account_stake_info.clone());
 			let result = <Pallet<Test>>::bare_call(
 				ALICE,
 				addr.clone(),
@@ -1874,7 +1904,11 @@ fn transfer_return_code() {
 		.result
 		.unwrap()
 		.account_id;
-
+		let contract_stake_info = ContractScarcityInfo::<Test>::set_scarcity_info();
+		let account_stake_info = AccountStakeinfo::<Test>::set_new_stakeinfo(ALICE,addr.clone());
+		<ContractStakeinfoMap<Test>>::insert(addr.clone(), contract_stake_info.clone());
+		<StakeScoreMap<Test>>::insert(addr.clone(), 0);
+		<AccountStakeinfoMap<Test>>::insert(addr.clone(),account_stake_info.clone());
 		// Contract has only the minimal balance so any transfer will fail.
 		Balances::make_free_balance_be(&addr, min_balance);
 		let result = Contracts::bare_call(
@@ -1918,6 +1952,12 @@ fn call_return_code() {
 		.unwrap()
 		.account_id;
 		Balances::make_free_balance_be(&addr_bob, min_balance);
+
+		let contract_stake_info = ContractScarcityInfo::<Test>::set_scarcity_info();
+		let account_stake_info = AccountStakeinfo::<Test>::set_new_stakeinfo(ALICE,addr_bob.clone());
+		<ContractStakeinfoMap<Test>>::insert(addr_bob.clone(), contract_stake_info.clone());
+		<StakeScoreMap<Test>>::insert(addr_bob.clone(), 0);
+		<AccountStakeinfoMap<Test>>::insert(addr_bob.clone(),account_stake_info.clone());
 
 		// Contract calls into Django which is no valid contract
 		let result = Contracts::bare_call(
@@ -2048,7 +2088,11 @@ fn instantiate_return_code() {
 		.result
 		.unwrap()
 		.account_id;
-
+		let contract_stake_info = ContractScarcityInfo::<Test>::set_scarcity_info();
+		let account_stake_info = AccountStakeinfo::<Test>::set_new_stakeinfo(ALICE,addr.clone());
+		<ContractStakeinfoMap<Test>>::insert(addr.clone(), contract_stake_info.clone());
+		<StakeScoreMap<Test>>::insert(addr.clone(), 0);
+		<AccountStakeinfoMap<Test>>::insert(addr.clone(),account_stake_info.clone());
 		// Contract has only the minimal balance so any transfer will fail.
 		Balances::make_free_balance_be(&addr, min_balance);
 		let result = Contracts::bare_call(
@@ -2187,7 +2231,11 @@ fn chain_extension_works() {
 		.result
 		.unwrap()
 		.account_id;
-
+		let contract_stake_info = ContractScarcityInfo::<Test>::set_scarcity_info();
+		let account_stake_info = AccountStakeinfo::<Test>::set_new_stakeinfo(ALICE,addr.clone());
+		<ContractStakeinfoMap<Test>>::insert(addr.clone(), contract_stake_info.clone());
+		<StakeScoreMap<Test>>::insert(addr.clone(), 0);
+		<AccountStakeinfoMap<Test>>::insert(addr.clone(),account_stake_info.clone());
 		// 0 = read input buffer and pass it through as output
 		let input: Vec<u8> = ExtensionInput { extension_id: 0, func_id: 0, extra: &[99] }.into();
 		let result = Contracts::bare_call(
@@ -2343,6 +2391,12 @@ fn chain_extension_temp_storage_works() {
 				.to_vec()
 				.as_ref(),
 		);
+
+		let contract_stake_info = ContractScarcityInfo::<Test>::set_scarcity_info();
+		let account_stake_info = AccountStakeinfo::<Test>::set_new_stakeinfo(ALICE,addr.clone());
+		<ContractStakeinfoMap<Test>>::insert(addr.clone(), contract_stake_info.clone());
+		<StakeScoreMap<Test>>::insert(addr.clone(), 0);
+		<AccountStakeinfoMap<Test>>::insert(addr.clone(),account_stake_info.clone());
 
 		assert_ok!(
 			Contracts::bare_call(
@@ -2899,9 +2953,16 @@ fn debug_message_works() {
 		.result
 		.unwrap()
 		.account_id;
+
+		let contract_stake_info = ContractScarcityInfo::<Test>::set_scarcity_info();
+		let account_stake_info = AccountStakeinfo::<Test>::set_new_stakeinfo(ALICE,addr.clone());
+		<ContractStakeinfoMap<Test>>::insert(addr.clone(), contract_stake_info.clone());
+		<StakeScoreMap<Test>>::insert(addr.clone(), 0);
+		<AccountStakeinfoMap<Test>>::insert(addr.clone(),account_stake_info.clone());
+
 		let result = Contracts::bare_call(
 			ALICE,
-			addr,
+			addr.clone(),
 			0,
 			GAS_LIMIT,
 			None,
@@ -2936,6 +2997,11 @@ fn debug_message_logging_disabled() {
 		.result
 		.unwrap()
 		.account_id;
+		let contract_stake_info = ContractScarcityInfo::<Test>::set_scarcity_info();
+		let account_stake_info = AccountStakeinfo::<Test>::set_new_stakeinfo(ALICE,addr.clone());
+		<ContractStakeinfoMap<Test>>::insert(addr.clone(), contract_stake_info.clone());
+		<StakeScoreMap<Test>>::insert(addr.clone(), 0);
+		<AccountStakeinfoMap<Test>>::insert(addr.clone(),account_stake_info.clone());
 		// disable logging by passing `false`
 		let result = Contracts::bare_call(
 			ALICE,
@@ -2975,9 +3041,14 @@ fn debug_message_invalid_utf8() {
 		.result
 		.unwrap()
 		.account_id;
+		let contract_stake_info = ContractScarcityInfo::<Test>::set_scarcity_info();
+		let account_stake_info = AccountStakeinfo::<Test>::set_new_stakeinfo(ALICE,addr.clone());
+		<ContractStakeinfoMap<Test>>::insert(addr.clone(), contract_stake_info.clone());
+		<StakeScoreMap<Test>>::insert(addr.clone(), 0);
+		<AccountStakeinfoMap<Test>>::insert(addr.clone(),account_stake_info.clone());
 		let result = Contracts::bare_call(
 			ALICE,
-			addr,
+			addr.clone(),
 			0,
 			GAS_LIMIT,
 			None,
@@ -3035,6 +3106,18 @@ fn gas_estimation_nested_call_fixed_limit() {
 			.chain((GAS_LIMIT / 5).ref_time().to_le_bytes())
 			.chain((GAS_LIMIT / 5).proof_size().to_le_bytes())
 			.collect();
+		
+		let contract_stake_info = ContractScarcityInfo::<Test>::set_scarcity_info();
+		let account_stake_info = AccountStakeinfo::<Test>::set_new_stakeinfo(ALICE,addr_caller.clone());
+		<ContractStakeinfoMap<Test>>::insert(addr_caller.clone(), contract_stake_info.clone());
+		<StakeScoreMap<Test>>::insert(addr_caller.clone(), 0);
+		<AccountStakeinfoMap<Test>>::insert(addr_caller.clone(),account_stake_info.clone());
+
+		let contract_stake_info2 = ContractScarcityInfo::<Test>::set_scarcity_info();
+		let account_stake_info2 = AccountStakeinfo::<Test>::set_new_stakeinfo(ALICE,addr_callee.clone());
+		<ContractStakeinfoMap<Test>>::insert(addr_callee.clone(), contract_stake_info.clone());
+		<StakeScoreMap<Test>>::insert(addr_callee.clone(), 0);
+		<AccountStakeinfoMap<Test>>::insert(addr_callee.clone(),account_stake_info.clone());
 
 		// Call in order to determine the gas that is required for this call
 		let result = Contracts::bare_call(
@@ -3128,6 +3211,11 @@ fn gas_estimation_call_runtime() {
 		// Call something trivial with a huge gas limit so that we can observe the effects
 		// of pre-charging. This should create a difference between consumed and required.
 		let call = RuntimeCall::Dummy(pallet_dummy::Call::overestimate_pre_charge {});
+		let contract_stake_info = ContractScarcityInfo::<Test>::set_scarcity_info();
+		let account_stake_info = AccountStakeinfo::<Test>::set_new_stakeinfo(ALICE,addr_caller.clone());
+		<ContractStakeinfoMap<Test>>::insert(addr_caller.clone(), contract_stake_info.clone());
+		<StakeScoreMap<Test>>::insert(addr_caller.clone(), 0);
+		<AccountStakeinfoMap<Test>>::insert(addr_caller.clone(),account_stake_info.clone());
 		let result = Contracts::bare_call(
 			ALICE,
 			addr_caller.clone(),
@@ -3209,6 +3297,11 @@ fn call_runtime_reentrancy_guarded() {
 			storage_deposit_limit: None,
 			data: vec![],
 		});
+		let contract_stake_info = ContractScarcityInfo::<Test>::set_scarcity_info();
+		let account_stake_info = AccountStakeinfo::<Test>::set_new_stakeinfo(ALICE,addr_caller.clone());
+		<ContractStakeinfoMap<Test>>::insert(addr_caller.clone(), contract_stake_info.clone());
+		<StakeScoreMap<Test>>::insert(addr_caller.clone(), 0);
+		<AccountStakeinfoMap<Test>>::insert(addr_caller.clone(),account_stake_info.clone());
 
 		// Call runtime to re-enter back to contracts engine by
 		// calling dummy contract
@@ -3276,6 +3369,12 @@ fn ecdsa_recover() {
 		params.extend_from_slice(&signature);
 		params.extend_from_slice(&message_hash);
 		assert!(params.len() == 65 + 32);
+		let contract_stake_info = ContractScarcityInfo::<Test>::set_scarcity_info();
+		let account_stake_info = AccountStakeinfo::<Test>::set_new_stakeinfo(ALICE,addr.clone());
+		<ContractStakeinfoMap<Test>>::insert(addr.clone(), contract_stake_info.clone());
+		<StakeScoreMap<Test>>::insert(addr.clone(), 0);
+		<AccountStakeinfoMap<Test>>::insert(addr.clone(),account_stake_info.clone());
+
 		let result = <Pallet<Test>>::bare_call(
 			ALICE,
 			addr.clone(),
@@ -3366,6 +3465,12 @@ fn bare_call_returns_events() {
 		.unwrap()
 		.account_id;
 
+		let contract_stake_info = ContractScarcityInfo::<Test>::set_scarcity_info();
+		let account_stake_info = AccountStakeinfo::<Test>::set_new_stakeinfo(ALICE,addr.clone());
+		<ContractStakeinfoMap<Test>>::insert(addr.clone(), contract_stake_info.clone());
+		<StakeScoreMap<Test>>::insert(addr.clone(), 0);
+		<AccountStakeinfoMap<Test>>::insert(addr.clone(),account_stake_info.clone());
+
 		let result = Contracts::bare_call(
 			ALICE,
 			addr.clone(),
@@ -3406,7 +3511,11 @@ fn bare_call_does_not_return_events() {
 		.result
 		.unwrap()
 		.account_id;
-
+		let contract_stake_info = ContractScarcityInfo::<Test>::set_scarcity_info();
+		let account_stake_info = AccountStakeinfo::<Test>::set_new_stakeinfo(ALICE,addr.clone());
+		<ContractStakeinfoMap<Test>>::insert(addr.clone(), contract_stake_info.clone());
+		<StakeScoreMap<Test>>::insert(addr.clone(), 0);
+		<AccountStakeinfoMap<Test>>::insert(addr.clone(),account_stake_info.clone());
 		let result = Contracts::bare_call(
 			ALICE,
 			addr.clone(),
@@ -3470,6 +3579,12 @@ fn sr25519_verify() {
 			params.extend_from_slice(&signature);
 			params.extend_from_slice(&public_key);
 			params.extend_from_slice(message);
+
+			let contract_stake_info = ContractScarcityInfo::<Test>::set_scarcity_info();
+			let account_stake_info = AccountStakeinfo::<Test>::set_new_stakeinfo(ALICE,addr.clone());
+			<ContractStakeinfoMap<Test>>::insert(addr.clone(), contract_stake_info.clone());
+			<StakeScoreMap<Test>>::insert(addr.clone(), 0);
+			<AccountStakeinfoMap<Test>>::insert(addr.clone(),account_stake_info.clone());
 
 			<Pallet<Test>>::bare_call(
 				ALICE,
@@ -4461,6 +4576,12 @@ fn contract_reverted() {
 		.unwrap()
 		.account_id;
 
+		let contract_stake_info = ContractScarcityInfo::<Test>::set_scarcity_info();
+		let account_stake_info = AccountStakeinfo::<Test>::set_new_stakeinfo(ALICE,addr.clone());
+		<ContractStakeinfoMap<Test>>::insert(addr.clone(), contract_stake_info.clone());
+		<StakeScoreMap<Test>>::insert(addr.clone(), 0);
+		<AccountStakeinfoMap<Test>>::insert(addr.clone(),account_stake_info.clone());
+
 		// Calling extrinsic: revert leads to an error
 		assert_err_ignore_postinfo!(
 			Contracts::call(
@@ -4615,7 +4736,11 @@ fn set_code_hash() {
 		));
 
 		System::reset_events();
-
+		let contract_stake_info = ContractScarcityInfo::<Test>::set_scarcity_info();
+		let account_stake_info = AccountStakeinfo::<Test>::set_new_stakeinfo(ALICE,contract_addr.clone());
+		<ContractStakeinfoMap<Test>>::insert(contract_addr.clone(), contract_stake_info.clone());
+		<StakeScoreMap<Test>>::insert(contract_addr.clone(), 0);
+		<AccountStakeinfoMap<Test>>::insert(contract_addr.clone(),account_stake_info.clone());
 		// First call sets new code_hash and returns 1
 		let result = Contracts::bare_call(
 			ALICE,
@@ -4967,6 +5092,7 @@ fn deposit_limit_in_nested_instantiate() {
 
 		let callee_info_len = ContractInfoOf::<Test>::get(&addr).unwrap().encoded_size() as u64;
 
+		
 		// We don't set a special deposit limit for the nested instantiation.
 		//
 		// The deposit limit set for the parent is insufficient for the instantiation, which
@@ -4991,7 +5117,16 @@ fn deposit_limit_in_nested_instantiate() {
 		);
 		// The charges made on instantiation should be rolled back.
 		assert_eq!(<Test as Config>::ContractCurrency::free_balance(&BOB), 1_000_000);
-
+		let contract_stake_info = ContractScarcityInfo::<Test>::set_scarcity_info();
+		let account_stake_info = AccountStakeinfo::<Test>::set_new_stakeinfo(ALICE,addr_caller.clone());
+		<ContractStakeinfoMap<Test>>::insert(addr_caller.clone(), contract_stake_info.clone());
+		<StakeScoreMap<Test>>::insert(addr_caller.clone(), 0);
+		<AccountStakeinfoMap<Test>>::insert(addr_caller.clone(),account_stake_info.clone());
+		let contract_stake_info2 = ContractScarcityInfo::<Test>::set_scarcity_info();
+		let account_stake_info2 = AccountStakeinfo::<Test>::set_new_stakeinfo(ALICE,addr.clone());
+		<ContractStakeinfoMap<Test>>::insert(addr.clone(), contract_stake_info.clone());
+		<StakeScoreMap<Test>>::insert(addr.clone(), 0);
+		<AccountStakeinfoMap<Test>>::insert(addr.clone(),account_stake_info.clone());
 		// Now we give enough limit for the instantiation itself, but require for 1 more storage
 		// byte in the constructor. Hence +1 Balance to the limit is needed. This should fail on the
 		// return from constructor.
@@ -5311,6 +5446,12 @@ fn cannot_instantiate_indeterministic_code() {
 		.unwrap()
 		.account_id;
 
+		let contract_stake_info = ContractScarcityInfo::<Test>::set_scarcity_info();
+		let account_stake_info = AccountStakeinfo::<Test>::set_new_stakeinfo(ALICE,addr.clone());
+		<ContractStakeinfoMap<Test>>::insert(addr.clone(), contract_stake_info.clone());
+		<StakeScoreMap<Test>>::insert(addr.clone(), 0);
+		<AccountStakeinfoMap<Test>>::insert(addr.clone(),account_stake_info.clone());
+
 		// Try to instantiate `code_hash` from another contract in deterministic mode
 		assert_err!(
 			<Pallet<Test>>::bare_call(
@@ -5377,7 +5518,11 @@ fn cannot_set_code_indeterministic_code() {
 		.result
 		.unwrap()
 		.account_id;
-
+		let contract_stake_info = ContractScarcityInfo::<Test>::set_scarcity_info();
+		let account_stake_info = AccountStakeinfo::<Test>::set_new_stakeinfo(ALICE,caller_addr.clone());
+		<ContractStakeinfoMap<Test>>::insert(caller_addr.clone(), contract_stake_info.clone());
+		<StakeScoreMap<Test>>::insert(caller_addr.clone(), 0);
+		<AccountStakeinfoMap<Test>>::insert(caller_addr.clone(),account_stake_info.clone());
 		// We do not allow to set the code hash to a non determinstic wasm
 		assert_err!(
 			<Pallet<Test>>::bare_call(
@@ -5427,7 +5572,11 @@ fn delegate_call_indeterministic_code() {
 		.result
 		.unwrap()
 		.account_id;
-
+		let contract_stake_info = ContractScarcityInfo::<Test>::set_scarcity_info();
+		let account_stake_info = AccountStakeinfo::<Test>::set_new_stakeinfo(ALICE,caller_addr.clone());
+		<ContractStakeinfoMap<Test>>::insert(caller_addr.clone(), contract_stake_info.clone());
+		<StakeScoreMap<Test>>::insert(caller_addr.clone(), 0);
+		<AccountStakeinfoMap<Test>>::insert(caller_addr.clone(),account_stake_info.clone());
 		// The delegate call will fail in deterministic mode
 		assert_err!(
 			<Pallet<Test>>::bare_call(
@@ -5487,10 +5636,14 @@ fn reentrance_count_works_with_call() {
 
 		// passing reentrant count to the input
 		let input = 0.encode();
-
+		let contract_stake_info = ContractScarcityInfo::<Test>::set_scarcity_info();
+		let account_stake_info = AccountStakeinfo::<Test>::set_new_stakeinfo(ALICE,contract_addr.clone());
+		<ContractStakeinfoMap<Test>>::insert(contract_addr.clone(), contract_stake_info.clone());
+		<StakeScoreMap<Test>>::insert(contract_addr.clone(), 0);
+		<AccountStakeinfoMap<Test>>::insert(contract_addr.clone(),account_stake_info.clone());
 		Contracts::bare_call(
 			ALICE,
-			contract_addr,
+			contract_addr.clone(),
 			0,
 			GAS_LIMIT,
 			None,
@@ -5528,7 +5681,11 @@ fn reentrance_count_works_with_delegated_call() {
 
 		// adding a callstack height to the input
 		let input = (code_hash, 1).encode();
-
+		let contract_stake_info = ContractScarcityInfo::<Test>::set_scarcity_info();
+		let account_stake_info = AccountStakeinfo::<Test>::set_new_stakeinfo(ALICE,contract_addr.clone());
+		<ContractStakeinfoMap<Test>>::insert(contract_addr.clone(), contract_stake_info.clone());
+		<StakeScoreMap<Test>>::insert(contract_addr.clone(), 0);
+		<AccountStakeinfoMap<Test>>::insert(contract_addr.clone(),account_stake_info.clone());
 		Contracts::bare_call(
 			ALICE,
 			contract_addr.clone(),
@@ -5583,7 +5740,11 @@ fn account_reentrance_count_works() {
 		.result
 		.unwrap()
 		.account_id;
-
+		let contract_stake_info = ContractScarcityInfo::<Test>::set_scarcity_info();
+		let account_stake_info = AccountStakeinfo::<Test>::set_new_stakeinfo(ALICE,contract_addr.clone());
+		<ContractStakeinfoMap<Test>>::insert(contract_addr.clone(), contract_stake_info.clone());
+		<StakeScoreMap<Test>>::insert(contract_addr.clone(), 0);
+		<AccountStakeinfoMap<Test>>::insert(contract_addr.clone(),account_stake_info.clone());
 		let result1 = Contracts::bare_call(
 			ALICE,
 			contract_addr.clone(),
@@ -5684,7 +5845,11 @@ fn root_can_call() {
 		.result
 		.unwrap()
 		.account_id;
-
+		let contract_stake_info = ContractScarcityInfo::<Test>::set_scarcity_info();
+		let account_stake_info = AccountStakeinfo::<Test>::set_new_stakeinfo(ALICE,addr.clone());
+		<ContractStakeinfoMap<Test>>::insert(addr.clone(), contract_stake_info.clone());
+		<StakeScoreMap<Test>>::insert(addr.clone(), 0);
+		<AccountStakeinfoMap<Test>>::insert(addr.clone(),account_stake_info.clone());
 		// Call the contract.
 		assert_ok!(Contracts::call(
 			RuntimeOrigin::root(),
