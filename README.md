@@ -111,6 +111,15 @@ Additionally for successful test execution, the following pallets have been impl
 1. `pallet_staking`
 2. `pallet_sessions`
 
+### Benchmarks
+For milestone-1 we have just benchmarked storage. There has not been significant changes in runtime. Check out benchmarks folder for results <br>
+#TODO - Small help from pallet-contract or substrate pallet developer to help with benchmarking the pallet. Currently we are not able to benchmark pallet contract independently without our changes. 
+
+### How to run
+`cargo build --verbose` <br>
+`cargo test --verbose` - Will run all tests including ours. <br>
+Note : The failing tests from pallet-contract have been failing before our changes. Currently we have 170 tests passing and 64 failing tests
+
 For additional details and code references, please review the changes made in the test environment by visiting: [GitHub Pull Request #11](https://github.com/auguth/pocs/pull/11/commits/5787cd104f2aed59c0fd0a049c32e56a050d5557)
 
 ## Nominated Proof of Contract Stake (NPoCS - `pallet_staking`)
