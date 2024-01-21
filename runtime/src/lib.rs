@@ -69,7 +69,6 @@ use pallet_transaction_payment::{ConstFeeMultiplier, CurrencyAdapter, Multiplier
 pub use sp_runtime::BuildStorage;
 pub use sp_runtime::{Perbill, Permill};
 
-
 /// Alias to 512-bit hash when used in the context of a transaction signature on the chain.
 pub type Signature = MultiSignature;
 
@@ -305,7 +304,7 @@ impl pallet_contracts::Config for Runtime {
 	type MaxStorageKeyLen = ConstU32<128>;
 	type UnsafeUnstableInterface = ConstBool<false>;
 	type MaxDebugBufferLen = ConstU32<{ 2 * 1024 * 1024 }>;
-	#[cfg(not(feature = "runtime-benchmarks"))]
+	//#[cfg(not(feature = "runtime-benchmarks"))]
 	type Migrations = ();
 }
 
@@ -838,7 +837,7 @@ mod benches {
 		[pallet_balances, Balances]
 		[pallet_timestamp, Timestamp]
 		[pallet_utility, Utility]
-		[pallet_offences, OffencesBench::<Runtime>]
+		//[pallet_offences, OffencesBench::<Runtime>]
 		[pallet_im_online, ImOnline]
 		[pallet_nomination_pools, NominationPoolsBench::<Runtime>]
 	);
@@ -1154,7 +1153,7 @@ impl_runtime_apis! {
 			use frame_benchmarking::{baseline, Benchmarking, BenchmarkList};
 			use frame_support::traits::StorageInfoTrait;
 			use frame_system_benchmarking::Pallet as SystemBench;
-			use pallet_offences_benchmarking::Pallet as OffencesBench;
+			//use pallet_offences_benchmarking::Pallet as OffencesBench;
 			use baseline::Pallet as BaselineBench;
 			use pallet_nomination_pools_benchmarking::Pallet as NominationPoolsBench;
 
@@ -1172,12 +1171,12 @@ impl_runtime_apis! {
 			use frame_benchmarking::{baseline, Benchmarking, BenchmarkBatch, TrackedStorageKey};
 
 			use frame_system_benchmarking::Pallet as SystemBench;
-			use pallet_offences_benchmarking::Pallet as OffencesBench;
+			//use pallet_offences_benchmarking::Pallet as OffencesBench;
 			use baseline::Pallet as BaselineBench;
 			use pallet_nomination_pools_benchmarking::Pallet as NominationPoolsBench;
 
 			impl frame_system_benchmarking::Config for Runtime {}
-			impl pallet_offences_benchmarking::Config for Runtime {}
+			//impl pallet_offences_benchmarking::Config for Runtime {}
 			impl baseline::Config for Runtime {}
 			
 			impl pallet_nomination_pools_benchmarking::Config for Runtime {}
