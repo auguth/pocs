@@ -1,0 +1,54 @@
+name: Generate cargo doc
+
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+    branches:
+      - master
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: macos-latest
+
+    steps:
+
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    - name: Install Rust nightly toolchain
+      uses: actions-rs/toolchain@v1.0.6
+      with:
+        profile: minimal
+        channel: nightly-2020-07-10
+        toolchain: nightly-2023-12-21
+        components: rustfmt, rustc-dev
+        override: true
+
+    - name: Install Protocol Buffers Compiler
+      run: brew install protobuf
+
+    - name: Set PROTOC Environment Variable
+      run: echo "PROTOC=$(which protoc)" >> $GITHUB_ENV
+
+    - name: Install wasm32-unknown-unknown target
+      run: rustup target add wasm32-unknown-unknown
+
+    - name: Generate docs
+      run: cargo doc -p pallet-contracts
+    
+    - name: Copy documentation files to root
+      run: cp -R target/doc .
+
+    - name: Create index.html file
+      run: echo '<meta http-equiv=refresh content=0;url=target/doc/pallet_contracts/index.html>' > index.html
+
+    - name: Deploy to GitHub Pages
+      run: |
+        git show-ref --verify --quiet refs/heads/gh-pages || git checkout --orphan gh-pages
+        git rm -rf .
+        git add -f target/doc index.html
+        git commit -m "Update documentation"
+        git push -f origin gh-pages                                    

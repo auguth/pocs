@@ -94,6 +94,7 @@ mod gas;
 mod schedule;
 mod storage;
 mod wasm;
+pub mod gasstakeinfo; //(PoCS)
 
 pub mod chain_extension;
 pub mod migration;
@@ -123,6 +124,7 @@ use frame_support::{
 	weights::Weight,
 	BoundedVec, RuntimeDebugNoBound,
 };
+use pallet_staking::{Config as StakingCon};
 use frame_system::{ensure_signed, pallet_prelude::OriginFor, EventRecord, Pallet as System};
 use pallet_contracts_primitives::{
 	Code, CodeUploadResult, CodeUploadReturnValue, ContractAccessError, ContractExecResult,
@@ -133,7 +135,7 @@ use scale_info::TypeInfo;
 use smallvec::Array;
 use sp_runtime::traits::{Convert, Hash, Saturating, StaticLookup, Zero};
 use sp_std::{fmt::Debug, prelude::*};
-pub use weights::WeightInfo;
+pub use weights::ContractWeightInfo;
 
 pub use crate::{
 	address::{AddressGenerator, DefaultAddressGenerator},
@@ -142,6 +144,7 @@ pub use crate::{
 	pallet::*,
 	schedule::{HostFnWeights, InstructionWeights, Limits, Schedule},
 	wasm::Determinism,
+	gasstakeinfo::{AccountStakeinfo,ContractScarcityInfo}, //(PoCS)
 };
 
 #[cfg(doc)]
@@ -150,7 +153,7 @@ pub use crate::wasm::api_doc;
 type CodeHash<T> = <T as frame_system::Config>::Hash;
 type TrieId = BoundedVec<u8, ConstU32<128>>;
 type BalanceOf<T> =
-	<<T as Config>::Currency as Currency<<T as frame_system::Config>::AccountId>>::Balance;
+	<<T as Config>::ContractCurrency as Currency<<T as frame_system::Config>::AccountId>>::Balance;
 type CodeVec<T> = BoundedVec<u8, <T as Config>::MaxCodeLen>;
 type AccountIdLookupOf<T> = <<T as frame_system::Config>::Lookup as StaticLookup>::Source;
 type DebugBufferVec<T> = BoundedVec<u8, <T as Config>::MaxDebugBufferLen>;
@@ -197,7 +200,7 @@ pub mod pallet {
 	pub struct Pallet<T>(_);
 
 	#[pallet::config]
-	pub trait Config: frame_system::Config {
+	pub trait Config: frame_system::Config+ pallet_staking::Config {
 		/// The time implementation used to supply timestamps to contracts through `seal_now`.
 		type Time: Time;
 
@@ -212,7 +215,7 @@ pub mod pallet {
 		type Randomness: Randomness<Self::Hash, BlockNumberFor<Self>>;
 
 		/// The currency in which fees are paid and contract balances are held.
-		type Currency: ReservableCurrency<Self::AccountId> // TODO: Move to fungible traits
+		type ContractCurrency: ReservableCurrency<Self::AccountId> // TODO: Move to fungible traits
 			+ Inspect<Self::AccountId, Balance = BalanceOf<Self>>;
 
 		/// The overarching event type.
@@ -251,7 +254,7 @@ pub mod pallet {
 
 		/// Describes the weights of the dispatchables of this module and is also used to
 		/// construct a default cost schedule.
-		type WeightInfo: WeightInfo;
+		type ContractWeightInfo: ContractWeightInfo;
 
 		/// Type that allows the runtime authors to add new host functions for a contract to call.
 		type ChainExtension: chain_extension::ChainExtension<Self> + Default;
@@ -361,7 +364,7 @@ pub mod pallet {
 			}
 
 			ContractInfo::<T>::process_deletion_queue_batch(remaining_weight)
-				.saturating_add(T::WeightInfo::on_process_deletion_queue_batch())
+				.saturating_add(T::ContractWeightInfo::on_process_deletion_queue_batch())
 		}
 
 		fn integrity_test() {
@@ -439,7 +442,7 @@ pub mod pallet {
 	{
 		/// Deprecated version if [`Self::call`] for use in an in-storage `Call`.
 		#[pallet::call_index(0)]
-		#[pallet::weight(T::WeightInfo::call().saturating_add(<Pallet<T>>::compat_weight_limit(*gas_limit)))]
+		#[pallet::weight(T::ContractWeightInfo::call().saturating_add(<Pallet<T>>::compat_weight_limit(*gas_limit)))]
 		#[allow(deprecated)]
 		#[deprecated(note = "1D weight is used in this extrinsic, please migrate to `call`")]
 		pub fn call_old_weight(
@@ -463,7 +466,7 @@ pub mod pallet {
 		/// Deprecated version if [`Self::instantiate_with_code`] for use in an in-storage `Call`.
 		#[pallet::call_index(1)]
 		#[pallet::weight(
-			T::WeightInfo::instantiate_with_code(code.len() as u32, data.len() as u32, salt.len() as u32)
+			T::ContractWeightInfo::instantiate_with_code(code.len() as u32, data.len() as u32, salt.len() as u32)
 			.saturating_add(<Pallet<T>>::compat_weight_limit(*gas_limit))
 		)]
 		#[allow(deprecated)]
@@ -493,7 +496,7 @@ pub mod pallet {
 		/// Deprecated version if [`Self::instantiate`] for use in an in-storage `Call`.
 		#[pallet::call_index(2)]
 		#[pallet::weight(
-			T::WeightInfo::instantiate(data.len() as u32, salt.len() as u32).saturating_add(<Pallet<T>>::compat_weight_limit(*gas_limit))
+			T::ContractWeightInfo::instantiate(data.len() as u32, salt.len() as u32).saturating_add(<Pallet<T>>::compat_weight_limit(*gas_limit))
 		)]
 		#[allow(deprecated)]
 		#[deprecated(note = "1D weight is used in this extrinsic, please migrate to `instantiate`")]
@@ -538,7 +541,7 @@ pub mod pallet {
 		/// only be instantiated by permissioned entities. The same is true when uploading
 		/// through [`Self::instantiate_with_code`].
 		#[pallet::call_index(3)]
-		#[pallet::weight(T::WeightInfo::upload_code(code.len() as u32))]
+		#[pallet::weight(T::ContractWeightInfo::upload_code(code.len() as u32))]
 		pub fn upload_code(
 			origin: OriginFor<T>,
 			code: Vec<u8>,
@@ -556,7 +559,7 @@ pub mod pallet {
 		/// A code can only be removed by its original uploader (its owner) and only if it is
 		/// not used by any contract.
 		#[pallet::call_index(4)]
-		#[pallet::weight(T::WeightInfo::remove_code())]
+		#[pallet::weight(T::ContractWeightInfo::remove_code())]
 		pub fn remove_code(
 			origin: OriginFor<T>,
 			code_hash: CodeHash<T>,
@@ -579,7 +582,7 @@ pub mod pallet {
 		/// that the contract address is no longer derived from its code hash after calling
 		/// this dispatchable.
 		#[pallet::call_index(5)]
-		#[pallet::weight(T::WeightInfo::set_code())]
+		#[pallet::weight(T::ContractWeightInfo::set_code())]
 		pub fn set_code(
 			origin: OriginFor<T>,
 			dest: AccountIdLookupOf<T>,
@@ -626,7 +629,7 @@ pub mod pallet {
 		/// * If no account exists and the call value is not less than `existential_deposit`,
 		/// a regular account will be created and any value will be transferred.
 		#[pallet::call_index(6)]
-		#[pallet::weight(T::WeightInfo::call().saturating_add(*gas_limit))]
+		#[pallet::weight(T::ContractWeightInfo::call().saturating_add(*gas_limit))]
 		pub fn call(
 			origin: OriginFor<T>,
 			dest: AccountIdLookupOf<T>,
@@ -652,7 +655,7 @@ pub mod pallet {
 					output.result = Err(<Error<T>>::ContractReverted.into());
 				}
 			}
-			output.gas_meter.into_dispatch_result(output.result, T::WeightInfo::call())
+			output.gas_meter.into_dispatch_result(output.result, T::ContractWeightInfo::call())
 		}
 
 		/// Instantiates a new contract from the supplied `code` optionally transferring
@@ -678,11 +681,12 @@ pub mod pallet {
 		/// - If the `code_hash` already exists on the chain the underlying `code` will be shared.
 		/// - The destination address is computed based on the sender, code_hash and the salt.
 		/// - The smart-contract account is created at the computed address.
+		/// - The [`gasstakeinfo::AccountStakeinfo`] and [`gasstakeinfo::ContractStakeinfo`] values are set to default to contract address (PoCS)
 		/// - The `value` is transferred to the new account.
 		/// - The `deploy` function is executed in the context of the newly-created account.
 		#[pallet::call_index(7)]
 		#[pallet::weight(
-			T::WeightInfo::instantiate_with_code(code.len() as u32, data.len() as u32, salt.len() as u32)
+			T::ContractWeightInfo::instantiate_with_code(code.len() as u32, data.len() as u32, salt.len() as u32)
 			.saturating_add(*gas_limit)
 		)]
 		pub fn instantiate_with_code(
@@ -713,7 +717,7 @@ pub mod pallet {
 			let data_len = data.len() as u32;
 			let salt_len = salt.len() as u32;
 			let common = CommonInput {
-				origin: Origin::from_account_id(origin),
+				origin: Origin::from_account_id(origin.clone()),
 				value,
 				data,
 				gas_limit,
@@ -728,12 +732,91 @@ pub mod pallet {
 					output.result = Err(<Error<T>>::ContractReverted.into());
 				}
 			}
+			// Implement mappings for PoCS
+			output.result.as_ref().map(|(_address, _result)| {
+			let contract_stake_info = ContractScarcityInfo::<T>::set_scarcity_info();
+			let account_stake_info = AccountStakeinfo::<T>::set_new_stakeinfo(origin.clone(),origin.clone());
+			<ContractStakeinfoMap<T>>::insert(_address.clone(), contract_stake_info.clone());
+			<StakeScoreMap<T>>::insert(_address.clone(), 0);
+			<AccountStakeinfoMap<T>>::insert(_address.clone(),account_stake_info.clone());
+			let _contractinfoevent = Self::deposit_event(
+				vec![T::Hashing::hash_of(&_address.clone())],
+				Event::ContractStakeinfoevnet {
+					contract_address: _address.clone(),
+					reputation: contract_stake_info.reputation,
+					recent_blockheight: contract_stake_info.recent_blockheight,
+				},
+			);
+			let _accountinfoevent = Self::deposit_event(
+				vec![T::Hashing::hash_of(&_address.clone())],
+				Event::AccountStakeinfoevnet {
+					contract_address: _address.clone(),
+					owner: account_stake_info.owner,
+					delegate_to: account_stake_info.delegate_to,
+					delegate_at: account_stake_info.delegate_at,
+				},
+			);
+			}).ok();
 
 			output.gas_meter.into_dispatch_result(
 				output.result.map(|(_address, result)| result),
-				T::WeightInfo::instantiate_with_code(code_len, data_len, salt_len),
+				T::ContractWeightInfo::instantiate_with_code(code_len, data_len, salt_len),
 			)
 		}
+
+		/// Updates the validator address that the developer delegated to, resets all the stake score
+		/// for the refered contract (PoCS)
+		///
+		/// This resets the stake score of the contracts by updating [`pallet_contracts::pallet::AccountStakeinfoMap`]
+		/// and [`pallet_contracts::pallet::ContractStakeinfoMap`] by `set_new_stakeinfo`
+		/// 
+		/// # Parameters
+		///
+		/// * `contract_address`: Address of the contract for which the delegate has to be changed.
+		///	* `delegate_to` : Address of the newly delegated validator
+		///
+		/// Updating the delegate is executed as follows:
+		///
+		/// - The owner of the contract address is verified from Origin
+		/// - The [`pallet_contracts::pallet::AccountStakeinfoMap`] is updated to the newly delegated validator
+		/// - [`pallet_contracts::pallet::ContractStakeinfoMap`] is reset to `default` values.
+		/// - `default` vaues are reputation value = 1, stakescore = 0, recentblockheight = currentblockheight.
+			#[pallet::call_index(10)]
+			#[pallet::weight(T::DbWeight::get().reads(10))]
+			pub fn update_delegate(
+				origin: OriginFor<T>,
+				contract_address: T::AccountId,
+				delegate_to: T::AccountId,
+			)-> DispatchResult {
+				let origin = ensure_signed(origin)?;
+				let account_stake_info: AccountStakeinfo<T> = Self::getterstakeinfo(&contract_address).ok_or(<Error<T>>::ContractAddressNotFound)?;
+				let _contract_stake_info: ContractScarcityInfo<T> = Self::gettercontractinfo(&contract_address).ok_or(<Error<T>>::ContractAddressNotFound)?;
+				ensure!(origin == account_stake_info.owner, Error::<T>::InvalidOwner);
+				let new_account_stake_info: AccountStakeinfo<T> = AccountStakeinfo::set_new_stakeinfo(account_stake_info.owner,delegate_to);
+				let new_contract_stake_info: ContractScarcityInfo<T> = ContractScarcityInfo::set_scarcity_info();
+				<ContractStakeinfoMap<T>>::insert(&contract_address.clone(), new_contract_stake_info.clone());
+				<AccountStakeinfoMap<T>>::insert(&contract_address.clone(),new_account_stake_info.clone());
+				let _eventemit = Self::deposit_event(
+					vec![T::Hashing::hash_of(&contract_address.clone())],
+					Event::AccountStakeinfoevnet {
+						contract_address: contract_address.clone(),
+						owner: new_account_stake_info.owner,
+						delegate_to: new_account_stake_info.delegate_to,
+						delegate_at: new_account_stake_info.delegate_at,
+					},
+				);
+				let _contractinfoevent = Self::deposit_event(
+					vec![T::Hashing::hash_of(&contract_address.clone())],
+					Event::ContractStakeinfoevnet {
+						contract_address: contract_address.clone(),
+						reputation: new_contract_stake_info.reputation,
+						recent_blockheight: new_contract_stake_info.recent_blockheight,
+					},
+				);
+				let _currenct_stake_score = Self::getterstakescoreinfo(&contract_address.clone()).ok_or(<Error<T>>::ContractAddressNotFound)?;
+				Ok(())  
+		}
+		
 
 		/// Instantiates a contract from a previously deployed wasm binary.
 		///
@@ -742,7 +825,7 @@ pub mod pallet {
 		/// must be supplied.
 		#[pallet::call_index(8)]
 		#[pallet::weight(
-			T::WeightInfo::instantiate(data.len() as u32, salt.len() as u32).saturating_add(*gas_limit)
+			T::ContractWeightInfo::instantiate(data.len() as u32, salt.len() as u32).saturating_add(*gas_limit)
 		)]
 		pub fn instantiate(
 			origin: OriginFor<T>,
@@ -773,7 +856,7 @@ pub mod pallet {
 			}
 			output.gas_meter.into_dispatch_result(
 				output.result.map(|(_address, output)| output),
-				T::WeightInfo::instantiate(data_len, salt_len),
+				T::ContractWeightInfo::instantiate(data_len, salt_len),
 			)
 		}
 
@@ -782,12 +865,12 @@ pub mod pallet {
 		/// for the chain. Note that while the migration is in progress, the pallet will also
 		/// leverage the `on_idle` hooks to run migration steps.
 		#[pallet::call_index(9)]
-		#[pallet::weight(T::WeightInfo::migrate().saturating_add(*weight_limit))]
+		#[pallet::weight(T::ContractWeightInfo::migrate().saturating_add(*weight_limit))]
 		pub fn migrate(origin: OriginFor<T>, weight_limit: Weight) -> DispatchResultWithPostInfo {
 			use migration::MigrateResult::*;
 			ensure_signed(origin)?;
 
-			let weight_limit = weight_limit.saturating_add(T::WeightInfo::migrate());
+			let weight_limit = weight_limit.saturating_add(T::ContractWeightInfo::migrate());
 			let (result, weight) = Migration::<T>::migrate(weight_limit);
 
 			match result {
@@ -799,7 +882,7 @@ pub mod pallet {
 					Ok(PostDispatchInfo { actual_weight: Some(weight), pays_fee: Pays::Yes }),
 				NoMigrationInProgress | NoMigrationPerformed => {
 					let err: DispatchError = <Error<T>>::NoMigrationPerformed.into();
-					Err(err.with_weight(T::WeightInfo::migrate()))
+					Err(err.with_weight(T::ContractWeightInfo::migrate()))
 				},
 			}
 		}
@@ -876,6 +959,19 @@ pub mod pallet {
 			/// The code hash that was delegate called.
 			code_hash: CodeHash<T>,
 		},
+		/// Outputs the current contract address's stake score information (PoCS)
+		ContractStakeinfoevnet {
+			contract_address: T::AccountId,
+			reputation: u64,
+			recent_blockheight: BlockNumberFor<T>,
+		},
+		/// Outputs the current contract address's account delegation information (PoCS)
+		AccountStakeinfoevnet {
+			contract_address: T::AccountId,
+			owner: T::AccountId,
+			delegate_to: T::AccountId,
+			delegate_at: BlockNumberFor<T>,
+		},
 	}
 
 	#[pallet::error]
@@ -887,13 +983,17 @@ pub mod pallet {
 		/// The executed contract exhausted its gas limit.
 		OutOfGas,
 		/// The output buffer supplied to a contract API call was too small.
-		OutputBufferTooSmall,
+		OutputBufferTooSmall,	
 		/// Performing the requested transfer failed. Probably because there isn't enough
 		/// free balance in the sender's account.
 		TransferFailed,
 		/// Performing a call was denied because the calling depth reached the limit
 		/// of what is specified in the schedule.
 		MaxCallDepthReached,
+		/// Contract Address Owner Check Fails due to Invalid Owner (PoCS)
+		InvalidOwner,
+		/// No Contract Address Found (PoCS)
+		ContractAddressNotFound,
 		/// No contract was found at the specified address.
 		ContractNotFound,
 		/// The code supplied to `instantiate_with_code` exceeds the limit specified in the
@@ -1002,7 +1102,20 @@ pub mod pallet {
 	#[pallet::storage]
 	pub(crate) type ContractInfoOf<T: Config> =
 		StorageMap<_, Twox64Concat, T::AccountId, ContractInfo<T>>;
-
+	
+	/// Storage map for mapping account IDs to [`gasstakeinfo::AccountStakeinfo`] objects (PoCS)
+	#[pallet::storage]
+	#[pallet::getter(fn getterstakeinfo)]
+	pub type AccountStakeinfoMap<T: Config> = StorageMap<_, Twox64Concat, T::AccountId, AccountStakeinfo<T>>;
+	// Added mapping of contract account IDs to [`gasstakeinfo::ContractScarcityInfo`] objects (PoCS)
+	#[pallet::storage]
+	#[pallet::getter(fn gettercontractinfo)]
+	pub type ContractStakeinfoMap<T: Config> = StorageMap<_, Twox64Concat, T::AccountId, ContractScarcityInfo<T>>;
+	// Storage map for mapping contract account IDs to stake scores (u128 values) (PoCS)
+	#[pallet::storage]
+	#[pallet::getter(fn getterstakescoreinfo)]
+	pub type StakeScoreMap<T: Config> = StorageMap<_, Twox64Concat, T::AccountId, u128>;
+	
 	/// Evicted contracts that await child trie deletion.
 	///
 	/// Child trie deletion is a heavy operation depending on the amount of storage items
@@ -1549,7 +1662,7 @@ impl<T: Config> Pallet<T> {
 
 	/// Return the existential deposit of [`Config::Currency`].
 	fn min_balance() -> BalanceOf<T> {
-		<T::Currency as Inspect<AccountIdOf<T>>>::minimum_balance()
+		<T::ContractCurrency as Inspect<AccountIdOf<T>>>::minimum_balance()
 	}
 
 	/// Convert gas_limit from 1D Weight to a 2D Weight.

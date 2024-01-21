@@ -20,7 +20,7 @@
 
 use crate::{
 	migration::{IsFinished, MigrationStep},
-	weights::WeightInfo,
+	weights::ContractWeightInfo,
 	Config, Pallet, TrieId, Weight, LOG_TARGET,
 };
 #[cfg(feature = "try-runtime")]
@@ -76,7 +76,7 @@ impl<T: Config> MigrationStep for Migration<T> {
 	// but in practice the queue is always empty, so 128 is a good enough approximation for not
 	// underestimating the weight of our migration.
 	fn max_step_weight() -> Weight {
-		T::WeightInfo::v11_migration_step(128)
+		T::ContractWeightInfo::v11_migration_step(128)
 	}
 
 	fn step(&mut self) -> (IsFinished, Weight) {
@@ -101,7 +101,7 @@ impl<T: Config> MigrationStep for Migration<T> {
 			<DeletionQueueCounter<T>>::set(queue);
 		}
 
-		(IsFinished::Yes, T::WeightInfo::v11_migration_step(len as u32))
+		(IsFinished::Yes, T::ContractWeightInfo::v11_migration_step(len as u32))
 	}
 
 	#[cfg(feature = "try-runtime")]

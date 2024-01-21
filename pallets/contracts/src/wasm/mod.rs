@@ -36,7 +36,7 @@ use crate::{
 	exec::{ExecResult, Executable, ExportedFunction, Ext},
 	gas::{GasMeter, Token},
 	wasm::prepare::LoadedModule,
-	weights::WeightInfo,
+	weights::ContractWeightInfo,
 	AccountIdOf, BadOrigin, BalanceOf, CodeHash, CodeInfoOf, CodeVec, Config, Error, Event, Pallet,
 	PristineCode, Schedule, Weight, LOG_TARGET,
 };
@@ -139,8 +139,8 @@ impl<T: Config> Token<T> for CodeLoadToken {
 		// contract code. This is why we subtract `T::*::(0)`. We need to do this at this
 		// point because when charging the general weight for calling the contract we don't know the
 		// size of the contract.
-		T::WeightInfo::call_with_code_per_byte(self.0)
-			.saturating_sub(T::WeightInfo::call_with_code_per_byte(0))
+		T::ContractWeightInfo::call_with_code_per_byte(self.0)
+			.saturating_sub(T::ContractWeightInfo::call_with_code_per_byte(0))
 	}
 }
 
@@ -237,7 +237,7 @@ impl<T: Config> WasmBlob<T> {
 				// the `owner` is always the origin of the current transaction.
 				None => {
 					let deposit = self.code_info.deposit;
-					T::Currency::reserve(&self.code_info.owner, deposit)
+					T::ContractCurrency::reserve(&self.code_info.owner, deposit)
 						.map_err(|_| <Error<T>>::StorageDepositNotEnoughFunds)?;
 					self.code_info.refcount = 0;
 					<PristineCode<T>>::insert(code_hash, &self.code);
@@ -255,7 +255,7 @@ impl<T: Config> WasmBlob<T> {
 			if let Some(code_info) = existing {
 				ensure!(code_info.refcount == 0, <Error<T>>::CodeInUse);
 				ensure!(&code_info.owner == origin, BadOrigin);
-				T::Currency::unreserve(&code_info.owner, code_info.deposit);
+				T::ContractCurrency::unreserve(&code_info.owner, code_info.deposit);
 				*existing = None;
 				<PristineCode<T>>::remove(&code_hash);
 				<Pallet<T>>::deposit_event(vec![code_hash], Event::CodeRemoved { code_hash });
