@@ -85,13 +85,17 @@ Additionally for successful test execution, the following pallets have been impl
 1. `pallet_staking`
 2. `pallet_sessions`
 
-### Benchmarks
-Currently storage is benchmarked. There has not been significant changes in runtime. Check out benchmarks folder for results
+#### How to run
 
-### How to run
-`cargo build --verbose` <br>
-`cargo test pocs` - Will run pocs tests. <br>
-Note : The failing tests from pallet-contract have been failing before our changes. Currently we have 170 tests passing and 64 failing tests
+```
+cargo build --verbose
+cargo test pocs // Will run pocs tests
+```
+
+> **Note** : The failing tests from pallet-contract have been failing before the changes. Currently we have **170 tests passing** and 64 failing tests
+
+### Benchmarks
+Currently `storage` is benchmarked. There has not been significant changes in runtime. Check out benchmarks folder for results
 
 TBD (Milestone 2) - Requiring guidance from pallet-contract or substrate pallet developer for benchmarking the modified pallet_contracts. Currently we are not able to benchmark pallet contract independently without our changes. 
 
