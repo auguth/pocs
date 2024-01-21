@@ -5888,7 +5888,7 @@ fn root_cannot_instantiate() {
 // POCS Tests
 
 #[test]
-fn contract_stake_event() {
+fn pocs_contract_stake_event() {
     let (wasm, _) = compile_module::<Test>("dummy").unwrap(); 
     ExtBuilder::default().existential_deposit(50).build().execute_with(|| {
         let _ = Balances::deposit_creating(&ALICE, 1_000_000);
@@ -5932,7 +5932,7 @@ fn contract_stake_event() {
 }
 
 #[test]
-fn account_stake_event() {
+fn pocs_account_stake_event() {
     let (wasm, _) = compile_module::<Test>("dummy").unwrap(); 
     ExtBuilder::default().existential_deposit(50).build().execute_with(|| {
         let _ = Balances::deposit_creating(&ALICE, 1_000_000);
@@ -5979,7 +5979,7 @@ fn account_stake_event() {
 }
 
 #[test]
-fn update_delegate_invalid_owner() {
+fn pocs_update_delegate_invalid_owner() {
 	let (wasm, _) = compile_module::<Test>("dummy").unwrap(); 
     ExtBuilder::default().existential_deposit(50).build().execute_with(|| {
         let _ = Balances::deposit_creating(&ALICE, 1_000_000);
@@ -6021,7 +6021,7 @@ fn update_delegate_invalid_owner() {
 }
 
 #[test]
-fn update_delegate_valid_owner() {
+fn pocs_update_delegate_valid_owner() {
 	let (wasm, _) = compile_module::<Test>("dummy").unwrap(); 
     ExtBuilder::default().existential_deposit(50).build().execute_with(|| {
         let _ = Balances::deposit_creating(&ALICE, 1_000_000);
