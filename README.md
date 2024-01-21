@@ -99,6 +99,10 @@ For additional details, please review the changes made in the test environment b
 ### Benchmarks
 
 Currently storage is benchmarked. There has not been significant changes in runtime. Check out benchmarks folder for results
+### How to run
+`cargo build --verbose` <br>
+`cargo test pocs` - Will run pocs tests. <br>
+Note : The failing tests from pallet-contract have been failing before our changes. Currently we have 170 tests passing and 64 failing tests
 
 TBD (Milestone 2) - Requiring guidance from pallet-contract or substrate pallet developer for benchmarking the modified pallet_contracts. Currently we are not able to benchmark pallet contract independently without our changes. 
 
