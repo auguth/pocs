@@ -37,13 +37,14 @@ Integration with `pallet-contracts` involves the addition of two essential maps:
    Default values upon initial contract deployment are as follows:
 
    - **AccountStakeinfo:**
-     - `Owner`: Address of the contract deployer.
-     - `Delegate_to`: By default, set to the owner.
+     - `Owner`: Account address of the contract deployer.
+     - `Delegate_to`: By default, set to the `owner`.
      - `Delegate_at`: Current block height at the contract deployment.
 
    - **ContractScarcityinfo:**
      - `Reputation`: Initialized to 1 by default.
      - `Recent_blockheight`: Current block height at contract deployment.
+     - `Stake_score` : 0
 
 2. [update_delegate()](https://auguth.github.io/pocs/target/doc/pallet_contracts/pallet/struct.Pallet.html#method.update_delegate) Function:
 
@@ -74,30 +75,93 @@ To achieve this integration, the following steps were taken:
 
 ### Testing
 
-To test the functionality of added mappings and functions, 4 tests have been added to [test.rs](https://github.com/auguth/pocs/blob/1e311f83cd0e59b4b4b6224b7e50b5b983b5f508/pallets/contracts/src/tests.rs#L5888)
-1. `contract_stake_event` - Tests the ContractStakeInfo mapping has been updated and the emitted event reflects correct values.
-2. `account_stake_event` - Tests the AccountStakeInfo mapping has been updated and the emitted event reflects correct values.
-3. `update_delegate_invalid_owner` - Test to check the update_delegate function for a contract does not succeed if not called by the contract owner.
-4. `update_delegate_valid_owner` - Test to check that update_delegate when called by owner updates the ContractStakeInfo and AccountStakeInfo and emitted events reflect correct values.
+PoCS protocol lets smart contract developers use their stake i.e., contract's utility score known as the **stake score** to nominate a validator. This section (Milestone 1) covers the preliminary phase of adding stake/delegate information added to the deployed contracts. These modifications/additions are used in the [modified Staking Pallet (PoCS version)](#nominated-proof-of-contract-stake-npocs---pallet_staking)
 
-Additionally for successful test execution, the following pallets have been implemented in the test environment:
-
+For successful test execution, the following pallets have been implemented in the test environment:
 1. `pallet_staking`
 2. `pallet_sessions`
 
-#### How to run
+
+The `rustc` version used in the [Github CI](/.github/workflows/rust.yml) and local during the development is `rustc 1.77.0-nightly (3d0e6bed6 2023-12-21)`
+
+#### Testing `pallet_contracts` Functions
+
+1. `instantiate_with_code()` Function
+
+   **Description**: This function in `pallet_contracts` is used to deploy wasm-contracts to chain storage. It is modified to initialize the account stake info and contract scarcity info values while the contract is deployed
+
+   ![instantiate_with_code()](https://raw.githubusercontent.com/jobyreuben/test/main/draw.io.svg)
+
+   **Expected Output**: While a contract is deployed the `ContractStakeinfoMap` and `AccountStakeInfoMap` gets updated for the new contract address with the **default** account stake info and contract scarcity info values
+
+   **New Events Emitted**: Tests added to [test.rs](https://github.com/auguth/pocs/blob/1e311f83cd0e59b4b4b6224b7e50b5b983b5f508/pallets/contracts/src/tests.rs#L5888)
+      - `contract_stake_event` - Tests the ContractStakeInfo mapping has been updated and the emitted event reflects correct values. 
+      - `account_stake_event` - Tests the AccountStakeInfo mapping has been updated and the emitted event reflects correct values.
+   
+   **Event Output Screenshot**
+
+   ![Instantiate_Test_screenshot](https://raw.githubusercontent.com/auguth/pocs_img_assets/main/instantiate_test.jpeg)
+
+2. `update_delegate()` Function
+
+    **Description**: This is a custom function included in `pallet_contracts` to update the delegate information of a contract (`AccountStakeinfo`). 
+
+    ![update_delegate()](https://raw.githubusercontent.com/auguth/pocs_img_assets/main/delegate_test.svg)
+
+    **Expected Output**: 
+      - Only be executed by the `owner` (Deployer of the contract) and updates the `AccountStakeinfo` values. 
+      - The contract's scarcity information (`ContractScarcityinfo`) is reset back to default (any `stake_score` accumulated is purged to `0`). 
+      - The `new_address` given by the `owner` shall be updated in `delegate_to` and the `delegate_at` is updated to current block height
+
+    **New Events Emitted:** Tests added to [test.rs](https://github.com/auguth/pocs/blob/1e311f83cd0e59b4b4b6224b7e50b5b983b5f508/pallets/contracts/src/tests.rs#L5982)
+      - `update_delegate_invalid_owner` - Test to check the update_delegate function for a contract does not succeed if not called by the contract owner.
+      - `update_delegate_valid_owner` - Test to check that update_delegate when called by owner updates the ContractStakeInfo and AccountStakeInfo and emitted events reflect correct values.
+   
+    **Event Output Screenshot**
+
+    ![Update_delegate_Test_screenshot](https://raw.githubusercontent.com/auguth/pocs_img_assets/main/delegate_test.jpeg)
+
+3. `run()` Function
+
+   ![run()](https://raw.githubusercontent.com/auguth/pocs_img_assets/main/run_test.svg)
+
+   **Description**: This is function in `pallet_contracts` is executed when a contract is called. It is modified to update the `ContractScarcityinfo` values while the call is getting executed. 
+
+   **Note:** As of Milestone 1, this feature is not been implemented and shall be included in Milestone 2 due to its dependency on the modified `pallet_staking` in Milestone 2. But, the stake score calculation is done.
+
+   **Expected Output**: During the execution of the contract call - 
+      - The `reputation` is incremented by 1. 
+      - The `recent_block_height` is updated to `current_block_height`. 
+      - The `stake_score` is updated to new stake score (Milestone 2)
+
+   **New Event Emitted:** Tests added to [test.rs](https://github.com/auguth/pocs/blob/1e311f83cd0e59b4b4b6224b7e50b5b983b5f508/pallets/contracts/src/tests.rs#L5888)
+      - `contract_stake_event` - Tests the ContractStakeInfo mapping has been updated and the emitted event reflects correct values.
+     
+   **Event Output Screenshot**
+
+   ![Run_Contract_Test_screenshot](https://raw.githubusercontent.com/auguth/pocs_img_assets/main/run_test.jpeg)
+
+   **Contract Delegate Call :** During Scenario of Contracts calling other contracts (`delegatecall`), the following events are emitted and the Contract Stake information is updated for both caller contract and callee contract
+      - Caller Contract (5DJCn75...) - [Compiled](https://github.com/auguth/ink-contracts-for-testing/blob/main/caller.contract) / [Source](https://github.com/auguth/ink-contracts-for-testing/blob/main/caller/lib.rs)
+      - Callee Contract(5GxyE5...) - [Compiled](https://github.com/auguth/ink-contracts-for-testing/blob/main/flipper.contract) / [Source](https://github.com/auguth/ink-contracts-for-testing/blob/main/flipper/lib.rs)
+ 
+    ![Cross_Call_Test_screenshot](https://raw.githubusercontent.com/auguth/pocs_img_assets/main/cross_call_test.jpeg)
+
+  
+#### Running PoCS Tests
 
 ```
 cargo build --verbose
 cargo test pocs // Will run pocs tests
 ```
 
-> **Note** : The failing tests from pallet-contract have been failing before the changes. Currently we have **170 tests passing** and 64 failing tests
+**Note** : Currently we have **170 tests passing** and 64 failing tests. The failing tests from pallet-contract have been failing before the changes. 
 
 ### Benchmarks
-Currently `storage` is benchmarked. There has not been significant changes in runtime. Check out benchmarks folder for results
 
-TBD (Milestone 2) - Requiring guidance from pallet-contract or substrate pallet developer for benchmarking the modified pallet_contracts. Currently we are not able to benchmark pallet contract independently without our changes. 
+Currently `storage` is benchmarked. There has not been significant changes in runtime. Check out [benchmarks folder](/benchmarks/) for results.
+
+TBD (Milestone 2) - Since, the modified functions undergo further changes, the weights benchmarking will be continued onto Milestone 2
 
 ## Nominated Proof of Contract Stake (NPoCS - `pallet_staking`)
 TBD (Milestone 2)
