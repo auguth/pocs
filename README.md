@@ -90,7 +90,7 @@ The `rustc` version used in the [Github CI](/.github/workflows/rust.yml) and loc
 
    **Description**: This function in `pallet_contracts` is used to deploy wasm-contracts to chain storage. It is modified to initialize the account stake info and contract scarcity info values while the contract is deployed
 
-   ![instantiate_with_code()](https://raw.githubusercontent.com/jobyreuben/test/main/draw.io.svg)
+   ![instantiate_with_code()](https://raw.githubusercontent.com/auguth/pocs_img_assets/main/instantiate_test.svg)
 
    **Expected Output**: While a contract is deployed the `ContractStakeinfoMap` and `AccountStakeInfoMap` gets updated for the new contract address with the **default** account stake info and contract scarcity info values
 
