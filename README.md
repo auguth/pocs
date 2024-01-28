@@ -73,7 +73,7 @@ This [Substrate](https://substrate.io) Node is an adaptation of the [substrate-s
 
 14. Build Docker:
       ```bash
-      docker build -t pocs:v1 .
+      docker build -t pocs:latest .
       ```
 15. List Docker Images:
       ```bash
