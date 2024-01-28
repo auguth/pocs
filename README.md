@@ -53,7 +53,7 @@ This [Substrate](https://substrate.io) Node is an adaptation of the [substrate-s
     ```bash
     ./target/release/pocs --dev
     ```
-10. Use [Polkadot-JS-App](https://polkadot.js.org/apps/) and [Contracts UI](https://contracts-ui.substrate.io/) to interact with the Local Development only Node. In case of errors, use custom `ws endpoints` to try pocs tcp ports, if the default port (`9944`) is not working.
+10. Use [Polkadot-JS-App](https://polkadot.js.org/apps/) and [Contracts UI](https://contracts-ui.substrate.io/) to interact with the Local Development only Node.
 
 ### Run Tests
 
@@ -69,23 +69,55 @@ This [Substrate](https://substrate.io) Node is an adaptation of the [substrate-s
 
 ### Build Docker & Run
 
-13. Install Latest Docker via this [installation steps](https://docs.docker.com/engine/install/ubuntu/)
+13. Install Latest Docker : [Ubuntu](https://docs.docker.com/engine/install/ubuntu/)/[Mac](https://docs.docker.com/desktop/install/mac-install/)/[Windows](https://docs.docker.com/desktop/install/windows-install/)
+    
+14. Pull Docker Image
+    
+      ```bash
+      
+      ```
+      
+16. Run the PoCS Image
+             
+      ```bash
+      
+      ```
 
-14. Build Docker:
+**Or you can build docker by yourself**
+      
+17. Build Docker:
+    
       ```bash
       docker build -t pocs:latest .
       ```
-15. List Docker Images:
+      
+19. List Docker Images:
+    
       ```bash
       docker image ls
       ```
-16. Run a Docker Container by specifying the Image ID that is recently built
-      ```bash
-      docker run -p 9944:9944 -p 9933:9933 -p 30333:30333 --network="host" [Image ID]
-      ```
       
-16. Follow any additional steps, such as step 10, for setting up the front-end.
+21. Run a Docker Container by specifying the Image ID that is recently built. This command publishes the docker exposed ports to the host.
+    
+    - For Linux Hosts
+      
+        ```bash
+        docker run -p 9944:9944 -p 9933:9933 -p 30333:30333 --network="host" [Image ID]
+        ```
+   
+    - For Mac Hosts
+    
+        ```bash
 
+        ```
+        
+    - For Windows Hosts
+      
+        ```bash
+
+        ```
+      
+16. Use [Polkadot-JS-App](https://polkadot.js.org/apps/) and [Contracts UI](https://contracts-ui.substrate.io/) to interact with the Local Development only Node.
 
 ## Contract Staking (`pallet_contracts`)
 
