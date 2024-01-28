@@ -71,19 +71,19 @@ This [Substrate](https://substrate.io) Node is an adaptation of the [substrate-s
 
 13. Install Latest Docker via this [installation steps](https://docs.docker.com/engine/install/ubuntu/)
 
-14. Build and Start Services with Docker Compose:
+14. Build Docker:
       ```bash
-      docker compose up --build -d
+      docker build -t pocs:v1 .
       ```
 15. List Docker Images:
       ```bash
       docker image ls
       ```
-16. Run a Docker Container by specifying the Image ID that is recently build
+16. Run a Docker Container by specifying the Image ID that is recently built
       ```bash
       docker run -p 9944:9944 -p 9933:9933 -p 30333:30333 --network="host" [Image ID]
       ```
-
+      
 16. Follow any additional steps, such as step 10, for setting up the front-end.
 
 
