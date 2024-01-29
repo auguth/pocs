@@ -1,35 +1,46 @@
-# Use the official Rust image as a base
-FROM rust:latest
+# Use the official Ubuntu image as a base
+FROM ubuntu:latest
 
-# Create a new empty shell project
+# Install necessary dependencies
+RUN apt-get update && \
+    apt-get install -y \
+    build-essential \
+    clang \
+    curl \
+    libssl-dev \
+    protobuf-compiler 
+
+# Install Rust
+RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
+
+# Add Rust binaries to the PATH
+ENV PATH="/root/.cargo/bin:${PATH}"
+
+# Create a new empty shell project named 'pocs'
 RUN USER=root cargo new --bin pocs
 WORKDIR /pocs
 
-# Copy the Cargo.toml and Cargo.lock files and source code
-COPY ./Cargo.toml ./Cargo.toml
-COPY ./Cargo.lock ./Cargo.lock
-COPY ./src ./src
+# Update to stable version
+RUN rustup default stable && \
+    rustup update
 
-# Build the project to cache dependencies
-RUN cargo build --release
+# Install Rust nightly version (as of 2023-12-21)
+RUN rustup install nightly-2023-12-21
 
-# RUN cargo build --release -p my-package-name
+# Configure the Rust toolchain for wasm32-unknown-unknown on nightly-2023-12-21
+RUN rustup target add wasm32-unknown-unknown --toolchain nightly-2023-12-21
 
-# Remove the build artifacts from the previous step
-RUN rm src/*.rs
-RUN rm ./target/release/deps/pocs*
+# Override the default Rust version to nightly-2023-12-21 for this project
+RUN rustup override set nightly-2023-12-21 
 
-# Now copy the actual source code
+# Copy the actual source code into the container
 COPY . .
 
-# Build again. This time it'll be a bit quicker because the dependencies are cached
+# Build the project in release mode  
 RUN cargo build --release
 
-# Expose the default p2p port, rpc port and ws port
-EXPOSE 30333 9933 9944
+# Expose the specified ports
+EXPOSE 9944 9933 30333
 
-# Run pocs tests
-RUN cargo test pocs
-
-# Run the Substrate node
-CMD ["./target/release/pocs"]
+# Run the Substrate node in development mode . STRICTLY USED FOR DEVELOPMENT PURPOSE ONLY
+CMD ["./target/release/pocs", "--dev", "--rpc-external", "--rpc-cors=Unsafe"]

@@ -15,8 +15,7 @@ services:
     restart: unless-stopped
     command: 
       - "--dev"
-      - "--ws-external"
-      - "--rpc-cors=all"
-
+      - "--rpc-external"
+      - "--rpc-cors=Unsafe"
 volumes:
   substrate-data:

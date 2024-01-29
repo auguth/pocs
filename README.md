@@ -10,6 +10,96 @@ Proof of Contract Stake (PoCS) is a staking system utilizing contract gas histor
 
 This [Substrate](https://substrate.io) Node is an adaptation of the [substrate-stencil](https://github.com/kaichaosun/substrate-stencil) to integrate PoCS protocol, which includes modified [pallet_contracts](https://auguth.github.io/pocs/target/doc/pallet_contracts/index.html) and [pallet_staking](#nominated-proof-of-contract-stake-npocs---pallet_staking) that supports Contract Staking Feature interoperable with current Substrate **NPoS-BABE-GRANDPA** public node infrastructure. 
 
+## Run PoCS Node
+
+1. Clone the repository from GitHub:
+
+   ```bash
+   git clone https://github.com/auguth/pocs
+   ```
+2. Install essential tools and dependencies:
+   ```bash
+   sudo apt install build-essential clang curl
+
+   sudo apt install --assume-yes git clang curl libssl-dev protobuf-compiler
+   ```
+3. Install Rust using rustup:
+   ```bash
+   curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
+   ```
+4. Set the default Rust version to stable:
+   ```bash
+   rustup default stable
+   ```
+5. Install a specific nightly version of Rust:
+   ```bash
+   rustup install nightly-2023-12-21
+   ```
+6. Add a target for WebAssembly:
+   ```bash
+   rustup target add wasm32-unknown-unknown --toolchain nightly-2023-12-21
+   ```
+7. Set the nightly version as the default for this project:
+   ```bash
+   rustup override set nightly-2023-12-21
+   ```
+8. Build the project in release mode:
+   
+   ```bash
+   cargo build --release
+   ```
+9.  Run the executable with the specified configuration:
+   
+    ```bash
+    ./target/release/pocs --dev
+    ```
+10. Use [Polkadot-JS-App](https://polkadot.js.org/apps/) and [Contracts UI](https://contracts-ui.substrate.io/) to interact with the Local Development only Node.
+
+### Run Tests
+
+11. Run tests for the 'pallet-contracts' module:
+   
+    ```bash
+    cargo test pallet-contracts
+    ```
+12. Run tests for the 'pocs' specific tests:
+    ```bash
+    cargo test pocs
+    ```
+
+### Pull/Build Docker & Run
+
+**Note:** Only recommended to use Docker for Linux Hosts in order to interact running node using [Polkadot-JS-App](https://polkadot.js.org/apps/) and [Contracts UI](https://contracts-ui.substrate.io/). For **Mac** & **Windows** Hosts, due to docker host network compatibility, it is recommended to use `cargo build --release` and run a node explained in Step 8.
+
+13.  Install Latest [Docker Engine](https://docs.docker.com/engine/install/)
+14.  Pull Docker Image
+    
+      ```bash
+      docker image pull jobyreuben/pocs-w3f-m1:latest
+      ```
+
+14.  List Docker Images:
+    
+      ```bash
+      docker image ls
+      ```
+      
+15.  Run a Docker Container by specifying the Image ID that is recently pulled/built.
+
+      ```bash
+      docker run --network="host" --rm [Image ID/ Name]
+      ``` 
+      The `--network="host"` command publishes the docker exposed ports to the host. Only available for Linux hosts.
+
+**For building PoCS docker image on Local Linux Host**
+      
+17.  Build Docker:
+    
+      ```bash
+      docker build -t pocs:latest .
+      ```
+
+
 ## Contract Staking (`pallet_contracts`)
 
 ### Gas Stake Info
