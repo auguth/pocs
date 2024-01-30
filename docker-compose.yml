@@ -1,7 +1,7 @@
 version: '3.8'
 
 services:
-  pocs-node:
+  node:
     build: 
       context: .
       dockerfile: Dockerfile
@@ -13,9 +13,6 @@ services:
       - "9933:9933" # Maps RPC port
       - "30333:30333" # Maps P2P port
     restart: unless-stopped
-    command: 
-      - "--dev"
-      - "--rpc-external"
-      - "--rpc-cors=Unsafe"
+    command: ["./target/release/pocs", "--dev", "--rpc-external", "--rpc-cors=Unsafe"]
 volumes:
   substrate-data:

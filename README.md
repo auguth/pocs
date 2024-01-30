@@ -10,7 +10,7 @@ Proof of Contract Stake (PoCS) is a staking system utilizing contract gas histor
 
 This [Substrate](https://substrate.io) Node is an adaptation of the [substrate-stencil](https://github.com/kaichaosun/substrate-stencil) to integrate PoCS protocol, which includes modified [pallet_contracts](https://auguth.github.io/pocs/target/doc/pallet_contracts/index.html) and [pallet_staking](#nominated-proof-of-contract-stake-npocs---pallet_staking) that supports Contract Staking Feature interoperable with current Substrate **NPoS-BABE-GRANDPA** public node infrastructure. 
 
-## Run PoCS Node
+## PoCS Node Set-up
 
 1. Clone the repository from GitHub:
 
@@ -55,50 +55,61 @@ This [Substrate](https://substrate.io) Node is an adaptation of the [substrate-s
     ```
 10. Use [Polkadot-JS-App](https://polkadot.js.org/apps/) and [Contracts UI](https://contracts-ui.substrate.io/) to interact with the Local Development only Node.
 
-### Run Tests
+### Tests
 
-11. Run tests for the 'pallet-contracts' module:
+1. Run tests for the 'pallet-contracts' module:
    
     ```bash
     cargo test pallet-contracts
     ```
-12. Run tests for the 'pocs' specific tests:
+2. Run tests for the 'pocs' specific tests:
     ```bash
     cargo test pocs
     ```
 
-### Pull/Build Docker & Run
-
-**Note:** Only recommended to use Docker for Linux Hosts in order to interact running node using [Polkadot-JS-App](https://polkadot.js.org/apps/) and [Contracts UI](https://contracts-ui.substrate.io/). For **Mac** & **Windows** Hosts, due to docker host network compatibility, it is recommended to use `cargo build --release` and run a node explained in Step 8.
-
-13.  Install Latest [Docker Engine](https://docs.docker.com/engine/install/)
-14.  Pull Docker Image
-    
-      ```bash
-      docker image pull jobyreuben/pocs-w3f-m1:latest
-      ```
-
-14.  List Docker Images:
-    
-      ```bash
-      docker image ls
-      ```
+### Docker (Compose)
       
-15.  Run a Docker Container by specifying the Image ID that is recently pulled/built.
-
-      ```bash
-      docker run --network="host" --rm [Image ID/ Name]
-      ``` 
-      The `--network="host"` command publishes the docker exposed ports to the host. Only available for Linux hosts.
-
-**For building PoCS docker image on Local Linux Host**
-      
-17.  Build Docker:
+1.   Build & Run using Docker Compose:
     
       ```bash
-      docker build -t pocs:latest .
+      docker compose up --build -d
+      ```
+      To Stop container
+      ```bash
+      docker compose down
+      ```
+      To Restart the container
+      ```
+      docker compose up
       ```
 
+      **Note:** Docker compose publishes ports, works in all hosts (Linux/Mac/Windows).
+
+2. Use [Polkadot-JS-App](https://polkadot.js.org/apps/) and [Contracts UI](https://contracts-ui.substrate.io/) to interact with the Local Development only Node.
+
+### Docker (Pull)
+
+1. Install Latest [Docker Engine](https://docs.docker.com/engine/install/)
+2. Pull Docker Image
+    
+   ```bash
+   docker image pull jobyreuben/pocs-node:w3f_m1
+   ```
+
+3. List Docker Images:
+    
+   ```bash
+   docker image ls
+   ```
+      
+4. Run a Docker Container by specifying the Image ID that is recently pulled/built.
+
+   ```bash
+   docker run --network="host" --rm [Image ID/ Name]
+   ``` 
+   **Note:** Local Host will only be available to Linux Hosts using `--network="host"` flag
+
+5. Use [Polkadot-JS-App](https://polkadot.js.org/apps/) and [Contracts UI](https://contracts-ui.substrate.io/) to interact with the Local Development only Node.         
 
 ## Contract Staking (`pallet_contracts`)
 
