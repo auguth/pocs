@@ -740,7 +740,6 @@ pub mod pallet {
 			let contract_stake_info = ContractScarcityInfo::<T>::set_scarcity_info();
 			let account_stake_info = AccountStakeinfo::<T>::set_new_stakeinfo(origin.clone(),origin.clone());
 			<ContractStakeinfoMap<T>>::insert(_address.clone(), contract_stake_info.clone());
-			<StakeScoreMap<T>>::insert(_address.clone(), 0);
 			<AccountStakeinfoMap<T>>::insert(_address.clone(),account_stake_info.clone());
 			let _contractinfoevent = Self::deposit_event(
 				vec![T::Hashing::hash_of(&_address.clone())],
@@ -748,6 +747,7 @@ pub mod pallet {
 					contract_address: _address.clone(),
 					reputation: contract_stake_info.reputation,
 					recent_blockheight: contract_stake_info.recent_blockheight,
+					stake_score: contract_stake_info.stake_score,
 				},
 			);
 			let _accountinfoevent = Self::deposit_event(
@@ -814,9 +814,10 @@ pub mod pallet {
 						contract_address: contract_address.clone(),
 						reputation: new_contract_stake_info.reputation,
 						recent_blockheight: new_contract_stake_info.recent_blockheight,
+						stake_score: new_contract_stake_info.stake_score,
 					},
 				);
-				let _currenct_stake_score = Self::getterstakescoreinfo(&contract_address.clone()).ok_or(<Error<T>>::ContractAddressNotFound)?;
+				let _currenct_stake_score = new_contract_stake_info.stake_score;
 				Ok(())  
 		}
 		
@@ -967,6 +968,7 @@ pub mod pallet {
 			contract_address: T::AccountId,
 			reputation: u64,
 			recent_blockheight: BlockNumberFor<T>,
+			stake_score: u128,
 		},
 		/// Outputs the current contract address's account delegation information (PoCS)
 		AccountStakeinfoevnet {
