@@ -1039,7 +1039,75 @@ pub mod pallet {
 
 			Ok(actual_weight.into())
 		}
+		#[pallet::call_index(26)]
+		#[pallet::weight(
+            T::WeightInfo::withdraw_unbonded_kill(SPECULATIVE_NUM_SPANS).saturating_add(T::WeightInfo::unbond()))
+        ]
+		//pocs
+		pub fn new_unbond(
+			origin: OriginFor<T>,
+			#[pallet::compact] value: BalanceOf<T>,
+		) -> DispatchResultWithPostInfo {
+			let controller = ensure_signed(origin)?;
 
+			// we need to fetch the ledger again because it may have been mutated in the call
+			// to `Self::do_withdraw_unbonded` above.
+			let mut ledger = Self::ledger(&controller).ok_or(Error::<T>::NotController)?;
+			let mut value = value;
+
+			ensure!(
+				ledger.unlocking.len() < T::MaxUnlockingChunks::get() as usize,
+				Error::<T>::NoMoreChunks,
+			);
+
+			if !value.is_zero() {
+				ledger.active -= value;
+
+				// Avoid there being a dust balance left in the staking system.
+				if ledger.active < T::Currency::minimum_balance() {
+					value += ledger.active;
+					ledger.active = Zero::zero();
+				}
+
+				let min_active_bond = if Nominators::<T>::contains_key(&ledger.stash) {
+					MinNominatorBond::<T>::get()
+				} else {
+					Zero::zero()
+				};
+
+				// Make sure that the user maintains enough active bond for their role.
+				// If a user runs into this error, they should chill first.
+				// ensure!(ledger.active >= min_active_bond, Error::<T>::InsufficientBond);
+
+				// Note: in case there is no current era it is fine to bond one era more.
+				let era = Self::current_era().unwrap_or(0) + T::BondingDuration::get();
+				if let Some(chunk) = ledger.unlocking.last_mut().filter(|chunk| chunk.era == era) {
+					// To keep the chunk count down, we only keep one chunk per era. Since
+					// `unlocking` is a FiFo queue, if a chunk exists for `era` we know that it will
+					// be the last one.
+					chunk.value = chunk.value.defensive_saturating_add(value)
+				} else {
+					ledger
+						.unlocking
+						.try_push(UnlockChunk { value, era })
+						.map_err(|_| Error::<T>::NoMoreChunks)?;
+				};
+				// NOTE: ledger must be updated prior to calling `Self::weight_of`.
+				Self::update_ledger(&controller, &ledger);
+
+				// update this staker in the sorted list, if they exist in it.
+				if T::VoterList::contains(&ledger.stash) {
+					let _ = T::VoterList::on_update(&ledger.stash, Self::weight_of(&ledger.stash))
+						.defensive();
+				}
+
+				Self::deposit_event(Event::<T>::Unbonded { stash: ledger.stash, amount: value });
+			}
+
+			let actual_weight = Some(T::WeightInfo::unbond());
+
+			Ok(actual_weight.into())
+		}
 		/// Remove any unlocked chunks from the `unlocking` queue from our management.
 		///
 		/// This essentially frees up that balance to be used by the stash account to do whatever
