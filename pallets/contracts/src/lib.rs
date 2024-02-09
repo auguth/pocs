@@ -127,8 +127,8 @@ use frame_support::{
 	weights::Weight,
 	BoundedVec, RuntimeDebugNoBound,
 };
-use pallet_staking::{Config as StakingCon};
-use frame_system::{ensure_signed, pallet_prelude::OriginFor, EventRecord, Pallet as System};
+use pallet_staking::{Pallet as Staking};
+use frame_system::{ensure_signed, pallet_prelude::OriginFor, EventRecord, Pallet as System, RawOrigin as ROrigin};
 use pallet_contracts_primitives::{
 	Code, CodeUploadResult, CodeUploadReturnValue, ContractAccessError, ContractExecResult,
 	ContractInstantiateResult, ContractResult, ExecReturnValue, GetStorageResult,
@@ -137,6 +137,7 @@ use pallet_contracts_primitives::{
 use scale_info::TypeInfo;
 use smallvec::Array;
 use sp_runtime::traits::{Convert, Hash, Saturating, StaticLookup, Zero};
+use sp_runtime::SaturatedConversion;
 use sp_std::{fmt::Debug, prelude::*};
 pub use weights::ContractWeightInfo;
 
@@ -754,10 +755,17 @@ pub mod pallet {
 				vec![T::Hashing::hash_of(&_address.clone())],
 				Event::AccountStakeinfoevnet {
 					contract_address: _address.clone(),
-					owner: account_stake_info.owner,
+					owner: account_stake_info.owner.clone(),
 					delegate_to: account_stake_info.delegate_to,
 					delegate_at: account_stake_info.delegate_at,
 				},
+			);
+			//make origin the validator(nominator) addition here(pocs edited)
+			let _add_validator = 
+			<pallet_staking::Pallet<T> as sp_staking::StakingInterface>::bond(
+				&account_stake_info.owner.clone(),
+				contract_stake_info.stake_score.saturated_into(),
+				&account_stake_info.owner.clone(),
 			);
 			}).ok();
 
@@ -803,8 +811,8 @@ pub mod pallet {
 					vec![T::Hashing::hash_of(&contract_address.clone())],
 					Event::AccountStakeinfoevnet {
 						contract_address: contract_address.clone(),
-						owner: new_account_stake_info.owner,
-						delegate_to: new_account_stake_info.delegate_to,
+						owner: new_account_stake_info.owner.clone(),
+						delegate_to: new_account_stake_info.delegate_to.clone(),
 						delegate_at: new_account_stake_info.delegate_at,
 					},
 				);
@@ -817,6 +825,17 @@ pub mod pallet {
 						stake_score: new_contract_stake_info.stake_score,
 					},
 				);
+				//make stake zero 
+				let _add_validator = Staking::<T>::new_unbond(
+					ROrigin::Signed(origin.clone()).into(),
+					new_contract_stake_info.stake_score.saturated_into(),
+				);				
+				
+				//make the validator(nominator) nominate a validator(pocs)
+				let _nominate_validator = <pallet_staking::Pallet<T> as sp_staking::StakingInterface>::nominate(
+					&new_account_stake_info.owner.clone(),
+					vec![new_account_stake_info.delegate_to.clone()],
+				);				
 				let _currenct_stake_score = new_contract_stake_info.stake_score;
 				Ok(())  
 		}

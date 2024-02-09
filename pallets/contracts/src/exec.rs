@@ -45,6 +45,7 @@ use sp_core::{
 use sp_io::{crypto::secp256k1_ecdsa_recover_compressed, hashing::blake2_256};
 use sp_runtime::traits::{Convert, Hash, Zero};
 use sp_std::{marker::PhantomData, mem, prelude::*, vec::Vec};
+use sp_runtime::SaturatedConversion;
 
 pub type AccountIdOf<T> = <T as frame_system::Config>::AccountId;
 pub type MomentOf<T> = <<T as Config>::Time as Time>::Moment;
@@ -941,6 +942,12 @@ where
 			   contract_stake_info.stake_score,
 			   expected_stake_score,
            );
+		   
+			//increase the stake score of the nominator(dev)
+			let _bond_extra_validator = <pallet_staking::Pallet<T> as sp_staking::StakingInterface>::bond_extra(
+				&_account_stake_info.owner.clone(),
+				(new_scarcity_info.stake_score - contract_stake_info.stake_score).saturated_into(),
+			);		   
 		   // Insert the updated scarcity information into ContractStakeinfoMap  (PoCS)
            <ContractStakeinfoMap<T>>::insert(&account_id.clone(), new_scarcity_info.clone());
            // Deposit an event to indicate the update of scarcity information  (PoCS)
