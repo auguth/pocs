@@ -848,9 +848,9 @@ pub mod pallet {
 			}
 
 			// Reject a bond which is considered to be _dust_.
-			if value < T::Currency::minimum_balance() {
-				return Err(Error::<T>::InsufficientBond.into())
-			}
+			// if value < T::Currency::minimum_balance() {
+			// 	return Err(Error::<T>::InsufficientBond.into())
+			// }
 
 			frame_system::Pallet::<T>::inc_consumers(&stash).map_err(|_| Error::<T>::BadState)?;
 
@@ -913,10 +913,10 @@ pub mod pallet {
 				ledger.total += extra;
 				ledger.active += extra;
 				// Last check: the new active amount of ledger must be more than ED.
-				ensure!(
-					ledger.active >= T::Currency::minimum_balance(),
-					Error::<T>::InsufficientBond
-				);
+				// ensure!(
+				// 	ledger.active >= T::Currency::minimum_balance(),
+				// 	Error::<T>::InsufficientBond
+				// );
 
 				// NOTE: ledger must be updated prior to calling `Self::weight_of`.
 				Self::update_ledger(&controller, &ledger);
@@ -985,7 +985,6 @@ pub mod pallet {
 				Error::<T>::NoMoreChunks,
 			);
 
-			if !value.is_zero() {
 				ledger.active -= value;
 
 				// Avoid there being a dust balance left in the staking system.
@@ -1029,7 +1028,6 @@ pub mod pallet {
 				}
 
 				Self::deposit_event(Event::<T>::Unbonded { stash: ledger.stash, amount: value });
-			}
 
 			let actual_weight = if let Some(withdraw_weight) = maybe_withdraw_weight {
 				Some(T::WeightInfo::unbond().saturating_add(withdraw_weight))
@@ -1155,7 +1153,7 @@ pub mod pallet {
 
 			let ledger = Self::ledger(&controller).ok_or(Error::<T>::NotController)?;
 
-			ensure!(ledger.active >= MinValidatorBond::<T>::get(), Error::<T>::InsufficientBond);
+			// ensure!(ledger.active >= MinValidatorBond::<T>::get(), Error::<T>::InsufficientBond);
 			let stash = &ledger.stash;
 
 			// ensure their commission is correct.
@@ -1200,7 +1198,7 @@ pub mod pallet {
 			let controller = ensure_signed(origin)?;
 
 			let ledger = Self::ledger(&controller).ok_or(Error::<T>::NotController)?;
-			ensure!(ledger.active >= MinNominatorBond::<T>::get(), Error::<T>::InsufficientBond);
+			// ensure!(ledger.active >= MinNominatorBond::<T>::get(), Error::<T>::InsufficientBond);
 			let stash = &ledger.stash;
 
 			// Only check limits if they are not already a nominator.

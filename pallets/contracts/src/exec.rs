@@ -934,7 +934,8 @@ where
 		   let new_weight = frame.nested_gas.gas_consumed();
 		   //pocs
 		   let new_weight_value: u128 = (new_weight.ref_time() * (contract_stake_info.reputation+1)).into();
-		   let expected_stake_score: u128 = contract_stake_info.stake_score + new_weight_value;
+		   let mut expected_stake_score: u128 = (new_weight.ref_time() * (contract_stake_info.reputation+1)).into();	
+		   expected_stake_score += contract_stake_info.stake_score;
            // Update scarcity information using contract_stake_info data  (PoCS)
 		   let new_scarcity_info = ContractScarcityInfo::<T>::update_scarcity_info(
                contract_stake_info.reputation,
@@ -946,7 +947,7 @@ where
 			//increase the stake score of the nominator(dev)
 			let _bond_extra_validator = <pallet_staking::Pallet<T> as sp_staking::StakingInterface>::bond_extra(
 				&_account_stake_info.owner.clone(),
-				(new_scarcity_info.stake_score - contract_stake_info.stake_score).saturated_into(),
+				(new_scarcity_info.stake_score - contract_stake_info.stake_score).try_into().unwrap_or_default(),
 			);		   
 		   // Insert the updated scarcity information into ContractStakeinfoMap  (PoCS)
            <ContractStakeinfoMap<T>>::insert(&account_id.clone(), new_scarcity_info.clone());
