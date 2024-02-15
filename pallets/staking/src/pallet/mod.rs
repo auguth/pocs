@@ -1058,7 +1058,6 @@ pub mod pallet {
 				Error::<T>::NoMoreChunks,
 			);
 
-			if !value.is_zero() {
 				ledger.active -= value;
 
 				// Avoid there being a dust balance left in the staking system.
@@ -1100,7 +1099,6 @@ pub mod pallet {
 				}
 
 				Self::deposit_event(Event::<T>::Unbonded { stash: ledger.stash, amount: value });
-			}
 
 			let actual_weight = Some(T::WeightInfo::unbond());
 
