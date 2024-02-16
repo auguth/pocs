@@ -706,7 +706,7 @@ mod tests {
 	) -> ExecResult {
 		type RuntimeConfig = <MockExt as Ext>::T;
 		RuntimeConfig::set_unstable_interface(unstable_interface);
-		let wasm = wat::parse_str(wat).unwrap();
+		let wasm = wast::parse_str(wat).unwrap();
 		let executable = if skip_checks {
 			WasmBlob::<RuntimeConfig>::from_code_unchecked(
 				wasm,
