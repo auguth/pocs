@@ -399,7 +399,34 @@ benchmarks! {
 		// contract has the full value
 		assert_eq!(T::ContractCurrency::free_balance(&addr), value + Pallet::<T>::min_balance());
 	}
-
+	
+	#[pov_mode = Measured]
+	update_delegate {
+	 let c in 0 .. T::MaxCodeLen::get();
+	 let i in 0 .. code::max_pages::<T>() * 64 * 1024;
+	 let s in 0 .. code::max_pages::<T>() * 64 * 1024;
+	 let input = vec![42u8; i as usize];
+	 let salt = vec![42u8; s as usize];
+	 let value = Pallet::<T>::min_balance();
+	 let caller = whitelisted_caller();
+	 T::ContractCurrency::make_free_balance_be(&caller, caller_funding::<T>());
+	 let WasmModule { code, hash, .. } = WasmModule::<T>::sized(c, Location::Call);
+	 let origin = RawOrigin::Signed(caller.clone());
+	 let contract_address = Contracts::<T>::contract_address(&caller, &hash, &input, &salt);
+	 <AccountStakeinfoMap<T>>::insert(&contract_address, AccountStakeinfo::<T> {
+			owner: caller.clone(),
+			delegate_to: caller.clone(),
+			delegate_at: <frame_system::Pallet<T>>::block_number(),
+		});
+		<ContractStakeinfoMap<T>>::insert(&contract_address, ContractScarcityInfo::<T> {
+			reputation: 1,
+			recent_blockheight: <frame_system::Pallet<T>>::block_number(),
+			stake_score: 0,
+		});
+ 
+ 
+	}: _(origin,contract_address.clone(),caller.clone())
+	verify{}
 	// We just call a dummy contract to measure the overhead of the call extrinsic.
 	// The size of the data has no influence on the costs of this extrinsic as long as the contract
 	// won't call `seal_input` in its constructor to copy the data to contract memory.
