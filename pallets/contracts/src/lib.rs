@@ -793,7 +793,7 @@ pub mod pallet {
 		/// - [`pallet::ContractStakeinfoMap`] is reset to `default` values.
 		/// - `default` vaues are reputation value = 1, stakescore = 0, recentblockheight = currentblockheight.
 			#[pallet::call_index(10)]
-			#[pallet::weight(T::DbWeight::get().reads(10))]
+			#[pallet::weight(T::ContractWeightInfo::update_delegate())]
 			pub fn update_delegate(
 				origin: OriginFor<T>,
 				contract_address: T::AccountId,

@@ -73,7 +73,7 @@ pub trait ContractWeightInfo {
 	fn on_runtime_upgrade() -> Weight;
 	fn call_with_code_per_byte(c: u32, ) -> Weight;
 	fn instantiate_with_code(c: u32, i: u32, s: u32, ) -> Weight;
-	fn update_delegate(c: u32, _i: u32, _s: u32, ) -> Weight;
+	fn update_delegate() -> Weight;
 	fn instantiate(i: u32, s: u32, ) -> Weight;
 	fn call() -> Weight;
 	fn upload_code(c: u32, ) -> Weight;
@@ -402,7 +402,7 @@ impl<T: frame_system::Config> ContractWeightInfo for SubstrateWeight<T> {
 	/// The range of component `c` is `[0, 125952]`.
 	/// The range of component `i` is `[0, 1048576]`.
 	/// The range of component `s` is `[0, 1048576]`.
-	fn update_delegate(_c: u32, _i: u32, _s: u32, ) -> Weight {
+	fn update_delegate() -> Weight {
 		// Proof Size summary in bytes:
 		//  Measured:  `941`
 		//  Estimated: `4406`
@@ -2211,7 +2211,7 @@ impl ContractWeightInfo for () {
 	/// The range of component `c` is `[0, 125952]`.
 	/// The range of component `i` is `[0, 1048576]`.
 	/// The range of component `s` is `[0, 1048576]`.
-	fn update_delegate(_c: u32, _i: u32, _s: u32, ) -> Weight {
+	fn update_delegate() -> Weight {
 		// Proof Size summary in bytes:
 		//  Measured:  `941`
 		//  Estimated: `4406`
