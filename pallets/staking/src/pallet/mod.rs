@@ -1041,7 +1041,10 @@ pub mod pallet {
 		#[pallet::weight(
             T::WeightInfo::withdraw_unbonded_kill(SPECULATIVE_NUM_SPANS).saturating_add(T::WeightInfo::unbond()))
         ]
-		//pocs
+		
+		/// The [`Self::new_unbond`] function serves to purge the bond of a nominator during nomination updates. 
+		/// This function resembles [`Self::unbond`], excluding the [`Self::do_withdraw_unbonded`] feature, 
+		/// as stake score is not considered currency.
 		pub fn new_unbond(
 			origin: OriginFor<T>,
 			#[pallet::compact] value: BalanceOf<T>,

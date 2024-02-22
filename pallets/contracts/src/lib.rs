@@ -1,6 +1,7 @@
 // This file is part of Substrate.
 
 // Copyright (C) Parity Technologies (UK) Ltd.
+// Copyright (C) 2024 Auguth Research Foundation (IN).
 // SPDX-License-Identifier: Apache-2.0
 
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -14,10 +15,13 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
+//
+// This code has been modified by Auguth Research Foundation 
+// for Proof of Contract Stake Protocol (PoCS).
 
 //! # Contracts Pallet (PoCS Version)
 //!
-//! The modified Contracts module provides functionality for the runtime to deploy and execute WebAssembly
+//! The Contracts module provides functionality for the runtime to deploy and execute WebAssembly
 //! smart-contracts.
 //!
 //! - [`Config`]
@@ -71,7 +75,7 @@
 //! calls its constructor to initialize the contract.
 //! * [`Pallet::instantiate`] - The same as `instantiate_with_code` but instead of uploading new
 //! code an existing `code_hash` is supplied.
-//! * [`Pallet::update_delegate`] - Updates the delegate information of the contract.
+//! * [`Pallet::update_delegate`] - Updates the delegate information of the contract. (PoCS)
 //! * [`Pallet::call`] - Makes a call to an account, optionally transferring some balance.
 //! * [`Pallet::upload_code`] - Uploads new code without instantiating a contract from it.
 //! * [`Pallet::remove_code`] - Removes the stored code and refunds the deposit to its owner. Only
