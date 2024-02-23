@@ -1,7 +1,6 @@
 // This file is part of Substrate.
 
 // Copyright (C) Parity Technologies (UK) Ltd.
-// Copyright (C) 2024 Auguth Research Foundation (IN).
 // SPDX-License-Identifier: Apache-2.0
 
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -16,7 +15,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
-// This code has been modified by Auguth Research Foundation 
+// This file has been modified by Auguth Research Foundation 
 // for Proof of Contract Stake Protocol (PoCS).
 
 //! # Contracts Pallet (PoCS Version)

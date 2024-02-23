@@ -59,8 +59,8 @@ This [Substrate](https://substrate.io) Node is an adaptation of the [substrate-s
 
 Please refer to [TESTING-GUIDE.md](/TESTING-GUIDE.md) for extended details.
 
-- To conduct manual tests using the front end check []()
-- To conduct unit & benchmarking tests check []()
+- To conduct manual tests using the front end check [Front End Test](/TESTING-GUIDE.md#test-using-front-end)
+- To conduct unit & benchmarking tests check [Unit & Benchmarking Test](/TESTING-GUIDE.md#unit-tests--benchmarking-tests)
 
 ## Docker (Compose)
       

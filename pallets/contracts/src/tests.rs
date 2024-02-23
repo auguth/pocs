@@ -15,6 +15,9 @@ mod pallet_dummy;
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
+//
+// This file has been modified by Auguth Research Foundation 
+// for Proof of Contract Stake Protocol (PoCS).
 
 use self::test_utils::{ensure_stored, expected_deposit, hash};
 use crate as pallet_contracts;
