@@ -14,7 +14,3 @@
 
 # direnv cache
 .direnv
-
-# Cargo lock
-**/Cargo.lock
-Cargo.lock
