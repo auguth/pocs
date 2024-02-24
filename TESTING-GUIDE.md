@@ -154,7 +154,7 @@ For details, refer to [GitHub Pull Request #10](https://github.com/auguth/pocs/p
 
 3. **Updating Delegate Info**
 
-    1. Construct an extrinsic via `contracts` pallet with [updatedelegate()]() function
+    1. Construct an extrinsic via `contracts` pallet with [update_delegate()]() function
   
         ![Update_delegate()](/assets/gifs/update_delegate().gif)
     

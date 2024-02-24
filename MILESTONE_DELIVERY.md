@@ -17,7 +17,7 @@ Integration of pallet-staking to pallet-contracts. NPoS and PoCS hand-in hand wo
 |-------------|-------------|------------- |------------- |
 |0a.|License| [Apache 2.0](https://github.com/auguth/pocs/blob/master/LICENSE) |-|
 |0b.|Documentation| [Pallet Contracts](https://auguth.github.io/pocs/target/doc/pallet_contracts/) , [Pallet Staking](https://auguth.github.io/pocs/target/doc/pallet_staking/) | Crate Documentation of modified `pallet_contracts` and `pallet_staking` for PoCS|
-|0c.|Testing Guide| [Testing guide](https://github.com/auguth/pocs/blob/master/TESTING-GUIDE.md) , [Node Setup & Run](https://github.com/auguth/pocs/blob/master/README.md#pocs-node-set-up) | `nightly-2023-12-21` required and overriden. Guide includes implementation details|
+|0c.|Testing Guide| [Testing guide](https://github.com/auguth/pocs/blob/master/TESTING-GUIDE.md) , [Node Setup & Run](https://github.com/auguth/pocs/blob/master/README.md#pocs-node-set-up) | `nightly-2023-12-21` required and overridden. Guide includes implementation details|
 |0d.|Docker | [Dockerfile](https://github.com/auguth/pocs/blob/master/Dockerfile) , [Docker Compose](https://github.com/auguth/pocs/blob/master/docker-compose.yml) , [DockerImage Pull]()| To Build and Run using Docker `docker compose up --build -d` |
 |0e.|Repository Readme (External Documentation)|[PoCS README](https://github.com/auguth/pocs/blob/master/README.md)|In Milestone 3, External documentation will be a blog article.|
 |1.|Delivery|[PoCS Node](https://github.com/auguth/pocs/tree/master)|PoCS Node Repository - includes modified [pallet-contracts](/pallets/contracts/) & [pallet-staking](/pallets/staking/)|

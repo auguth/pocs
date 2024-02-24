@@ -100,7 +100,7 @@ Please refer to [TESTING-GUIDE.md](/TESTING-GUIDE.md) for extended details.
 4. Run a Docker Container by specifying the Image ID that is recently pulled/built.
 
    ```bash
-   docker run --network="host" --rm [Image ID/ Name]
+   docker run --network="host" --rm jobyreuben/pocs-node:w3f_m2
    ``` 
    **Note:** Local Host will only be available to Linux Hosts using `--network="host"` flag
 

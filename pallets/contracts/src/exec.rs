@@ -957,7 +957,7 @@ where
            // Deposit an event to indicate the update of scarcity information  (PoCS)
 		   let _update_scarcity_info_event = Contracts::<T>::deposit_event(
                vec![T::Hashing::hash_of(&account_id.clone())],
-               Event::ContractStakeinfoevnet {
+               Event::ContractStakeinfoevent {
                    contract_address: account_id.clone(),
                    reputation: new_scarcity_info.reputation,
                    recent_blockheight: new_scarcity_info.recent_blockheight,
@@ -2659,7 +2659,7 @@ mod tests {
 				&events(),
 				&[
 					Event::Instantiated { deployer: BOB, contract: instantiated_contract_address },
-					Event::ContractStakeinfoevnet {
+					Event::ContractStakeinfoevent {
 						contract_address: BOB,
 						reputation: contract_stake_info.reputation,
 						recent_blockheight: contract_stake_info.recent_blockheight,
@@ -2727,7 +2727,7 @@ mod tests {
 			// event here.
 			assert_eq!(
 				&events(),
-				&[ Event::ContractStakeinfoevnet {
+				&[ Event::ContractStakeinfoevent {
 					contract_address: BOB,
 					reputation: contract_stake_info.reputation,
 					recent_blockheight: contract_stake_info.recent_blockheight,
@@ -3159,7 +3159,7 @@ mod tests {
 					EventRecord {
 						phase: Phase::Initialization,
 						event: MetaEvent::Contracts(
-							crate::Event::ContractStakeinfoevnet {
+							crate::Event::ContractStakeinfoevent {
 								contract_address: BOB,
 								reputation: contract_stake_info.reputation,
 								recent_blockheight: contract_stake_info.recent_blockheight,
@@ -3274,7 +3274,7 @@ mod tests {
 					},
 					EventRecord {
 						phase: Phase::Initialization,
-						event: MetaEvent::Contracts(crate::Event::ContractStakeinfoevnet {
+						event: MetaEvent::Contracts(crate::Event::ContractStakeinfoevent {
 							contract_address: BOB,
 							reputation: contract_stake_info.reputation,
 							recent_blockheight: contract_stake_info.recent_blockheight,

@@ -5531,7 +5531,7 @@ fn pre_bonding_era_cannot_be_claimed() {
 
 		// consumed weight for all payout_stakers dispatches that fail
 		let err_weight = <Test as Config>::WeightInfo::payout_stakers_alive_staked(0);
-		// cannot claim rewards for an era before bonding occured as it is
+		// cannot claim rewards for an era before bonding occurred as it is
 		// already marked as claimed.
 		assert_noop!(
 			Staking::payout_stakers(RuntimeOrigin::signed(3), 3, current_era - 2),
