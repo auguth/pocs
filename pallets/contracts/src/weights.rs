@@ -42,12 +42,12 @@
 
 // PoCS Executed Command:
 // ./target/release/pocs benchmark pallet \
-//     --extrinsic=\* \
+// 	   --chain=dev \
+//     --wasm-execution=compiled \
 //     --pallet=pallet_contracts \
+//     --extrinsic=\* \
 //     --steps=50 \
 //     --repeat=20 \
-//     --wasm-execution=compiled \
-//     --chain=dev \
 //     --output=./pallets/contracts/src/weights.rs
 
 #![cfg_attr(rustfmt, rustfmt_skip)]
@@ -73,6 +73,7 @@ pub trait ContractWeightInfo {
 	fn on_runtime_upgrade() -> Weight;
 	fn call_with_code_per_byte(c: u32, ) -> Weight;
 	fn instantiate_with_code(c: u32, i: u32, s: u32, ) -> Weight;
+	fn update_delegate() -> Weight;
 	fn instantiate(i: u32, s: u32, ) -> Weight;
 	fn call() -> Weight;
 	fn upload_code(c: u32, ) -> Weight;
@@ -342,18 +343,19 @@ impl<T: frame_system::Config> ContractWeightInfo for SubstrateWeight<T> {
 	/// The range of component `s` is `[0, 1048576]`.
 	fn instantiate_with_code(c: u32, i: u32, s: u32, ) -> Weight {
 		// Proof Size summary in bytes:
-		//  Measured:  `303`
-		//  Estimated: `8745`
-		// Minimum execution time: 4_506_957_000 picoseconds.
-		Weight::from_parts(643_316_921, 8745)
-			// Standard Error: 278
-			.saturating_add(Weight::from_parts(112_835, 0).saturating_mul(c.into()))
-			// Standard Error: 33
-			.saturating_add(Weight::from_parts(1_830, 0).saturating_mul(i.into()))
-			// Standard Error: 33
-			.saturating_add(Weight::from_parts(2_022, 0).saturating_mul(s.into()))
-			.saturating_add(T::DbWeight::get().reads(10_u64))
-			.saturating_add(T::DbWeight::get().writes(9_u64))
+		//  Measured:  `722`
+		//  Estimated: `9161`
+		// Minimum execution time: 4_996_155_000 picoseconds.
+		Weight::from_parts(1_195_657_744, 0)
+			.saturating_add(Weight::from_parts(0, 9161))
+			// Standard Error: 3_737
+			.saturating_add(Weight::from_parts(162_150, 0).saturating_mul(c.into()))
+			// Standard Error: 448
+			.saturating_add(Weight::from_parts(1_895, 0).saturating_mul(i.into()))
+			// Standard Error: 448
+			.saturating_add(Weight::from_parts(2_366, 0).saturating_mul(s.into()))
+			.saturating_add(T::DbWeight::get().reads(12))
+			.saturating_add(T::DbWeight::get().writes(11))
 	}
 	/// Storage: Contracts MigrationInProgress (r:1 w:0)
 	/// Proof: Contracts MigrationInProgress (max_values: Some(1), max_size: Some(1026), added: 1521, mode: Measured)
@@ -386,6 +388,31 @@ impl<T: frame_system::Config> ContractWeightInfo for SubstrateWeight<T> {
 			.saturating_add(T::DbWeight::get().reads(10_u64))
 			.saturating_add(T::DbWeight::get().writes(7_u64))
 	}
+	
+	/// Storage: `Contracts::AccountStakeinfoMap` (r:1 w:1)
+	/// Proof: `Contracts::AccountStakeinfoMap` (`max_values`: None, `max_size`: Some(108), added: 2583, mode: `Measured`)
+	/// Storage: `Contracts::ContractStakeinfoMap` (r:1 w:1)
+	/// Proof: `Contracts::ContractStakeinfoMap` (`max_values`: None, `max_size`: Some(68), added: 2543, mode: `Measured`)
+	/// Storage: `System::EventTopics` (r:1 w:1)
+	/// Proof: `System::EventTopics` (`max_values`: None, `max_size`: None, mode: `Measured`)
+	/// Storage: `Staking::Ledger` (r:1 w:0)
+	/// Proof: `Staking::Ledger` (`max_values`: None, `max_size`: Some(1091), added: 3566, mode: `Measured`)
+	/// Storage: `Staking::Bonded` (r:1 w:0)
+	/// Proof: `Staking::Bonded` (`max_values`: None, `max_size`: Some(72), added: 2547, mode: `Measured`)
+	/// The range of component `c` is `[0, 125952]`.
+	/// The range of component `i` is `[0, 1048576]`.
+	/// The range of component `s` is `[0, 1048576]`.
+	fn update_delegate() -> Weight {
+		// Proof Size summary in bytes:
+		//  Measured:  `941`
+		//  Estimated: `4406`
+		// Minimum execution time: 67_857_000 picoseconds.
+		Weight::from_parts(117_511_999, 0)
+			.saturating_add(Weight::from_parts(0, 4406))
+			.saturating_add(T::DbWeight::get().reads(5))
+			.saturating_add(T::DbWeight::get().writes(3))
+	}
+
 	/// Storage: Contracts MigrationInProgress (r:1 w:0)
 	/// Proof: Contracts MigrationInProgress (max_values: Some(1), max_size: Some(1026), added: 1521, mode: Measured)
 	/// Storage: Contracts ContractInfoOf (r:1 w:1)
@@ -402,12 +429,13 @@ impl<T: frame_system::Config> ContractWeightInfo for SubstrateWeight<T> {
 	/// Proof Skipped: System EventTopics (max_values: None, max_size: None, mode: Measured)
 	fn call() -> Weight {
 		// Proof Size summary in bytes:
-		//  Measured:  `820`
-		//  Estimated: `6760`
-		// Minimum execution time: 207_530_000 picoseconds.
-		Weight::from_parts(217_243_000, 6760)
-			.saturating_add(T::DbWeight::get().reads(8_u64))
-			.saturating_add(T::DbWeight::get().writes(4_u64))
+		//  Measured:  `1367`
+		//  Estimated: `7307`
+		// Minimum execution time: 443_965_000 picoseconds.
+		Weight::from_parts(448_011_000, 0)
+			.saturating_add(Weight::from_parts(0, 7307))
+			.saturating_add(T::DbWeight::get().reads(11))
+			.saturating_add(T::DbWeight::get().writes(5))
 	}
 	/// Storage: Contracts MigrationInProgress (r:1 w:0)
 	/// Proof: Contracts MigrationInProgress (max_values: Some(1), max_size: Some(1026), added: 1521, mode: Measured)
@@ -2125,18 +2153,19 @@ impl ContractWeightInfo for () {
 	/// The range of component `s` is `[0, 1048576]`.
 	fn instantiate_with_code(c: u32, i: u32, s: u32, ) -> Weight {
 		// Proof Size summary in bytes:
-		//  Measured:  `303`
-		//  Estimated: `8745`
-		// Minimum execution time: 4_506_957_000 picoseconds.
-		Weight::from_parts(643_316_921, 8745)
-			// Standard Error: 278
-			.saturating_add(Weight::from_parts(112_835, 0).saturating_mul(c.into()))
-			// Standard Error: 33
-			.saturating_add(Weight::from_parts(1_830, 0).saturating_mul(i.into()))
-			// Standard Error: 33
-			.saturating_add(Weight::from_parts(2_022, 0).saturating_mul(s.into()))
-			.saturating_add(RocksDbWeight::get().reads(10_u64))
-			.saturating_add(RocksDbWeight::get().writes(9_u64))
+		//  Measured:  `722`
+		//  Estimated: `9161`
+		// Minimum execution time: 4_996_155_000 picoseconds.
+		Weight::from_parts(1_195_657_744, 0)
+			.saturating_add(Weight::from_parts(0, 9161))
+			// Standard Error: 3_737
+			.saturating_add(Weight::from_parts(162_150, 0).saturating_mul(c.into()))
+			// Standard Error: 448
+			.saturating_add(Weight::from_parts(1_895, 0).saturating_mul(i.into()))
+			// Standard Error: 448
+			.saturating_add(Weight::from_parts(2_366, 0).saturating_mul(s.into()))
+			.saturating_add(RocksDbWeight::get().reads(12))
+			.saturating_add(RocksDbWeight::get().writes(11))
 	}
 	/// Storage: Contracts MigrationInProgress (r:1 w:0)
 	/// Proof: Contracts MigrationInProgress (max_values: Some(1), max_size: Some(1026), added: 1521, mode: Measured)
@@ -2169,6 +2198,29 @@ impl ContractWeightInfo for () {
 			.saturating_add(RocksDbWeight::get().reads(10_u64))
 			.saturating_add(RocksDbWeight::get().writes(7_u64))
 	}
+	/// Storage: `Contracts::AccountStakeinfoMap` (r:1 w:1)
+	/// Proof: `Contracts::AccountStakeinfoMap` (`max_values`: None, `max_size`: Some(108), added: 2583, mode: `Measured`)
+	/// Storage: `Contracts::ContractStakeinfoMap` (r:1 w:1)
+	/// Proof: `Contracts::ContractStakeinfoMap` (`max_values`: None, `max_size`: Some(68), added: 2543, mode: `Measured`)
+	/// Storage: `System::EventTopics` (r:1 w:1)
+	/// Proof: `System::EventTopics` (`max_values`: None, `max_size`: None, mode: `Measured`)
+	/// Storage: `Staking::Ledger` (r:1 w:0)
+	/// Proof: `Staking::Ledger` (`max_values`: None, `max_size`: Some(1091), added: 3566, mode: `Measured`)
+	/// Storage: `Staking::Bonded` (r:1 w:0)
+	/// Proof: `Staking::Bonded` (`max_values`: None, `max_size`: Some(72), added: 2547, mode: `Measured`)
+	/// The range of component `c` is `[0, 125952]`.
+	/// The range of component `i` is `[0, 1048576]`.
+	/// The range of component `s` is `[0, 1048576]`.
+	fn update_delegate() -> Weight {
+		// Proof Size summary in bytes:
+		//  Measured:  `941`
+		//  Estimated: `4406`
+		// Minimum execution time: 67_857_000 picoseconds.
+		Weight::from_parts(117_511_999, 0)
+			.saturating_add(Weight::from_parts(0, 4406))
+			.saturating_add(RocksDbWeight::get().reads(5))
+			.saturating_add(RocksDbWeight::get().writes(3))
+	}
 	/// Storage: Contracts MigrationInProgress (r:1 w:0)
 	/// Proof: Contracts MigrationInProgress (max_values: Some(1), max_size: Some(1026), added: 1521, mode: Measured)
 	/// Storage: Contracts ContractInfoOf (r:1 w:1)
@@ -2185,12 +2237,13 @@ impl ContractWeightInfo for () {
 	/// Proof Skipped: System EventTopics (max_values: None, max_size: None, mode: Measured)
 	fn call() -> Weight {
 		// Proof Size summary in bytes:
-		//  Measured:  `820`
-		//  Estimated: `6760`
-		// Minimum execution time: 207_530_000 picoseconds.
-		Weight::from_parts(217_243_000, 6760)
-			.saturating_add(RocksDbWeight::get().reads(8_u64))
-			.saturating_add(RocksDbWeight::get().writes(4_u64))
+		//  Measured:  `1367`
+		//  Estimated: `7307`
+		// Minimum execution time: 443_965_000 picoseconds.
+		Weight::from_parts(448_011_000, 0)
+			.saturating_add(Weight::from_parts(0, 7307))
+			.saturating_add(RocksDbWeight::get().reads(11))
+			.saturating_add(RocksDbWeight::get().writes(5))
 	}
 	/// Storage: Contracts MigrationInProgress (r:1 w:0)
 	/// Proof: Contracts MigrationInProgress (max_values: Some(1), max_size: Some(1026), added: 1521, mode: Measured)

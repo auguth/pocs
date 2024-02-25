@@ -2578,7 +2578,7 @@ pub mod env {
 	/// # Return Value
 	///
 	/// Returns `ReturnCode::Success` when the dispatchable was successfully executed and
-	/// returned `Ok`. When the dispatchable was exeuted but returned an error
+	/// returned `Ok`. When the dispatchable was executed but returned an error
 	/// `ReturnCode::CallRuntimeFailed` is returned. The full error is not
 	/// provided because it is not guaranteed to be stable.
 	///

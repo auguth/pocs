@@ -382,7 +382,7 @@ mod tests {
 		($name:ident, $wat:expr, $($expected:tt)*) => {
 			#[test]
 			fn $name() {
-				let wasm = wat::parse_str($wat).unwrap().try_into().unwrap();
+				let wasm = wast::parse_str($wat).unwrap().try_into().unwrap();
 				let schedule = Schedule {
 					limits: Limits {
 					    globals: 3,

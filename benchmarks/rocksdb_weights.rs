@@ -1,7 +1,6 @@
 
 //! THIS FILE WAS AUTO-GENERATED USING THE SUBSTRATE BENCHMARK CLI VERSION 4.0.0-dev
 //! DATE: 2024-01-21 (Y/M/D)
-//! HOSTNAME: `Purvas-MacBook-Pro.local`, CPU: `<UNKNOWN>`
 //!
 //! DATABASE: `RocksDb`, RUNTIME: `Local Testnet`
 //! BLOCK-NUM: `BlockId::Number(0)`

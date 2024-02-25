@@ -200,7 +200,7 @@ impl<T: Config> WasmBlob<T> {
 
 		// Query wasmi for memory limits specified in the module's import entry.
 		let memory_limits = contract.scan_imports::<T>(schedule)?;
-		// Here we allocate this memory in the _store_. It allocates _inital_ value, but allows it
+		// Here we allocate this memory in the _store_. It allocates _initial_ value, but allows it
 		// to grow up to maximum number of memory pages, if necessary.
 		let qed = "We checked the limits versus our Schedule,
 					 which specifies the max amount of memory pages
@@ -706,7 +706,7 @@ mod tests {
 	) -> ExecResult {
 		type RuntimeConfig = <MockExt as Ext>::T;
 		RuntimeConfig::set_unstable_interface(unstable_interface);
-		let wasm = wat::parse_str(wat).unwrap();
+		let wasm = wast::parse_str(wat).unwrap();
 		let executable = if skip_checks {
 			WasmBlob::<RuntimeConfig>::from_code_unchecked(
 				wasm,
@@ -1352,7 +1352,7 @@ mod tests {
 
 	#[test]
 	fn contract_ecdsa_to_eth_address() {
-		/// calls `seal_ecdsa_to_eth_address` for the contstant and ensures the result equals the
+		/// calls `seal_ecdsa_to_eth_address` for the constant and ensures the result equals the
 		/// expected one.
 		const CODE_ECDSA_TO_ETH_ADDRESS: &str = r#"
 (module

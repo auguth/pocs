@@ -1,7 +1,7 @@
 // This file is part of Substrate-PoCS Implementation
 //
 // SPDX-License-Identifier: Apache-2.0
-//
+// 
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
@@ -46,6 +46,7 @@ pub struct AccountStakeinfo<T: frame_system::Config> {
 pub struct ContractScarcityInfo<T: frame_system::Config> {
 	pub reputation: u64,
 	pub recent_blockheight: BlockNumberFor<T>,
+	pub stake_score: u128,
 }
 
 impl<T: frame_system::Config> AccountStakeinfo<T> {
@@ -60,7 +61,7 @@ impl<T: frame_system::Config> AccountStakeinfo<T> {
 		// Create and return a new AccountStakeinfo instance.
 		Self {
 			owner,
-            		delegate_to,
+			delegate_to,
 			delegate_at:current_block_number,
 		}
 	}
@@ -90,12 +91,15 @@ impl<T: frame_system::Config> ContractScarcityInfo<T>{
 		Self{
 			reputation: 1,
 			recent_blockheight: current_block_number,
+			stake_score: 0,
 		}
 	}
     /// Updates the contract's reputation based on its usage.
 	pub fn update_scarcity_info(
 		current_reputation: u64,
 		old_block_height: BlockNumberFor<T>,
+		old_stake_score: u128,
+		current_stake_score: u128,
 	)-> Self{
 		// Get the current block number.
 		let current_block_height = <frame_system::Pallet<T>>::block_number();
@@ -108,6 +112,7 @@ impl<T: frame_system::Config> ContractScarcityInfo<T>{
 		Self{
 			reputation: new_reputation,
 			recent_blockheight: new_recent_blockheight,
+			stake_score: current_stake_score,
 		}
 		}
 		else{
@@ -118,6 +123,7 @@ impl<T: frame_system::Config> ContractScarcityInfo<T>{
 		 Self{
 			reputation: new_reputation,
 			recent_blockheight: new_recent_blockheight,
+			stake_score: old_stake_score,
 		}
 		}	
 	}
