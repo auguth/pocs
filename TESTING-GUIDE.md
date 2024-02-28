@@ -1,164 +1,101 @@
-# Testing Guidelines for PoCS (Milestone 2 - W3F)
+# Testing Guidelines for PoCS
 
-## Overview:
-In Milestone 2, [pallet-staking](https://auguth.github.io/pocs/target/doc/pallet_staking/index.html) has been integrated into pallet-contract to enable Proof of Contract Stake (PoCS) functionality with [Parity's](https://parity.io) Nominated Proof of Stake (NPoS). This document outlines the implementation details and testing procedures for PoCS.
+> The testing guide is provided for Milestone-2 PoCS W3F Grant Delivery
 
-## Implementation Details
-- `pallet-contracts` and `pallet-staking` have been integrated.
-- Key functionalities include:
-  - Bonding initial stake upon contract deployment.
-  - Increasing stake score upon contract execution.
-  - Removing stake score when the developer changes their `delegate_to`.
+[pallet-staking](https://auguth.github.io/pocs/target/doc/pallet_staking/index.html) has been integrated into [pallet-contracts](https://auguth.github.io/pocs/target/doc/pallet_contracts/index.html) to enable Proof of Contract Stake (PoCS) functionality with [Parity's](https://parity.io) Nominated Proof of Stake (NPoS). By following these steps, developers/reviewers can verify the correctness and reliability of the implemented features.
+
+**Table of Contents**
+
+- [Testing Guidelines for PoCS](#testing-guidelines-for-pocs)
+  - [How PoCS Works](#how-pocs-works)
+  - [Test Locally](#test-locally)
+  - [Test Using Front-End](#test-using-front-end)
+  - [Alternate Testing Methods](#alternate-testing-methods)
+  - [Commit History](#commit-history)
 
 ## How PoCS Works
 - Developers deploy smart contracts and become nominators by default.
 - Developers can only nominate one validator at a time.
-- Stake score represents the stake used to nominate the validator.
+- Stake score represents each contract's execution time
+- Stake score is used to nominate the validator.
 - Stake score increases upon contract execution.
-- Stake score becomes zero when the developer changes their nominated validator.
+- Stake score purges to zero when the developer changes their nominated validator.
 
-## Unit Tests & Benchmarking Tests
+In-depth information about PoCS can be inferred from [PoCS-Research Document](https://jobyreuben.in/JOURNALS/pocs).
 
-Firstly [Build and Run Node](/README.md#pocs-node-set-up) or [Build and Run using Docker Compose](/README.md#docker-compose)
+## Test Locally
 
-1. Unit Tests for `pallet-contracts`
+- Building a local node is suitable to verify PoCS's unit & benchmarking tests locally, and further compile to run a Substrate-PoCS node. 
 
+1. Clone the repository from GitHub:
+   ```bash
+   git clone https://github.com/auguth/pocs
+   ```
+2. Run the Rust Setup Script
+   ```bash
+   chmod +x setup.sh && ./setup.sh
+   ```
+3. Run Unit Tests
+
+    pallets used : `pallet-contracts`, `pallet_staking`
+
+   ```bash
+   cargo test -p [pallet-name]
+   ``` 
+4. Run Benchmarking Tests
+   ```bash
+   cargo test -p [pallet-name] --features=runtime-benchmarks
+   ``` 
+5. Build the project in release mode:
+   
+   ```bash
+   cargo build --release
+   ```
+6. Run the executable with the specified configuration:
+   
     ```bash
-    cargo test -p pallet-contracts
+    ./target/release/pocs --dev
     ```
-
-2. Run `pallet-contracts` Unit Tests with Benchmarks
-
-    ```bash
-    cargo test -p pallet-contracts --features=runtime-benchmarks
-    ```
-
-3. Unit Tests for `pallet-staking`
-
-    ```bash
-    cargo test -p pallet-staking
-    ```
-
-4. Run `pallet-staking` Unit Tests with Benchmarks
-
-    ```bash
-    cargo test -p pallet-staking --features=runtime-benchmarks
-    ```
-
-## PoCS Functionalities
-
-### Functions
-
-1. **[Instantiate_with_code()](https://auguth.github.io/pocs/target/doc/pallet_contracts/pallet/struct.Pallet.html#method.instantiate_with_code):**
-
-   - **Description:** Used in pallet_contracts to deploy wasm-contracts to chain storage. Modified to initialize [AccountStakeinfo](https://auguth.github.io/pocs/target/doc/pallet_contracts/gasstakeinfo/struct.AccountStakeinfo.html) and [ContractScarcityinfo](https://auguth.github.io/pocs/target/doc/pallet_contracts/gasstakeinfo/struct.ContractScarcityInfo.html) values during deployment, and call the [bond()` function](https://auguth.github.io/pocs/target/doc/pallet_staking/dispatchables/fn.bond.html) in pallet-staking to bond the contract deployer address with default stake score.
-   - **Expected Output:** [ContractStakeinfoMap](https://auguth.github.io/pocs/target/doc/pallet_contracts/pallet/type.ContractStakeinfoMap.html) and [AccountStakeInfoMap](https://auguth.github.io/pocs/target/doc/pallet_contracts/pallet/type.AccountStakeinfoMap.html) are updated for the new contract address with default values. The contract deployer's address appears in the validator list with zero stake.
-
-2. **[run()]():**
-   - **Description:** Executed when a contract is called. Modified to update [ContractScarcityinfo](https://auguth.github.io/pocs/target/doc/pallet_contracts/gasstakeinfo/struct.ContractScarcityInfo.html) values during the call, call [bond_extra()` function](https://auguth.github.io/pocs/target/doc/pallet_staking/dispatchables/fn.bond_extra.html) in pallet-staking, and increments the new stake score. 
-   - **Expected Output:** During contract execution:
-     - `reputation` is incremented by 1.
-     - `recent_block_height` is updated.
-     - `stake_score` is calculated using a formula 
-        $$\text{NewStakeScore} = \text{oldStakeScore} + ( \text{weight} \times \text{reputation})$$
-     - `stake_score `is added to the nominator's bonded stake.
-     
-3. **[update_delegate()](https://auguth.github.io/pocs/target/doc/pallet_contracts/pallet/dispatchables/fn.update_delegate.html):**
-   - **Description:** PoCS specific function called by the contract owner to update delegate information of a contract (`AccountStakeinfo`). Calls a PoCS specific [function `new_unbond()](https://auguth.github.io/pocs/target/doc/pallet_staking/struct.Pallet.html#method.new_unbond) in pallet-staking to purge the stake for the nominator.
-   - **Expected Output:** Delegate address (`delegateTo`) is changed. Nominator's stake is purged to zero.
-
-### Structs
-
-Incorporating PoCS-related features into `pallet_contracts`, including reputation values, delegate designation, and stake score.
-
-The [gasstakeinfo.rs](/pallets/contracts/src/gasstakeinfo.rs) file in pallet-contracts introduces two key structs:
-
-- [AccountStakeinfo](https://auguth.github.io/pocs/target/doc/pallet_contracts/gasstakeinfo/struct.AccountStakeinfo.html): Manages delegate information, contract owner address, contract address, and delegated stake score address.
-- [ContractScarcityinfo](https://auguth.github.io/pocs/target/doc/pallet_contracts/gasstakeinfo/struct.ContractScarcityInfo.html): Handles stake score, contract reputation, and last updated block height.
-
-Integration with `pallet-contracts` adds two essential maps:
-
-- [AccountStakeInfoMap](https://auguth.github.io/pocs/target/doc/pallet_contracts/pallet/type.AccountStakeinfoMap.html): Maps contract address to corresponding `AccountStakeinfo`.
-- [ContractStakeinfoMap](https://auguth.github.io/pocs/target/doc/pallet_contracts/pallet/type.ContractStakeinfoMap.html): Maps contract address to associated `ContractScarcityinfo`.
-
-#### Default values 
-
-Upon initial contract deployment are as follows:
-
-   - **[AccountStakeinfo](https://auguth.github.io/pocs/target/doc/pallet_contracts/gasstakeinfo/struct.AccountStakeinfo.html):**
-     - `Owner`: Account address of the contract deployer.
-     - `Delegate_to`: By default, set to the `owner`.
-     - `Delegate_at`: Current block height at the contract deployment.
-
-   - **[ContractScarcityinfo](https://auguth.github.io/pocs/target/doc/pallet_contracts/gasstakeinfo/struct.ContractScarcityInfo.html):**
-     - `Reputation`: Initialized to 1 by default.
-     - `Recent_blockheight`: Current block height at contract deployment.
-     - `Stake_score` : 0
-
-### Tight-Coupling of Pallets
-
-To integrate `pallet_contracts` and `pallet_staking` in PoCS protocol:
-
-1. **Pallet-Staking Dependency:** Added `pallet-staking` to `pallet_contracts` dependencies.
-2. **Configuration Inheritance:** `Config` of `pallet_staking` inherited in `pallet_contracts`.
-3. **Type Name Changes:** Renamed `Currency` to `ContractCurrency` and `WeightInfo` to `ContractsWeightInfo` to resolve conflicts.
-
-For details, refer to [GitHub Pull Request #10](https://github.com/auguth/pocs/pull/10/commits/b19898ed7ea1d22027b5abbdae3d2681d96e0dd1).
-
-### PoCS Custom Events
-
-1. **[AccountStakeinfoevent](https://auguth.github.io/pocs/target/doc/pallet_contracts/pallet/enum.Event.html#variant.AccountStakeinfoevent):**
-   - **Output:** 
-     - `contractAddress`: Address of the deployed contract.
-     - `owner`: Contract Deployer's Address.
-     - `delegateTo`: Address that the stake is delegated to.
-     - `delegateAt`: Block height at which the delegation occurred.
-
-2. **[ContractStakeinfoevent](https://auguth.github.io/pocs/target/doc/pallet_contracts/pallet/enum.Event.html#variant.ContractStakeinfoevent):**
-   - **Output:** 
-     - `contractAddress`: Address of the deployed contract.
-     - `reputation`.
-     - `recent_block_height`.
-     - `stake_score`: Current Stake Score of the contract.
-
 
 ## Test Using Front-End
 
-- Firstly [Build and Run Node](/README.md#pocs-node-set-up) or [Build and Run using Docker Compose](/README.md#docker-compose)
-- Use sample ink! contracts from [auguth/ink-contracts-for-testing](https://github.com/auguth/ink-contracts-for-testing) 
-- We used [flipper contract](https://github.com/auguth/ink-contracts-for-testing/blob/main/flipper.contract) below. 
-- For advanced testing, [flipper](https://github.com/auguth/ink-contracts-for-testing/blob/main/flipper.contract) and [caller](https://github.com/auguth/ink-contracts-for-testing/blob/main/caller.contract) contract for testing contract delegate calls to test automated stake_score update across calls.
+After running the executable, the following tests using front-end can be done to verify the correctness mentioned in [How PoCS Work](#how-pocs-works) Section.
 
-### Using Contracts UI and Polkadot-JS
+- Use [Polkadot-JS](https://polkadot.js.org/apps/) and [Contracts UI](https://contracts-ui.substrate.io/) and configure it to Local/Development Node
+- Use sample ink! contracts from [auguth/ink-contracts-for-testing](https://github.com/auguth/ink-contracts-for-testing) 
+- The examples below used [flipper contract](https://github.com/auguth/ink-contracts-for-testing/blob/main/flipper.contract). 
+- For more advanced testing & scrutiny, use [flipper](https://github.com/auguth/ink-contracts-for-testing/blob/main/flipper.contract) and [caller](https://github.com/auguth/ink-contracts-for-testing/blob/main/caller.contract) contracts for testing contract delegate calls to test automated stake_score update across calls.
 
 1. **Deploying Contracts**
 
     1. Upload a contract e.g., [flipper contract](https://github.com/auguth/ink-contracts-for-testing) using [Contracts UI](https://contracts-ui.substrate.io/)
+    2. This uses function [instantiate_with_code()](https://auguth.github.io/pocs/target/doc/pallet_contracts/pallet/struct.Pallet.html#method.instantiate_with_code) and calls the [bond()](https://auguth.github.io/pocs/target/doc/pallet_staking/dispatchables/fn.bond.html) function in pallet-staking to bond the contract deployer address with default `stake_score`.
     
         ![Instantiate_with_code()](/assets/gifs/instantiate_with_code().gif)
 
-    2. Should expect outputs - [two custom events](#pocs-custom-events) with [default values](#default-values)
+    3. After deployment, should expect events - [AccountStakeinfoevent](https://auguth.github.io/pocs/target/doc/pallet_contracts/pallet/enum.Event.html#variant.AccountStakeinfoevent) & [ContractStakeinfoevent](https://auguth.github.io/pocs/target/doc/pallet_contracts/pallet/enum.Event.html#variant.ContractStakeinfoevent)  with its default values
     
         ![Instantiate_with_code() events](/assets/gifs/instantiate_with_code()-events.gif)
 
-    3. In Validator List (alias nominator), the deployer address will be added
+    4. In Validator List (alias nominator), the deployer address will be added
     
         ![Deployer as Nominator](/assets/gifs/deployer_as_nominator.gif)
 
 2. **Executing Contracts**
 
-    1. When executing contract, Emits [custom event](#pocs-custom-events) i.e., [ContractStakeinfoevent](https://auguth.github.io/pocs/target/doc/pallet_contracts/pallet/enum.Event.html#variant.ContractStakeinfoevent) 
-    2. In validator list of bonds, the stake score will be reflected
+    1. When executing contract [bond_extra()](https://auguth.github.io/pocs/target/doc/pallet_staking/dispatchables/fn.bond_extra.html) function is additionally called to increment the new `stake_score`
+    2. This emits [ContractStakeinfoevent](https://auguth.github.io/pocs/target/doc/pallet_contracts/pallet/enum.Event.html#variant.ContractStakeinfoevent) 
+    3. In validator list of bonds, the `stake_score` will be reflected
     
         ![Execute bond_extra()](/assets/gifs/execute_bond_extra().gif)
 
 3. **Updating Delegate Info**
 
-    1. Construct an extrinsic via `contracts` pallet with [update_delegate()]() function
+    1. Construct an extrinsic via `contracts` pallet with [update_delegate()](https://auguth.github.io/pocs/target/doc/pallet_contracts/pallet/dispatchables/fn.update_delegate.html) function which calls [new_unbond()](https://auguth.github.io/pocs/target/doc/pallet_staking/struct.Pallet.html#method.new_unbond) in pallet-staking to purge the stake for the nominator
   
         ![Update_delegate()](/assets/gifs/update_delegate().gif)
     
-    2. In [AccountStakeinfo](https://auguth.github.io/pocs/target/doc/pallet_contracts/gasstakeinfo/struct.AccountStakeinfo.html), `delegateTo` and `delegateAt` will be updated and in [ContractStakeinfo](), the `stake_score` will be updated to 0 reflected in the validator list of bonds to zero. 
+    2. In [AccountStakeinfo](https://auguth.github.io/pocs/target/doc/pallet_contracts/gasstakeinfo/struct.AccountStakeinfo.html), `delegateTo` and `delegateAt` will be updated and in [ContractScarcityinfo](https://auguth.github.io/pocs/target/doc/pallet_contracts/gasstakeinfo/struct.ContractScarcityInfo.html), the `stake_score` will be updated to 0 reflected in the validator list of bonds to zero. 
     
         ![Unbond events](/assets/gifs/unbond-events.gif)
 
@@ -166,6 +103,68 @@ For details, refer to [GitHub Pull Request #10](https://github.com/auguth/pocs/p
     
         ![Update_delegate() Validator List](/assets/gifs/update_delegate()-validator-list.gif)
 
-## Conclusion
+## Alternate Testing Methods
 
-These testing guidelines ensure proper integration and functioning of PoCS with [pallet-contracts](https://auguth.github.io/pocs/target/doc/pallet_contracts/index.html) & [pallet-staking](https://auguth.github.io/pocs/target/doc/pallet_staking/index.html). By following these steps, developers/reviewers can verify the correctness and reliability of the implemented features.
+- These below methods using Docker, can build and run a node shortly without requiring node specific dependencies, but unit & benchmarking tests cannot be verified.
+- Regarless of the choice, [front-end tests](#test-using-front-end) can be conducted
+
+**Docker Compose**
+
+1. Build & Run using Docker Compose:
+    
+      ```bash
+      docker compose up --build -d
+      ```
+2. To Stop container
+      ```bash
+      docker compose down
+      ```
+3. To Restart the container
+      ```
+      docker compose up
+      ```
+
+      Works in all hosts (Linux/Mac/Windows).
+
+**Docker Pull**
+
+1. Install Latest [Docker Engine](https://docs.docker.com/engine/install/)
+2. Pull Docker Image
+    
+   ```bash
+   docker image pull jobyreuben/pocs-node:w3f_m2
+   ```
+      
+3. Run a Docker Container.
+
+   ```bash
+   docker run --network="host" --rm jobyreuben/pocs-node:w3f_m2
+   ``` 
+   Local Host will only be available to Linux Hosts using `--network="host"` flag
+
+## Commit History
+
+Commit History is provided for in-depth valuation of PoCS specific modifications to the [substrate-stencil](https://github.com/kaichaosun/substrate-stencil) template for w3f-grant-reviewers.
+
+**Milestone 1**
+
+TBD
+
+**Milestone 2**
+
+Milestone 2 is published in [PR #29](https://github.com/auguth/pocs/pull/29)
+
+1. Pallet Staking Codebase ( [3c5181c](https://github.com/auguth/pocs/pull/29/commits/3c5181ce3948913439085b316a4a0c79a589e542) ) 
+2. Stake Score Addition ( [54a2e36](https://github.com/auguth/pocs/pull/29/commits/54a2e3607d5861ea65162383f28bea5b5a3873a6) ) 
+3. `new_unbond()` fn added to pallet-staking ( [ba84bd8](https://github.com/auguth/pocs/pull/29/commits/ba84bd87042304a9c9914d4dd616806af052f8ee) )
+4. `pallet-staking` Integration with `pallet-contracts` ( [9f908a4](https://github.com/auguth/pocs/pull/29/commits/9f908a41974f7b76e7365dca6dcd76faef48eccf) )
+5. Minimum Bond Requirement removed & stake score calculation fixed ( [691def7](https://github.com/auguth/pocs/pull/29/commits/691def75deb847388d46f882ea15a3728139e002) ) 
+6. Pallet Staking Bug Fixes ( [0d51e27f](https://github.com/auguth/pocs/pull/29/commits/0d51e27f6a0cf1775d62ab7f8955896f3a1b16dc) ) 
+7. Pallet Contracts Tests Error Fix ( [1317f67](https://github.com/auguth/pocs/pull/29/commits/1317f67d4bf4c32dfd4e807906e34df8b0eedf0a) ) 
+8. Pallet Staking Tests Removed ( [44f2fc4](https://github.com/auguth/pocs/pull/29/commits/44f2fc49285706dbeee1e1b8b698c40554160ee4) ) 
+9.  Pallet Contracts Weight Adjustment ( [0619df4](https://github.com/auguth/pocs/pull/29/commits/0619df44f9c59f3352814408f0ce783030850be2) )
+10. Fn `update_delegate()` Weight Adjustment ( [1e64910](https://github.com/auguth/pocs/pull/29/commits/1e64910a7fe213ca9efad12b32e5704c43512c66) )
+
+**Milestone 3**
+
+TBD
