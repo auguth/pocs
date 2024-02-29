@@ -27,7 +27,7 @@ In-depth information about PoCS can be inferred from [PoCS-Research Document](ht
 
 - Building a local node is suitable to verify PoCS's unit & benchmarking tests locally, and further compile to run a Substrate-PoCS node. 
 
-1. Clone the repository from GitHub:
+1. Clone the repository from GitHub
    ```bash
    git clone https://github.com/auguth/pocs
    ```
@@ -35,18 +35,18 @@ In-depth information about PoCS can be inferred from [PoCS-Research Document](ht
    ```bash
    chmod +x setup.sh && ./setup.sh
    ```
-3. Run Unit Tests
+3. Run Unit Tests (Optional)
 
     pallets used : `pallet-contracts`, `pallet_staking`
 
    ```bash
    cargo test -p [pallet-name]
    ``` 
-4. Run Benchmarking Tests
+4. Run Benchmarking Tests (Optional)
    ```bash
    cargo test -p [pallet-name] --features=runtime-benchmarks
    ``` 
-5. Build the project in release mode:
+5. Build the project in release mode
    
    ```bash
    cargo build --release
@@ -64,7 +64,7 @@ After running the executable, the following tests using front-end can be done to
 - Use [Polkadot-JS](https://polkadot.js.org/apps/) and [Contracts UI](https://contracts-ui.substrate.io/) and configure it to Local/Development Node
 - Use sample ink! contracts from [auguth/ink-contracts-for-testing](https://github.com/auguth/ink-contracts-for-testing) 
 - The examples below used [flipper contract](https://github.com/auguth/ink-contracts-for-testing/blob/main/flipper.contract). 
-- For more advanced testing & scrutiny, use [flipper](https://github.com/auguth/ink-contracts-for-testing/blob/main/flipper.contract) and [caller](https://github.com/auguth/ink-contracts-for-testing/blob/main/caller.contract) contracts for testing contract delegate calls to test automated stake_score update across calls.
+- For more advanced testing & scrutiny, use [flipper](https://github.com/auguth/ink-contracts-for-testing/blob/main/flipper.contract) and [caller](https://github.com/auguth/ink-contracts-for-testing/blob/main/caller.contract) contracts to test automated `stake_score` update across delegate-calls between contracts.
 
 1. **Deploying Contracts**
 
@@ -105,10 +105,10 @@ After running the executable, the following tests using front-end can be done to
 
 ## Alternate Testing Methods
 
-- These below methods using Docker, can build and run a node shortly without requiring node specific dependencies, but unit & benchmarking tests cannot be verified.
-- Regarless of the choice, [front-end tests](#test-using-front-end) can be conducted
+- The below two methods using Docker, can build and run a node shortly without requiring node specific dependencies, but unit & benchmarking tests cannot be verified.
+- Regardless of the choice of any method, [front-end tests](#test-using-front-end) can be conducted
 
-**Docker Compose**
+**Docker Compose** (Method 1)
 
 1. Build & Run using Docker Compose:
     
@@ -126,7 +126,7 @@ After running the executable, the following tests using front-end can be done to
 
       Works in all hosts (Linux/Mac/Windows).
 
-**Docker Pull**
+**Docker Pull** (Method 2)
 
 1. Install Latest [Docker Engine](https://docs.docker.com/engine/install/)
 2. Pull Docker Image
@@ -144,9 +144,9 @@ After running the executable, the following tests using front-end can be done to
 
 ## Commit History
 
-Commit History is provided for in-depth valuation of PoCS specific modifications to the [substrate-stencil](https://github.com/kaichaosun/substrate-stencil) template for w3f-grant-reviewers.
+Commit History is documented for in-depth valuation of PoCS specific modifications to the [substrate-stencil template](https://github.com/kaichaosun/substrate-stencil) for w3f-grant-reviewers.
 
-**Milestone 1**
+**Milestone 3**
 
 TBD
 
@@ -165,6 +165,25 @@ Milestone 2 is published in [PR #29](https://github.com/auguth/pocs/pull/29)
 9.  Pallet Contracts Weight Adjustment ( [0619df4](https://github.com/auguth/pocs/pull/29/commits/0619df44f9c59f3352814408f0ce783030850be2) )
 10. Fn `update_delegate()` Weight Adjustment ( [1e64910](https://github.com/auguth/pocs/pull/29/commits/1e64910a7fe213ca9efad12b32e5704c43512c66) )
 
-**Milestone 3**
+**Milestone 1**
 
-TBD
+1. Pallet Contracts External ([ PR#2 ](https://github.com/auguth/pocs/pull/2))
+2. Add Custom Pallet Contract ( [PR#3 ](https://github.com/auguth/pocs/pull/3))
+3. pallet_contract 4-dev v1.0.0 ([ PR#4 ](https://github.com/auguth/pocs/pull/4))
+4. POCS contract information structs added ([ PR#5 ](https://github.com/auguth/pocs/pull/5))
+5. pallet contract pocs integration fn & maps added ([ PR#6 ](https://github.com/auguth/pocs/pull/6))
+6. added gasstakeinfo ([ PR#7 ](https://github.com/auguth/pocs/pull/7))
+7. Stake score updation on contract runtime ([ PR#8 ](https://github.com/auguth/pocs/pull/8))
+8. Tight Coupling - I ([ PR#9 ](https://github.com/auguth/pocs/pull/9))
+9. Tight coupling - II ([ PR#10 ](https://github.com/auguth/pocs/pull/10))
+10. PoCS Test ([ PR#11 ](https://github.com/auguth/pocs/pull/11))
+11. Github CI ([ PR#12 ](https://github.com/auguth/pocs/pull/12))
+12. Test Preparation - I ([ PR#13 ](https://github.com/auguth/pocs/pull/13))
+13. Tests Error Fixed ([ PR#14 ](https://github.com/auguth/pocs/pull/14))
+14. PoCS Tests ([ PR#15 ](https://github.com/auguth/pocs/pull/15))
+15. Added tests for `accountStake` and `update_delegate()` ([ PR#16 ](https://github.com/auguth/pocs/pull/16))
+16. Test Preparation - II ([ PR#17 ](https://github.com/auguth/pocs/pull/17))
+17. `test.rs` ContractAddressNotFount errors fixed ([ PR#18 ](https://github.com/auguth/pocs/pull/18))
+18. Benchmark storage ([ PR#19 ](https://github.com/auguth/pocs/pull/19))
+19. Docker addition ([ PR#26 ](https://github.com/auguth/pocs/pull/26))
+20. Docker Compose ([ PR#27 ](https://github.com/auguth/pocs/pull/27))
