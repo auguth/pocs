@@ -19,3 +19,12 @@ The goal is to integrate `pallet-staking` with modified `pallet-contracts`, ensu
 |0d.|Docker | [Dockerfile](https://github.com/auguth/pocs/blob/master/Dockerfile) , [Docker Compose](https://github.com/auguth/pocs/blob/master/docker-compose.yml) , [DockerImage](https://github.com/auguth/pocs/blob/master/README.md#docker-pull)| `docker compose up --build -d` |
 |0e.|Article|[Article (Draft)](https://github.com/auguth/pocs/blob/master/ARTICLE.md)|Remaining Sections will be completed by Milestone 3 and will be published as Blog Article|
 |1.|Modify pallet staking for PoCS|[PoCS x NPoS (Milestone 2 - Core) PR#29](https://github.com/auguth/pocs/pull/29)|This PR includes Milestone 2 commits. Additionally we included Commit History in detail in Testing Guide also as extras.|
+
+**Additional Information**
+
+Upcoming Final **Milestone 3** will include these deliverables,
+1. Multi Node Test
+2. Yellow Paper (Security Report Included)
+3. Sample PoCS ink! Contract (Verifying Contract's Delegate and Stake Score)
+4. PoCS Blog Article
+5. PoCS Tutorial Video

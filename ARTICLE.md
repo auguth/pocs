@@ -4,24 +4,6 @@ First Developer-Centric Contract Staking Module for Substrate Chains.
 
 **Author**: [jobyreuben](https://github.com/jobyreuben)
 
-- [Introducing Proof of Contract Stake (PoCS)](#introducing-proof-of-contract-stake-pocs)
-- [Ownable Scarcity as Stake](#ownable-scarcity-as-stake)
-- [Research \& Simulations](#research--simulations)
-    - [PoCS Simulations (Ethereum PoCS)](#pocs-simulations-ethereum-pocs)
-- [First Implementation](#first-implementation)
-  - [Substrate-PoCS](#substrate-pocs)
-  - [Grant Support - W3F](#grant-support---w3f)
-  - [Staking Contracts](#staking-contracts)
-    - [Contract Deployment and Bonding](#contract-deployment-and-bonding)
-    - [Managing Delegate Information](#managing-delegate-information)
-    - [Updating Delegate Information](#updating-delegate-information)
-      - [Purging Stake Score](#purging-stake-score)
-  - [PoCS x NPoS](#pocs-x-npos)
-  - [Running a PoCS Multi-Node](#running-a-pocs-multi-node)
-  - [Map Verification ink! contract](#map-verification-ink-contract)
-  - [Security Report](#security-report)
-  - [Future](#future)
-
 # Ownable Scarcity as Stake
 
 The concept that security or stake equals scarcity in popular consensus models like Proof of Work (PoW) and Proof of Stake (PoS) laid a foundational principle that the limited availability of a resource serves as a deterrent against malicious actors in an open-public network. 
@@ -43,7 +25,7 @@ The concept that security or stake equals scarcity in popular consensus models l
 
 # Research & Simulations
 
-Research in the context of Proof of Contract Stake (PoCS) provided in the [PoCS Research Page]() involves both theoretical analysis and practical simulations.
+Research in the context of Proof of Contract Stake (PoCS) provided in the [PoCS Research Page](https://jobyreuben.in/JOURNALS/pocs) involves both theoretical analysis and practical simulations.
 
 During the research phase, the theoretical underpinnings of PoCS and its potential applications is well documented. The conceptual framework of PoCS, its design principles, and its comparative advantages and disadvantages over other consensus mechanisms such as Proof of Work (PoW) and Proof of Stake (PoS) is provided publicly.
 
@@ -77,23 +59,48 @@ Substrate was chosen as our primary platform for implementing PoCS due to severa
 
 We are grateful for the support and funding provided by the Web3 Foundation (W3F) for the development and implementation of PoCS on Substrate.
 
-For detailed information on our grant application for PoCS development on Substrate, please refer to [PoCS Grant Application](). This document outlines our project proposal, objectives, and milestones for successfully executing the PoCS implementation on Substrate.
+For detailed information on our grant application for PoCS development on Substrate, please refer to [PoCS Grant Application](https://github.com/w3f/Grants-Program/blob/master/applications/PoCS.md). This document outlines our project proposal, objectives, and milestones for successfully executing the PoCS implementation on Substrate.
 
 ## Staking Contracts
 
 Staking contracts play a crucial role in the Proof of Contract Stake (PoCS) consensus mechanism. Individuals, Developers or entities stake their contracts to participate in the PoCS-based network's consensus mechanism. Specifically in PoCS-Substrate-Implementation, users can stake contracts via the pallet-contracts module. This module allows contract owners to deploy contracts through popular Substrate contracts UI application.
 
+-------
+
+[PoCS - Pallet Contracts Tutorial Video : Milestone 3]
+
+-------
+
 ### Contract Deployment and Bonding
 
 Upon deploying a contract via the pallet-contracts module, the contract is automatically bonded to the contract deployer by default. This default bonding mechanism automatically designates the contract deployer as a nominator and the `stake_score` of the contract as the bond value. Nominator, in this context, act as a delegator who delegate their bond to validators.
+
+**Steps involve:**
+1. Run a PoCS Node either [Locally](https://github.com/auguth/pocs/blob/master/README.md#build--run-pocs-node) / [Or Using Docker Compose or Pull Docker Image](https://github.com/auguth/pocs/blob/m2_delivery/TESTING-GUIDE.md#alternate-testing-methods)
+2. Open [Contracts UI](https://contracts-ui.substrate.io/) and Configure to Local Node
+3. [Upload a contract](https://contracts-ui.substrate.io/instantiate) and instantiate the code
+4. The contract is deployed and Bond as per PoCS conditions is created
 
 ### Managing Delegate Information
 
 When a contract is deployed, default delegate information and the contract's scarcity information, including stake score (the individual stake units a contract holds), are stored. However, contract deployer have the flexibility to update the delegate (validator) information associated with the contract.
 
+**Steps involve:**
+1. Open [Polkadot-JS App](https://polkadot.js.org/apps/) and Configure to Development Node
+2. Navigate to Network -> Staking -> Accounts
+3. You can verify the deployer's address and the bond value from the deployed contract
+4. Each time the contract is called the bond value is updated
+
 ### Updating Delegate Information
 
 Contract deployer can update the delegate information by constructing an extrinsic and calling the function `update_delegate()`, which is available as a PoCS specific function in contracts pallet. In this extrinsic, the deployer provides the address of the validator to whom they want to bond the contract.
+
+**Steps involve:**
+1. In Polkadot-JS App Navigate to Developer -> Extrinsic
+2. Choose Contracts and Select Function `update_delegate()`
+3. Provide the already Deployed Smart contract address
+4. Provide Validator Address and Submit Extrinsic
+5. Bond Nomination will be changed successfully
 
 #### Purging Stake Score
 
@@ -103,9 +110,15 @@ Through proper management of delegate information and stake scores, stakeholders
 
 # PoCS x NPoS
 
-[Nominated Proof of Stake (NPoS)]() is a staking module developed by [Parity Technologies]() where nominators delegate their bonds to validators for an era (epoch) and receive block rewards in return. 
+[Nominated Proof of Stake (NPoS)](https://crates.parity.io/pallet_staking/index.html) is a staking module developed by [Parity Technologies](https://www.parity.io/) where nominators delegate their bonds to validators for an era (epoch) and receive block rewards in return. 
 
 Nominators are participants who hold tokens and wish to participate in the network's staking process. They delegate their bonds (locked tokens) to validators, entrusting them to participate in block production and transaction validation on their behalf.
+
+-------
+
+[PoCS - Pallet Staking Tutorial Video : Milestone 3]
+
+-------
 
 ## Integration of PoCS into NPoS
 
@@ -117,7 +130,7 @@ In PoCS, the stake score of a contract serves as the bond's value. PoCS integrat
 
 2. **Stake Score per call**: The stake score of a contract is updated for every call made to the contract, reflecting the utilization of execution time as a scarce resource. This dynamic adjustment ensures that contracts with higher execution demands contribute proportionally more to the network's security.
 
-3. **Contract Reputation**: In addition to bond value and execution time, PoCS also incorporates contract reputation into the stake score calculation. Contract reputation, as detailed in the [PoCS research paper](), factors in the historical performance of contracts within the network to analyze its reputation to avoid malicious intents.
+3. **Contract Reputation**: In addition to bond value and execution time, PoCS also incorporates contract reputation into the stake score calculation. Contract reputation, as detailed in the [PoCS research paper](https://jobyreuben.in/JOURNALS/pocs), factors in the historical performance of contracts within the network to analyze its reputation to avoid malicious intents.
 
 This integration leverages the unique properties of both PoCS and NPoS to create a robust and resilient staking ecosystem.
 
