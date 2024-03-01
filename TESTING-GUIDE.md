@@ -69,21 +69,28 @@ After running the executable, the following tests using front-end can be done to
 1. **Deploying Contracts**
 
     1. Upload a contract e.g., [flipper contract](https://github.com/auguth/ink-contracts-for-testing) using [Contracts UI](https://contracts-ui.substrate.io/)
-    2. This uses function [instantiate_with_code()](https://auguth.github.io/pocs/target/doc/pallet_contracts/pallet/struct.Pallet.html#method.instantiate_with_code) and calls the [bond()](https://auguth.github.io/pocs/target/doc/pallet_staking/dispatchables/fn.bond.html) function in pallet-staking to bond the contract deployer address with default `stake_score`.
+    2. This uses function [instantiate_with_code()](https://auguth.github.io/pocs/target/doc/pallet_contracts/pallet/struct.Pallet.html#method.instantiate_with_code) 
+
+    ![instnatiate_with_code() Flowdiagram](/assets/img/instantiate_with_code().jpeg)
+
+    3. [instantiate_with_code()](https://auguth.github.io/pocs/target/doc/pallet_contracts/pallet/struct.Pallet.html#method.instantiate_with_code) calls the [bond()](https://auguth.github.io/pocs/target/doc/pallet_staking/dispatchables/fn.bond.html) function in pallet-staking to bond the contract deployer address with default `stake_score`.
     
         ![Instantiate_with_code()](/assets/gifs/instantiate_with_code().gif)
 
-    3. After deployment, should expect events - [AccountStakeinfoevent](https://auguth.github.io/pocs/target/doc/pallet_contracts/pallet/enum.Event.html#variant.AccountStakeinfoevent) & [ContractStakeinfoevent](https://auguth.github.io/pocs/target/doc/pallet_contracts/pallet/enum.Event.html#variant.ContractStakeinfoevent)  with its default values
+    4. After deployment, should expect events - [AccountStakeinfoevent](https://auguth.github.io/pocs/target/doc/pallet_contracts/pallet/enum.Event.html#variant.AccountStakeinfoevent) & [ContractStakeinfoevent](https://auguth.github.io/pocs/target/doc/pallet_contracts/pallet/enum.Event.html#variant.ContractStakeinfoevent)  with its default values
     
         ![Instantiate_with_code() events](/assets/gifs/instantiate_with_code()-events.gif)
 
-    4. In Validator List (alias nominator), the deployer address will be added
+    5. In Validator List (alias nominator), the deployer address will be added
     
         ![Deployer as Nominator](/assets/gifs/deployer_as_nominator.gif)
 
 2. **Executing Contracts**
 
     1. When executing contract [bond_extra()](https://auguth.github.io/pocs/target/doc/pallet_staking/dispatchables/fn.bond_extra.html) function is additionally called to increment the new `stake_score`
+
+    ![run() Flowdiagram](/assets/img/run().jpeg)
+
     2. This emits [ContractStakeinfoevent](https://auguth.github.io/pocs/target/doc/pallet_contracts/pallet/enum.Event.html#variant.ContractStakeinfoevent) 
     3. In validator list of bonds, the `stake_score` will be reflected
     
@@ -91,15 +98,19 @@ After running the executable, the following tests using front-end can be done to
 
 3. **Updating Delegate Info**
 
-    1. Construct an extrinsic via `contracts` pallet with [update_delegate()](https://auguth.github.io/pocs/target/doc/pallet_contracts/pallet/dispatchables/fn.update_delegate.html) function which calls [new_unbond()](https://auguth.github.io/pocs/target/doc/pallet_staking/struct.Pallet.html#method.new_unbond) in pallet-staking to purge the stake for the nominator
+    1. Construct an extrinsic via `contracts` pallet with [update_delegate()](https://auguth.github.io/pocs/target/doc/pallet_contracts/pallet/dispatchables/fn.update_delegate.html) function 
+    
+    ![update_delegate() Flowdiagram](/assets/img/update_delegate().jpeg)
+
+    2. [update_delegate()](https://auguth.github.io/pocs/target/doc/pallet_contracts/pallet/dispatchables/fn.update_delegate.html) calls [nominate()](https://auguth.github.io/pocs/target/doc/pallet_staking/dispatchables/fn.nominate.html) and [new_unbond()](https://auguth.github.io/pocs/target/doc/pallet_staking/struct.Pallet.html#method.new_unbond) in pallet-staking to purge the `stake_score` (existing bond value) and nominate
   
         ![Update_delegate()](/assets/gifs/update_delegate().gif)
     
-    2. In [AccountStakeinfo](https://auguth.github.io/pocs/target/doc/pallet_contracts/gasstakeinfo/struct.AccountStakeinfo.html), `delegateTo` and `delegateAt` will be updated and in [ContractScarcityinfo](https://auguth.github.io/pocs/target/doc/pallet_contracts/gasstakeinfo/struct.ContractScarcityInfo.html), the `stake_score` will be updated to 0 reflected in the validator list of bonds to zero. 
+    3. In [AccountStakeinfo](https://auguth.github.io/pocs/target/doc/pallet_contracts/gasstakeinfo/struct.AccountStakeinfo.html), `delegateTo` and `delegateAt` will be updated and in [ContractScarcityinfo](https://auguth.github.io/pocs/target/doc/pallet_contracts/gasstakeinfo/struct.ContractScarcityInfo.html), the `stake_score` will be updated to 0 reflected in the validator list of bonds to zero. 
     
         ![Unbond events](/assets/gifs/unbond-events.gif)
 
-    3. Can be verified that `delegateTo` address would be under waiting for nomination until `stake_score` updates and increases the bond value. 
+    4. Can be verified that `delegateTo` address would be under waiting for nomination until `stake_score` updates and increases the bond value. 
     
         ![Update_delegate() Validator List](/assets/gifs/update_delegate()-validator-list.gif)
 
