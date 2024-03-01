@@ -87,9 +87,9 @@ After running the executable, the following tests using front-end can be done to
 
 2. **Executing Contracts**
 
-    1. When executing contract [bond_extra()](https://auguth.github.io/pocs/target/doc/pallet_staking/dispatchables/fn.bond_extra.html) function is additionally called to increment the new `stake_score`
-
     ![run() Flowdiagram](/assets/img/run().jpeg)
+
+    1. When executing contract [bond_extra()](https://auguth.github.io/pocs/target/doc/pallet_staking/dispatchables/fn.bond_extra.html) function is additionally called to increment the new `stake_score`
 
     2. This emits [ContractStakeinfoevent](https://auguth.github.io/pocs/target/doc/pallet_contracts/pallet/enum.Event.html#variant.ContractStakeinfoevent) 
     3. In validator list of bonds, the `stake_score` will be reflected
