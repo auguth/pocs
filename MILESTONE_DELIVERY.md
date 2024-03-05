@@ -17,7 +17,7 @@ The goal is to integrate `pallet-staking` with modified `pallet-contracts`, ensu
 |0b.|Documentation| [Pallet Contracts](https://auguth.github.io/pocs/target/doc/pallet_contracts/), [Pallet Staking](https://auguth.github.io/pocs/target/doc/pallet_staking/) | Crate Documentation of modified `pallet_contracts` and `pallet_staking` for PoCS|
 |0c.|Testing Guide| [Testing guide](https://github.com/auguth/pocs/blob/w3f_milestone_2/TESTING-GUIDE.md) |-|
 |0d.|Docker | [Dockerfile](https://github.com/auguth/pocs/blob/w3f_milestone_2/Dockerfile) , [Docker Compose](https://github.com/auguth/pocs/blob/w3f_milestone_2/docker-compose.yml) , [DockerImage](https://github.com/auguth/pocs/blob/w3f_milestone_2/README.md#docker-pull)| `docker compose up --build -d` |
-|0e.|Article|[PoCS x NPoS](https://auguth.org/blog/pocs-x-npos)|-|
+|0e.|Article|[PoCS x NPoS](https://medium.com/@auguthresearch/pocs-x-npos-d164688223fc)|-|
 |1.|Modify pallet staking for PoCS|[PoCS x NPoS (Milestone 2 - Core) PR#29](https://github.com/auguth/pocs/pull/29)|-|
 
 **Additional Information**
