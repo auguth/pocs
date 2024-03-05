@@ -11,7 +11,6 @@
   - [Test Locally](#test-locally)
   - [Test Using Front-End](#test-using-front-end)
   - [Alternate Testing Methods](#alternate-testing-methods)
-  - [Commit History](#commit-history)
 
 ## How PoCS Works
 - Developers deploy smart contracts and become nominators by default.
@@ -31,27 +30,31 @@ In-depth information about PoCS can be inferred from [PoCS-Research Document](ht
    ```bash
    git clone https://github.com/auguth/pocs
    ```
-2. Run the Rust Setup Script
+2. Checkout to W3F Milestone 2 Branch
+   ```bash
+   git clone https://github.com/auguth/pocs
+   ```   
+3. Run the Rust Setup Script
    ```bash
    chmod +x setup.sh && ./setup.sh
    ```
-3. Run Unit Tests (Optional)
+4. Run Unit Tests (Optional)
 
     pallets used : `pallet-contracts`, `pallet_staking`
 
    ```bash
    cargo test -p [pallet-name]
    ``` 
-4. Run Benchmarking Tests (Optional)
+5. Run Benchmarking Tests (Optional)
    ```bash
    cargo test -p [pallet-name] --features=runtime-benchmarks
    ``` 
-5. Build the project in release mode
+6. Build the project in release mode
    
    ```bash
    cargo build --release
    ```
-6. Run the executable with the specified configuration:
+7. Run the executable with the specified configuration:
    
     ```bash
     ./target/release/pocs --dev
@@ -153,48 +156,3 @@ After running the executable, the following tests using front-end can be done to
    ``` 
    Local Host will only be available to Linux Hosts using `--network="host"` flag
 
-## Commit History
-
-Commit History is documented for in-depth valuation of PoCS specific modifications to the [substrate-stencil template](https://github.com/kaichaosun/substrate-stencil) for w3f-grant-reviewers.
-
-**Milestone 3**
-
-TBD
-
-**Milestone 2**
-
-Milestone 2 is published in [PR #29](https://github.com/auguth/pocs/pull/29)
-
-1. Pallet Staking Codebase ( [3c5181c](https://github.com/auguth/pocs/pull/29/commits/3c5181ce3948913439085b316a4a0c79a589e542) ) 
-2. Stake Score Addition ( [54a2e36](https://github.com/auguth/pocs/pull/29/commits/54a2e3607d5861ea65162383f28bea5b5a3873a6) ) 
-3. `new_unbond()` fn added to pallet-staking ( [ba84bd8](https://github.com/auguth/pocs/pull/29/commits/ba84bd87042304a9c9914d4dd616806af052f8ee) )
-4. `pallet-staking` Integration with `pallet-contracts` ( [9f908a4](https://github.com/auguth/pocs/pull/29/commits/9f908a41974f7b76e7365dca6dcd76faef48eccf) )
-5. Minimum Bond Requirement removed & stake score calculation fixed ( [691def7](https://github.com/auguth/pocs/pull/29/commits/691def75deb847388d46f882ea15a3728139e002) ) 
-6. Pallet Staking Bug Fixes ( [0d51e27f](https://github.com/auguth/pocs/pull/29/commits/0d51e27f6a0cf1775d62ab7f8955896f3a1b16dc) ) 
-7. Pallet Contracts Tests Error Fix ( [1317f67](https://github.com/auguth/pocs/pull/29/commits/1317f67d4bf4c32dfd4e807906e34df8b0eedf0a) ) 
-8. Pallet Staking Tests Removed ( [44f2fc4](https://github.com/auguth/pocs/pull/29/commits/44f2fc49285706dbeee1e1b8b698c40554160ee4) ) 
-9.  Pallet Contracts Weight Adjustment ( [0619df4](https://github.com/auguth/pocs/pull/29/commits/0619df44f9c59f3352814408f0ce783030850be2) )
-10. Fn `update_delegate()` Weight Adjustment ( [1e64910](https://github.com/auguth/pocs/pull/29/commits/1e64910a7fe213ca9efad12b32e5704c43512c66) )
-
-**Milestone 1**
-
-1. Pallet Contracts External ([ PR#2 ](https://github.com/auguth/pocs/pull/2))
-2. Add Custom Pallet Contract ( [PR#3 ](https://github.com/auguth/pocs/pull/3))
-3. pallet_contract 4-dev v1.0.0 ([ PR#4 ](https://github.com/auguth/pocs/pull/4))
-4. POCS contract information structs added ([ PR#5 ](https://github.com/auguth/pocs/pull/5))
-5. pallet contract pocs integration fn & maps added ([ PR#6 ](https://github.com/auguth/pocs/pull/6))
-6. added gasstakeinfo ([ PR#7 ](https://github.com/auguth/pocs/pull/7))
-7. Stake score updation on contract runtime ([ PR#8 ](https://github.com/auguth/pocs/pull/8))
-8. Tight Coupling - I ([ PR#9 ](https://github.com/auguth/pocs/pull/9))
-9. Tight coupling - II ([ PR#10 ](https://github.com/auguth/pocs/pull/10))
-10. PoCS Test ([ PR#11 ](https://github.com/auguth/pocs/pull/11))
-11. Github CI ([ PR#12 ](https://github.com/auguth/pocs/pull/12))
-12. Test Preparation - I ([ PR#13 ](https://github.com/auguth/pocs/pull/13))
-13. Tests Error Fixed ([ PR#14 ](https://github.com/auguth/pocs/pull/14))
-14. PoCS Tests ([ PR#15 ](https://github.com/auguth/pocs/pull/15))
-15. Added tests for `accountStake` and `update_delegate()` ([ PR#16 ](https://github.com/auguth/pocs/pull/16))
-16. Test Preparation - II ([ PR#17 ](https://github.com/auguth/pocs/pull/17))
-17. `test.rs` ContractAddressNotFount errors fixed ([ PR#18 ](https://github.com/auguth/pocs/pull/18))
-18. Benchmark storage ([ PR#19 ](https://github.com/auguth/pocs/pull/19))
-19. Docker addition ([ PR#26 ](https://github.com/auguth/pocs/pull/26))
-20. Docker Compose ([ PR#27 ](https://github.com/auguth/pocs/pull/27))
