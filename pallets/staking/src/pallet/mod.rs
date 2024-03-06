@@ -274,6 +274,7 @@ pub mod pallet {
 		type WeightInfo: WeightInfo;
 	}
 
+
 	/// The ideal number of active validators.
 	#[pallet::storage]
 	#[pallet::getter(fn validator_count)]
@@ -343,6 +344,10 @@ pub mod pallet {
 	/// When this value is not set, no limits are enforced.
 	#[pallet::storage]
 	pub type MaxValidatorsCount<T> = StorageValue<_, u32, OptionQuery>;
+	//pocs 
+	#[pallet::storage]
+	#[pallet::getter(fn get_delegateinfo)]
+	pub type ValidatorDelegate<T: Config> = StorageMap<_, Twox64Concat, T::AccountId, u64>;
 
 	/// The map from nominator stash key to their nomination preferences, namely the validators that
 	/// they wish to support.
@@ -704,6 +709,10 @@ pub mod pallet {
 	pub enum Error<T> {
 		/// Not a controller account.
 		NotController,
+		///pocs
+		InvalidValidatorAddress,
+		///pocs
+		InsufficientDelegate,
 		/// Not a stash account.
 		NotStash,
 		/// Stash is already bonded.
@@ -851,7 +860,7 @@ pub mod pallet {
 			// if value < T::Currency::minimum_balance() {
 			// 	return Err(Error::<T>::InsufficientBond.into())
 			// }
-
+			<ValidatorDelegate<T>>::insert(&stash, 0);
 			frame_system::Pallet::<T>::inc_consumers(&stash).map_err(|_| Error::<T>::BadState)?;
 
 			// You're auto-bonded forever, here. We might improve this by only bonding when
@@ -1153,10 +1162,11 @@ pub mod pallet {
 
 			// ensure!(ledger.active >= MinValidatorBond::<T>::get(), Error::<T>::InsufficientBond);
 			let stash = &ledger.stash;
-
+			let delegateincrement: u64 = Self::get_delegateinfo(stash.clone()).ok_or(<Error<T>>::InvalidValidatorAddress)?;
 			// ensure their commission is correct.
 			ensure!(prefs.commission >= MinCommission::<T>::get(), Error::<T>::CommissionTooLow);
-
+			///pocs
+			ensure!(delegateincrement >= 10, Error::<T>::InsufficientDelegate);
 			// Only check limits if they are not already a validator.
 			if !Validators::<T>::contains_key(stash) {
 				// If this error is reached, we need to adjust the `MinValidatorBond` and start
@@ -1234,12 +1244,13 @@ pub mod pallet {
 				.map_err(|_| Error::<T>::TooManyNominators)?;
 
 			let nominations = Nominations {
-				targets,
+				targets: targets.clone(),
 				// Initial nominations are considered submitted at era 0. See `Nominations` doc.
 				submitted_in: Self::current_era().unwrap_or(0),
 				suppressed: false,
 			};
-
+			let delegateincrement: u64 = Self::get_delegateinfo(&targets[0].clone()).ok_or(<Error<T>>::InvalidValidatorAddress)?;
+			<ValidatorDelegate<T>>::insert(&targets[0].clone(), delegateincrement+1);
 			Self::do_remove_validator(stash);
 			Self::do_add_nominator(stash, nominations);
 			Ok(())

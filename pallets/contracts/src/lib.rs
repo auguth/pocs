@@ -830,7 +830,7 @@ pub mod pallet {
 					ROrigin::Signed(origin.clone()).into(),
 					new_contract_stake_info.stake_score.saturated_into(),
 				);				
-				
+				ensure!(new_contract_stake_info.reputation >= 10, Error::<T>::InsufficientReputation);
 				//make the validator(nominator) nominate a validator(pocs)
 				let _nominate_validator = <pallet_staking::Pallet<T> as sp_staking::StakingInterface>::nominate(
 					&new_account_stake_info.owner.clone(),
@@ -1004,6 +1004,8 @@ pub mod pallet {
 		InvalidSchedule,
 		/// Invalid combination of flags supplied to `seal_call` or `seal_delegate_call`.
 		InvalidCallFlags,
+		///pocs
+		InsufficientReputation,
 		/// The executed contract exhausted its gas limit.
 		OutOfGas,
 		/// The output buffer supplied to a contract API call was too small.
