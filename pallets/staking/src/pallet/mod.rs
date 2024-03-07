@@ -637,15 +637,20 @@ pub mod pallet {
 					balance,
 					RewardDestination::Staked,
 				));
+				<ValidatorDelegate<T>>::insert(stash.clone(), 4);
 				frame_support::assert_ok!(match status {
 					crate::StakerStatus::Validator => <Pallet<T>>::validate(
 						T::RuntimeOrigin::from(Some(stash.clone()).into()),
 						Default::default(),
 					),
-					crate::StakerStatus::Nominator(votes) => <Pallet<T>>::nominate(
+					crate::StakerStatus::Nominator(votes) => {
+						<ValidatorDelegate<T>>::insert(votes[0].clone(), 4);
+
+						<Pallet<T>>::nominate(
 						T::RuntimeOrigin::from(Some(stash.clone()).into()),
 						votes.iter().map(|l| T::Lookup::unlookup(l.clone())).collect(),
-					),
+					)
+				}
 					_ => Ok(()),
 				});
 				assert!(
@@ -1166,7 +1171,7 @@ pub mod pallet {
 			// ensure their commission is correct.
 			ensure!(prefs.commission >= MinCommission::<T>::get(), Error::<T>::CommissionTooLow);
 			///pocs
-			ensure!(delegateincrement >= 10, Error::<T>::InsufficientDelegate);
+			ensure!(delegateincrement >= 3, Error::<T>::InsufficientDelegate);
 			// Only check limits if they are not already a validator.
 			if !Validators::<T>::contains_key(stash) {
 				// If this error is reached, we need to adjust the `MinValidatorBond` and start
