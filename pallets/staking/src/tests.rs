@@ -258,6 +258,7 @@ fn change_controller_works() {
 			Staking::validate(RuntimeOrigin::signed(controller), ValidatorPrefs::default()),
 			Error::<Test>::NotController,
 		);
+		<ValidatorDelegate<Test>>::insert(stash, 4);
 		assert_ok!(Staking::validate(RuntimeOrigin::signed(stash), ValidatorPrefs::default()));
 	})
 }
@@ -416,6 +417,7 @@ fn staking_should_work() {
 		start_session(2);
 		// add a new candidate for being a validator. account 3 controlled by 4.
 		assert_ok!(Staking::bond(RuntimeOrigin::signed(3), 1500, RewardDestination::Controller));
+		<ValidatorDelegate<Test>>::insert(3, 4);
 		assert_ok!(Staking::validate(RuntimeOrigin::signed(3), ValidatorPrefs::default()));
 		assert_ok!(Session::set_keys(
 			RuntimeOrigin::signed(3),
@@ -791,6 +793,7 @@ fn double_staking_should_fail() {
 			Staking::nominate(RuntimeOrigin::signed(stash), vec![1]),
 			Error::<Test>::NotController
 		);
+		<ValidatorDelegate<Test>>::insert(1, 4);
 		// controller => nominating should work.
 		assert_ok!(Staking::nominate(RuntimeOrigin::signed(controller), vec![1]));
 	});
@@ -1857,6 +1860,7 @@ fn switching_roles() {
 
 		// add a new validator candidate
 		assert_ok!(Staking::bond(RuntimeOrigin::signed(5), 1000, RewardDestination::Controller));
+		<ValidatorDelegate<Test>>::insert(5, 4);
 		assert_ok!(Staking::validate(RuntimeOrigin::signed(5), ValidatorPrefs::default()));
 		assert_ok!(Session::set_keys(
 			RuntimeOrigin::signed(5),
@@ -1868,7 +1872,7 @@ fn switching_roles() {
 
 		// with current nominators 11 and 5 have the most stake
 		assert_eq_uvec!(validator_controllers(), vec![5, 11]);
-
+		<ValidatorDelegate<Test>>::insert(1, 4);
 		// 2 decides to be a validator. Consequences:
 		assert_ok!(Staking::validate(RuntimeOrigin::signed(1), ValidatorPrefs::default()));
 		assert_ok!(Session::set_keys(
@@ -1984,6 +1988,7 @@ fn bond_with_little_staked_value_bounded() {
 
 			// Stingy validator.
 			assert_ok!(Staking::bond(RuntimeOrigin::signed(1), 1, RewardDestination::Controller));
+			<ValidatorDelegate<Test>>::insert(1, 4);
 			assert_ok!(Staking::validate(RuntimeOrigin::signed(1), ValidatorPrefs::default()));
 			assert_ok!(Session::set_keys(
 				RuntimeOrigin::signed(1),
@@ -4786,7 +4791,8 @@ fn chill_other_works() {
 					1000,
 					RewardDestination::Controller
 				));
-				assert_ok!(Staking::nominate(RuntimeOrigin::signed(a), vec![1]));
+				<ValidatorDelegate<Test>>::insert(b, 4);
+				assert_ok!(Staking::nominate(RuntimeOrigin::signed(a), vec![b]));
 
 				// Validator
 				assert_ok!(Staking::bond(
@@ -4794,6 +4800,7 @@ fn chill_other_works() {
 					1500,
 					RewardDestination::Controller
 				));
+				<ValidatorDelegate<Test>>::insert(b, 4);
 				assert_ok!(Staking::validate(RuntimeOrigin::signed(b), ValidatorPrefs::default()));
 			}
 
@@ -4943,6 +4950,7 @@ fn capped_stakers_works() {
 				RewardDestination::Controller,
 			)
 			.unwrap();
+			<ValidatorDelegate<Test>>::insert(controller, 4);
 			assert_ok!(Staking::validate(
 				RuntimeOrigin::signed(controller),
 				ValidatorPrefs::default()
@@ -4957,7 +4965,7 @@ fn capped_stakers_works() {
 			RewardDestination::Controller,
 		)
 		.unwrap();
-
+		<ValidatorDelegate<Test>>::insert(last_validator, 4);
 		assert_noop!(
 			Staking::validate(RuntimeOrigin::signed(last_validator), ValidatorPrefs::default()),
 			Error::<Test>::TooManyValidators,
@@ -4972,6 +4980,7 @@ fn capped_stakers_works() {
 				RewardDestination::Controller,
 			)
 			.unwrap();
+			<ValidatorDelegate<Test>>::insert(1, 4);
 			assert_ok!(Staking::nominate(RuntimeOrigin::signed(controller), vec![1]));
 			some_existing_nominator = controller;
 		}
