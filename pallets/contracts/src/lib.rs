@@ -14,10 +14,13 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
+//
+// This file has been modified by Auguth Research Foundation 
+// for Proof of Contract Stake Protocol (PoCS).
 
 //! # Contracts Pallet (PoCS Version)
 //!
-//! The modified Contracts module provides functionality for the runtime to deploy and execute WebAssembly
+//! The Contracts module provides functionality for the runtime to deploy and execute WebAssembly
 //! smart-contracts.
 //!
 //! - [`Config`]
@@ -71,7 +74,7 @@
 //! calls its constructor to initialize the contract.
 //! * [`Pallet::instantiate`] - The same as `instantiate_with_code` but instead of uploading new
 //! code an existing `code_hash` is supplied.
-//! * [`Pallet::update_delegate`] - Updates the delegate information of the contract.
+//! * [`Pallet::update_delegate`] - Updates the delegate information of the contract. (PoCS)
 //! * [`Pallet::call`] - Makes a call to an account, optionally transferring some balance.
 //! * [`Pallet::upload_code`] - Uploads new code without instantiating a contract from it.
 //! * [`Pallet::remove_code`] - Removes the stored code and refunds the deposit to its owner. Only
@@ -744,7 +747,7 @@ pub mod pallet {
 			<AccountStakeinfoMap<T>>::insert(_address.clone(),account_stake_info.clone());
 			let _contractinfoevent = Self::deposit_event(
 				vec![T::Hashing::hash_of(&_address.clone())],
-				Event::ContractStakeinfoevnet {
+				Event::ContractStakeinfoevent {
 					contract_address: _address.clone(),
 					reputation: contract_stake_info.reputation,
 					recent_blockheight: contract_stake_info.recent_blockheight,
@@ -753,7 +756,7 @@ pub mod pallet {
 			);
 			let _accountinfoevent = Self::deposit_event(
 				vec![T::Hashing::hash_of(&_address.clone())],
-				Event::AccountStakeinfoevnet {
+				Event::AccountStakeinfoevent {
 					contract_address: _address.clone(),
 					owner: account_stake_info.owner.clone(),
 					delegate_to: account_stake_info.delegate_to,
@@ -775,7 +778,6 @@ pub mod pallet {
 			)
 		}
 
-
 		/// Updates the validator address and only allows nomination when the reputation criteria is met, resets all the stake score
 		/// for the referred contract (PoCS)
 		///
@@ -793,7 +795,7 @@ pub mod pallet {
 		/// - The reputation criteria is ensured 
 		/// - The [`pallet::AccountStakeinfoMap`] is updated to the newly delegated validator
 		/// - [`pallet::ContractStakeinfoMap`] is reset to `default` values.
-		/// - `default` vaues are reputation value = 1, stakescore = 0, recentblockheight = currentblockheight.
+		/// - `default` values are reputation value = 1, stake_score = 0, recentblockheight = currentblockheight.
 			#[pallet::call_index(10)]
 			#[pallet::weight(T::ContractWeightInfo::update_delegate())]
 			pub fn update_delegate(
@@ -811,7 +813,7 @@ pub mod pallet {
 				<AccountStakeinfoMap<T>>::insert(&contract_address.clone(),new_account_stake_info.clone());
 				let _eventemit = Self::deposit_event(
 					vec![T::Hashing::hash_of(&contract_address.clone())],
-					Event::AccountStakeinfoevnet {
+					Event::AccountStakeinfoevent {
 						contract_address: contract_address.clone(),
 						owner: new_account_stake_info.owner.clone(),
 						delegate_to: new_account_stake_info.delegate_to.clone(),
@@ -820,7 +822,7 @@ pub mod pallet {
 				);
 				let _contractinfoevent = Self::deposit_event(
 					vec![T::Hashing::hash_of(&contract_address.clone())],
-					Event::ContractStakeinfoevnet {
+					Event::ContractStakeinfoevent {
 						contract_address: contract_address.clone(),
 						reputation: new_contract_stake_info.reputation,
 						recent_blockheight: new_contract_stake_info.recent_blockheight,
@@ -986,14 +988,14 @@ pub mod pallet {
 			code_hash: CodeHash<T>,
 		},
 		/// Outputs the current contract address's stake score information (PoCS)
-		ContractStakeinfoevnet {
+		ContractStakeinfoevent {
 			contract_address: T::AccountId,
 			reputation: u64,
 			recent_blockheight: BlockNumberFor<T>,
 			stake_score: u128,
 		},
 		/// Outputs the current contract address's account delegation information (PoCS)
-		AccountStakeinfoevnet {
+		AccountStakeinfoevent {
 			contract_address: T::AccountId,
 			owner: T::AccountId,
 			delegate_to: T::AccountId,

@@ -14,6 +14,9 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
+//
+// This file has been modified by Auguth Research Foundation 
+// for Proof of Contract Stake Protocol (PoCS).
 
 //! Benchmarks for the contracts pallet
 
@@ -268,7 +271,7 @@ benchmarks! {
 		assert_eq!(StorageVersion::get::<Pallet<T>>(), 2);
 	}
 
-	// This benchmarks the weight of dispatching migrate to execute 1 `NoopMigraton`
+	// This benchmarks the weight of dispatching migrate to execute 1 `NoopMigration`
 	#[pov_mode = Measured]
 	migrate {
 		StorageVersion::new(0).put::<Pallet<T>>();
@@ -1860,7 +1863,7 @@ benchmarks! {
 
 	// We call unique accounts.
 	//
-	// This is a slow call: We redeuce the number of runs.
+	// This is a slow call: We reduce the number of runs.
 	#[pov_mode = Measured]
 	seal_call {
 		let r in 0 .. API_BENCHMARK_RUNS / 2;
@@ -1946,7 +1949,7 @@ benchmarks! {
 		<AccountStakeinfoMap<T>>::insert(dest.clone().expect("output"),account_stake_info.clone());
 	}: call(origin, instance.addr.clone(), 0u32.into(), Weight::MAX, Some(BalanceOf::<T>::from(u32::MAX).into()), vec![])
 
-	// This is a slow call: We redeuce the number of runs.
+	// This is a slow call: We reduce the number of runs.
 	#[pov_mode = Measured]
 	seal_delegate_call {
 		let r in 0 .. API_BENCHMARK_RUNS / 2;
@@ -2556,7 +2559,7 @@ benchmarks! {
 
 	// Only calling the function itself for the list of
 	// generated different ECDSA keys.
-	// This is a slow call: We redeuce the number of runs.
+	// This is a slow call: We reduce the number of runs.
 	#[pov_mode = Measured]
 	seal_ecdsa_to_eth_address {
 		let r in 0 .. API_BENCHMARK_RUNS / 10;

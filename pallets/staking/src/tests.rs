@@ -14,6 +14,9 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
+//
+// This file has been modified by Auguth Research Foundation 
+// for Proof of Contract Stake Protocol (PoCS).
 
 //! Tests for the module.
 
@@ -5537,7 +5540,7 @@ fn pre_bonding_era_cannot_be_claimed() {
 
 		// consumed weight for all payout_stakers dispatches that fail
 		let err_weight = <Test as Config>::WeightInfo::payout_stakers_alive_staked(0);
-		// cannot claim rewards for an era before bonding occured as it is
+		// cannot claim rewards for an era before bonding occurred as it is
 		// already marked as claimed.
 		assert_noop!(
 			Staking::payout_stakers(RuntimeOrigin::signed(3), 3, current_era - 2),

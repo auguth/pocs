@@ -15,6 +15,5 @@
 # direnv cache
 .direnv
 
-# Cargo lock
-**/Cargo.lock
-Cargo.lock
+# VS code extras
+.vscode

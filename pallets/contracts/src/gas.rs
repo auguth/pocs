@@ -187,7 +187,7 @@ impl<T: Config> GasMeter<T> {
 
 	/// This method is used for gas syncs with the engine.
 	///
-	/// Updates internal `engine_comsumed` tracker of engine fuel consumption.
+	/// Updates internal `engine_consumed` tracker of engine fuel consumption.
 	///
 	/// Charges self with the `ref_time` Weight corresponding to wasmi fuel consumed on the engine
 	/// side since last sync. Passed value is scaled by multiplying it by the weight of a basic

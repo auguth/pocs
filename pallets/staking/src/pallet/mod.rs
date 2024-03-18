@@ -14,6 +14,9 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
+//
+// This file has been modified by Auguth Research Foundation 
+// for Proof of Contract Stake Protocol (PoCS).
 
 //! Staking FRAME Pallet.
 
@@ -52,7 +55,7 @@ use crate::{
 
 const STAKING_ID: LockIdentifier = *b"staking ";
 // The speculative number of spans are used as an input of the weight annotation of
-// [`Call::unbond`], as the post dipatch weight may depend on the number of slashing span on the
+// [`Call::unbond`], as the post dispatch weight may depend on the number of slashing span on the
 // account which is not provided as an input. The value set should be conservative but sensible.
 pub(crate) const SPECULATIVE_NUM_SPANS: u32 = 32;
 
@@ -1060,7 +1063,10 @@ pub mod pallet {
 		#[pallet::weight(
             T::WeightInfo::withdraw_unbonded_kill(SPECULATIVE_NUM_SPANS).saturating_add(T::WeightInfo::unbond()))
         ]
-		//pocs
+		
+		/// The [`Self::new_unbond`] function serves to purge the bond of a nominator during nomination updates. 
+		/// This function resembles [`Self::unbond`], excluding the [`Self::do_withdraw_unbonded`] feature, 
+		/// as stake score is not considered currency.
 		pub fn new_unbond(
 			origin: OriginFor<T>,
 			#[pallet::compact] value: BalanceOf<T>,
@@ -1140,7 +1146,7 @@ pub mod pallet {
 		/// this call results in a complete removal of all the data related to the stash account.
 		/// In this case, the `num_slashing_spans` must be larger or equal to the number of
 		/// slashing spans associated with the stash account in the [`SlashingSpans`] storage type,
-		/// otherwise the call will fail. The call weight is directly propotional to
+		/// otherwise the call will fail. The call weight is directly proportional to
 		/// `num_slashing_spans`.
 		///
 		/// ## Complexity

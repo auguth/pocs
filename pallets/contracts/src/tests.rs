@@ -15,6 +15,9 @@ mod pallet_dummy;
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
+//
+// This file has been modified by Auguth Research Foundation 
+// for Proof of Contract Stake Protocol (PoCS).
 
 use self::test_utils::{ensure_stored, expected_deposit, hash};
 use crate as pallet_contracts;
@@ -1409,7 +1412,7 @@ fn deploy_and_call_other_contract() {
 				EventRecord {
 					phase: Phase::Initialization,
 					event: RuntimeEvent::Contracts(
-						crate::Event::ContractStakeinfoevnet {
+						crate::Event::ContractStakeinfoevent {
 							contract_address: callee_addr.clone(),
 							reputation: contract_stake_info.reputation,
 							recent_blockheight: contract_stake_info.recent_blockheight,
@@ -1431,7 +1434,7 @@ fn deploy_and_call_other_contract() {
 				EventRecord {
 					phase: Phase::Initialization,
 					event: RuntimeEvent::Contracts(
-						crate::Event::ContractStakeinfoevnet {
+						crate::Event::ContractStakeinfoevent {
 							contract_address: caller_addr.clone(),
 							reputation: contract_stake_info.reputation,
 							recent_blockheight: contract_stake_info.recent_blockheight,
@@ -1774,7 +1777,7 @@ fn self_destruct_works() {
 				EventRecord {
 					phase: Phase::Initialization,
 					event: RuntimeEvent::Contracts(
-						crate::Event::ContractStakeinfoevnet {
+						crate::Event::ContractStakeinfoevent {
 							contract_address: addr.clone(),
 							reputation: contract_stake_info.reputation,
 							recent_blockheight: contract_stake_info.recent_blockheight,
@@ -1873,7 +1876,7 @@ fn cannot_self_destruct_in_constructor() {
 	ExtBuilder::default().existential_deposit(50).build().execute_with(|| {
 		let _ = Balances::deposit_creating(&ALICE, 1_000_000);
 
-		// Fail to instantiate the BOB because the contructor calls seal_terminate.
+		// Fail to instantiate the BOB because the constructor calls seal_terminate.
 		assert_err_ignore_postinfo!(
 			Contracts::instantiate_with_code(
 				RuntimeOrigin::signed(ALICE),
@@ -4352,7 +4355,7 @@ fn storage_deposit_works() {
 				EventRecord {
 					phase: Phase::Initialization,
 					event: RuntimeEvent::Contracts(
-						crate::Event::ContractStakeinfoevnet {
+						crate::Event::ContractStakeinfoevent {
 							contract_address: addr.clone(),
 							reputation: contract_stake_info.reputation,
 							recent_blockheight: contract_stake_info.recent_blockheight,
@@ -4380,7 +4383,7 @@ fn storage_deposit_works() {
 				EventRecord {
 					phase: Phase::Initialization,
 					event: RuntimeEvent::Contracts(
-						crate::Event::ContractStakeinfoevnet {
+						crate::Event::ContractStakeinfoevent {
 							contract_address: addr.clone(),
 							reputation: contract_stake_info.reputation,
 							recent_blockheight: contract_stake_info.recent_blockheight,
@@ -4408,7 +4411,7 @@ fn storage_deposit_works() {
 				EventRecord {
 					phase: Phase::Initialization,
 					event: RuntimeEvent::Contracts(
-						crate::Event::ContractStakeinfoevnet {
+						crate::Event::ContractStakeinfoevent {
 							contract_address: addr.clone(),
 							reputation: contract_stake_info.reputation,
 							recent_blockheight: contract_stake_info.recent_blockheight,
@@ -4926,7 +4929,7 @@ fn set_code_hash() {
 				EventRecord {
 					phase: Phase::Initialization,
 					event: RuntimeEvent::Contracts(
-						crate::Event::ContractStakeinfoevnet {
+						crate::Event::ContractStakeinfoevent {
 							contract_address: contract_addr.clone(),
 							reputation: contract_stake_info.reputation,
 							recent_blockheight: contract_stake_info.recent_blockheight,
@@ -4948,7 +4951,7 @@ fn set_code_hash() {
 				EventRecord {
 					phase: Phase::Initialization,
 					event: RuntimeEvent::Contracts(
-						crate::Event::ContractStakeinfoevnet {
+						crate::Event::ContractStakeinfoevent {
 							contract_address: contract_addr.clone(),
 							reputation: contract_stake_info.reputation,
 							recent_blockheight: contract_stake_info.recent_blockheight,
@@ -5694,7 +5697,7 @@ fn cannot_set_code_indeterministic_code() {
 		let account_stake_info = AccountStakeinfo::<Test>::set_new_stakeinfo(ALICE,caller_addr.clone());
 		<ContractStakeinfoMap<Test>>::insert(caller_addr.clone(), contract_stake_info.clone());
 		<AccountStakeinfoMap<Test>>::insert(caller_addr.clone(),account_stake_info.clone());
-		// We do not allow to set the code hash to a non determinstic wasm
+		// We do not allow to set the code hash to a non deterministic wasm
 		assert_err!(
 			<Pallet<Test>>::bare_call(
 				ALICE,
@@ -6101,12 +6104,12 @@ fn pocs_contract_stake_event() {
 		};
 
 		let contract_stake_info_event = events.iter().find_map(|record| {
-			if let RuntimeEvent::Contracts(crate::Event::ContractStakeinfoevnet { contract_address, reputation, recent_blockheight,stake_score }) = &record.event {
+			if let RuntimeEvent::Contracts(crate::Event::ContractStakeinfoevent { contract_address, reputation, recent_blockheight,stake_score }) = &record.event {
 				Some((contract_address.clone(), reputation, recent_blockheight))
 			} else {
 				None
 			}
-		}).expect("Expected ContractStakeinfoevnet event to be emitted");
+		}).expect("Expected ContractStakeinfoevent event to be emitted");
 		
 		assert_eq!(contract_stake_info_event.0, contract_address);
 		assert_eq!(*contract_stake_info_event.1, 1);
@@ -6147,12 +6150,12 @@ fn pocs_account_stake_event() {
 		};
 
 		let account_stake_info_event = events.iter().find_map(|record| {
-			if let RuntimeEvent::Contracts(crate::Event::AccountStakeinfoevnet { contract_address, owner, delegate_to, delegate_at }) = &record.event {
+			if let RuntimeEvent::Contracts(crate::Event::AccountStakeinfoevent { contract_address, owner, delegate_to, delegate_at }) = &record.event {
 				Some((contract_address.clone(), owner, delegate_to, delegate_at))
 			} else {
 				None
 			}
-		}).expect("Expected ContractStakeinfoevnet event to be emitted");
+		}).expect("Expected ContractStakeinfoevent event to be emitted");
 		
 		assert_eq!(account_stake_info_event.0, contract_address);
 		assert_eq!(*account_stake_info_event.1, contract_owner);
@@ -6244,26 +6247,26 @@ fn pocs_update_delegate_valid_owner() {
 
 		let events = frame_system::Module::<Test>::events();
 		let contract_events: Vec<_> = events.iter().filter_map(|record| {
-			if let RuntimeEvent::Contracts(crate::Event::ContractStakeinfoevnet { contract_address, reputation, recent_blockheight,stake_score }) = &record.event {
+			if let RuntimeEvent::Contracts(crate::Event::ContractStakeinfoevent { contract_address, reputation, recent_blockheight,stake_score }) = &record.event {
 				Some((contract_address.clone(), *reputation, *recent_blockheight))
 			} else {
 				None
 			}
 		}).collect();
 
-		assert!(contract_events.len() >= 2, "Expected at least two ContractStakeinfoevnet events");
+		assert!(contract_events.len() >= 2, "Expected at least two ContractStakeinfoevent events");
 		
 		let contract_stake_info_event = &contract_events[1];
 
 		let account_events: Vec<_> = events.iter().filter_map(|record| {
-			if let RuntimeEvent::Contracts(crate::Event::AccountStakeinfoevnet { contract_address, owner, delegate_to, delegate_at }) = &record.event {
+			if let RuntimeEvent::Contracts(crate::Event::AccountStakeinfoevent { contract_address, owner, delegate_to, delegate_at }) = &record.event {
 				Some((contract_address.clone(), owner.clone(), delegate_to.clone(), delegate_at))
 			} else {
 				None
 			}
 		}).collect();
 		
-		assert!(account_events.len() >= 2, "Expected at least two AccountStakeinfoevnet events");
+		assert!(account_events.len() >= 2, "Expected at least two AccountStakeinfoevent events");
 		
 		let account_stake_info_event = &account_events[1];
 
