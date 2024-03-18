@@ -775,8 +775,9 @@ pub mod pallet {
 			)
 		}
 
-		/// Updates the validator address that the developer delegated to, resets all the stake score
-		/// for the refered contract (PoCS)
+
+		/// Updates the validator address and only allows nomination when the reputation criteria is met, resets all the stake score
+		/// for the referred contract (PoCS)
 		///
 		/// This resets the stake score of the contracts by updating [`pallet::AccountStakeinfoMap`]
 		/// and [`pallet::ContractStakeinfoMap`] by `set_new_stakeinfo`
@@ -789,6 +790,7 @@ pub mod pallet {
 		/// Updating the delegate is executed as follows:
 		///
 		/// - The owner of the contract address is verified from Origin
+		/// - The reputation criteria is ensured 
 		/// - The [`pallet::AccountStakeinfoMap`] is updated to the newly delegated validator
 		/// - [`pallet::ContractStakeinfoMap`] is reset to `default` values.
 		/// - `default` vaues are reputation value = 1, stakescore = 0, recentblockheight = currentblockheight.
@@ -829,9 +831,10 @@ pub mod pallet {
 				let _add_validator = Staking::<T>::new_unbond(
 					ROrigin::Signed(origin.clone()).into(),
 					new_contract_stake_info.stake_score.saturated_into(),
-				);				
+				);
+				// Reputation Criteria Constant (PoCS) 		
 				ensure!(new_contract_stake_info.reputation >= 10, Error::<T>::InsufficientReputation);
-				//make the validator(nominator) nominate a validator(pocs)
+				// The deployer as a validator/nominator nominates the required validator (PoCS)
 				let _nominate_validator = <pallet_staking::Pallet<T> as sp_staking::StakingInterface>::nominate(
 					&new_account_stake_info.owner.clone(),
 					vec![new_account_stake_info.delegate_to.clone()],

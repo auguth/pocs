@@ -344,7 +344,9 @@ pub mod pallet {
 	/// When this value is not set, no limits are enforced.
 	#[pallet::storage]
 	pub type MaxValidatorsCount<T> = StorageValue<_, u32, OptionQuery>;
-	//pocs 
+	/// `ValidatorDelegate` is a storage map for PoCS protocol that keeps track of the number of delegates(nominators) associated with each validator,
+	/// to ensure the [`Pallet::validate`] validation criteria 
+	/// This map gets updated every time a nominator (contract deployer with reputation criteria met) nominates a validator. 
 	#[pallet::storage]
 	#[pallet::getter(fn get_delegateinfo)]
 	pub type ValidatorDelegate<T: Config> = StorageMap<_, Twox64Concat, T::AccountId, u64>;
@@ -714,9 +716,9 @@ pub mod pallet {
 	pub enum Error<T> {
 		/// Not a controller account.
 		NotController,
-		///pocs
+		/// Cannot find Validator Address in [`pallet::ValidatorDelegate`] Map (PoCS) 
 		InvalidValidatorAddress,
-		///pocs
+		/// Cannot meet Validation criteria (PoCS)
 		InsufficientDelegate,
 		/// Not a stash account.
 		NotStash,
@@ -831,8 +833,8 @@ pub mod pallet {
 		/// Take the origin account as a stash and lock up `value` of its balance. `controller` will
 		/// be the account that controls it.
 		///
-		/// `value` must be more than the `minimum_balance` specified by `T::Currency`.
-		///
+		/// DEPRECATED FOR POCS : `value` must be more than the `minimum_balance` specified by `T::Currency`.
+		/// 
 		/// The dispatch origin for this call must be _Signed_ by the stash account.
 		///
 		/// Emits `Bonded`.
@@ -843,6 +845,8 @@ pub mod pallet {
 		///
 		/// NOTE: Two of the storage writes (`Self::bonded`, `Self::payee`) are _never_ cleaned
 		/// unless the `origin` falls below _existential deposit_ and gets removed as dust.
+		/// ## PoCS Additions:
+		/// - Initialize validator with zero delegates in the [`pallet::ValidatorDelegate`] Map during bond call.
 		#[pallet::call_index(0)]
 		#[pallet::weight(T::WeightInfo::bond())]
 		pub fn bond(
@@ -860,11 +864,12 @@ pub mod pallet {
 			if <Ledger<T>>::contains_key(&controller_to_be_deprecated) {
 				return Err(Error::<T>::AlreadyPaired.into())
 			}
-
+			// DEPRECATED FOR POCS 
 			// Reject a bond which is considered to be _dust_.
 			// if value < T::Currency::minimum_balance() {
 			// 	return Err(Error::<T>::InsufficientBond.into())
 			// }
+			// Validator Address added to [`pallet::ValidatorDelegate`] Map with zero delegates(number of nominators) initially (PoCS)
 			<ValidatorDelegate<T>>::insert(&stash, 0);
 			frame_system::Pallet::<T>::inc_consumers(&stash).map_err(|_| Error::<T>::BadState)?;
 
@@ -1170,7 +1175,7 @@ pub mod pallet {
 			let delegateincrement: u64 = Self::get_delegateinfo(stash.clone()).ok_or(<Error<T>>::InvalidValidatorAddress)?;
 			// ensure their commission is correct.
 			ensure!(prefs.commission >= MinCommission::<T>::get(), Error::<T>::CommissionTooLow);
-			///pocs
+			/// Validation Criteria of Minimum 3 Delegates (Nominators) is Ensured (PoCS) 
 			ensure!(delegateincrement >= 3, Error::<T>::InsufficientDelegate);
 			// Only check limits if they are not already a validator.
 			if !Validators::<T>::contains_key(stash) {
@@ -1202,6 +1207,9 @@ pub mod pallet {
 		/// - The transaction's complexity is proportional to the size of `targets` (N)
 		/// which is capped at CompactAssignments::LIMIT (T::MaxNominations).
 		/// - Both the reads and writes follow a similar pattern.
+		///
+		/// ## PoCS Additions
+		/// - Number of Delegates (Nominators) is increased for the specified validator in [`pallet::ValidatorDelegate`] Map
 		#[pallet::call_index(5)]
 		#[pallet::weight(T::WeightInfo::nominate(targets.len() as u32))]
 		pub fn nominate(
@@ -1254,6 +1262,7 @@ pub mod pallet {
 				submitted_in: Self::current_era().unwrap_or(0),
 				suppressed: false,
 			};
+			// Number of Delegates (Nominators) is increased for the specified validator in [`pallet::ValidatorDelegate`] Map (PoCS)
 			let delegateincrement: u64 = Self::get_delegateinfo(&targets[0].clone()).ok_or(<Error<T>>::InvalidValidatorAddress)?;
 			<ValidatorDelegate<T>>::insert(&targets[0].clone(), delegateincrement+1);
 			Self::do_remove_validator(stash);
