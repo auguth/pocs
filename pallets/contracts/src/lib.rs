@@ -805,10 +805,10 @@ pub mod pallet {
 			)-> DispatchResult {
 				let origin = ensure_signed(origin)?;
 				let account_stake_info: AccountStakeinfo<T> = Self::getterstakeinfo(&contract_address).ok_or(<Error<T>>::ContractAddressNotFound)?;
-				let _contract_stake_info: ContractScarcityInfo<T> = Self::gettercontractinfo(&contract_address).ok_or(<Error<T>>::ContractAddressNotFound)?;
+				let contract_stake_info: ContractScarcityInfo<T> = Self::gettercontractinfo(&contract_address).ok_or(<Error<T>>::ContractAddressNotFound)?;
 				ensure!(origin == account_stake_info.owner, Error::<T>::InvalidOwner);
 				let new_account_stake_info: AccountStakeinfo<T> = AccountStakeinfo::set_new_stakeinfo(account_stake_info.owner,delegate_to);
-				let new_contract_stake_info: ContractScarcityInfo<T> = ContractScarcityInfo::set_scarcity_info();
+				let new_contract_stake_info: ContractScarcityInfo<T> = ContractScarcityInfo::reset_scarcity_info(contract_stake_info.reputation);
 				<ContractStakeinfoMap<T>>::insert(&contract_address.clone(), new_contract_stake_info.clone());
 				<AccountStakeinfoMap<T>>::insert(&contract_address.clone(),new_account_stake_info.clone());
 				let _eventemit = Self::deposit_event(

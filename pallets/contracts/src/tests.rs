@@ -6235,7 +6235,11 @@ fn pocs_update_delegate_valid_owner() {
 		} else {
 			panic!("Expected Instantiated event to be emitted");
 		};
-
+		<ContractStakeinfoMap<Test>>::insert(&contract_address, ContractScarcityInfo::<Test> {
+			reputation: 10,
+			recent_blockheight: <frame_system::Pallet<Test>>::block_number(),
+			stake_score: 0,
+		});
 		// Update delegate with invalid owner
 		assert_ok!(
             Contracts::update_delegate(
@@ -6271,7 +6275,7 @@ fn pocs_update_delegate_valid_owner() {
 		let account_stake_info_event = &account_events[1];
 
 		assert_eq!(contract_stake_info_event.0, contract_address);
-		assert_eq!(contract_stake_info_event.1, 1);
+		assert_eq!(contract_stake_info_event.1, 10);
 		assert_eq!(contract_stake_info_event.2, System::block_number());
 
 		assert_eq!(account_stake_info_event.0, contract_address);
