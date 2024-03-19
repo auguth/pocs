@@ -1,4 +1,4 @@
-name: Generate cargo doc
+name: RustDocs
 
 on:
   push:

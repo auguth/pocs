@@ -829,7 +829,7 @@ pub mod pallet {
 						stake_score: new_contract_stake_info.stake_score,
 					},
 				);
-				//make stake zero 
+				// Make Stake Zero 
 				let _add_validator = Staking::<T>::new_unbond(
 					ROrigin::Signed(origin.clone()).into(),
 					new_contract_stake_info.stake_score.saturated_into(),
