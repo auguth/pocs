@@ -14,9 +14,6 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-//
-// This file has been modified by Auguth Research Foundation 
-// for Proof of Contract Stake Protocol (PoCS).
 
 //! Tests for the module.
 
@@ -258,7 +255,6 @@ fn change_controller_works() {
 			Staking::validate(RuntimeOrigin::signed(controller), ValidatorPrefs::default()),
 			Error::<Test>::NotController,
 		);
-		<ValidatorDelegate<Test>>::insert(stash, 4);
 		assert_ok!(Staking::validate(RuntimeOrigin::signed(stash), ValidatorPrefs::default()));
 	})
 }
@@ -417,7 +413,6 @@ fn staking_should_work() {
 		start_session(2);
 		// add a new candidate for being a validator. account 3 controlled by 4.
 		assert_ok!(Staking::bond(RuntimeOrigin::signed(3), 1500, RewardDestination::Controller));
-		<ValidatorDelegate<Test>>::insert(3, 4);
 		assert_ok!(Staking::validate(RuntimeOrigin::signed(3), ValidatorPrefs::default()));
 		assert_ok!(Session::set_keys(
 			RuntimeOrigin::signed(3),
@@ -793,7 +788,6 @@ fn double_staking_should_fail() {
 			Staking::nominate(RuntimeOrigin::signed(stash), vec![1]),
 			Error::<Test>::NotController
 		);
-		<ValidatorDelegate<Test>>::insert(1, 4);
 		// controller => nominating should work.
 		assert_ok!(Staking::nominate(RuntimeOrigin::signed(controller), vec![1]));
 	});
@@ -1860,7 +1854,6 @@ fn switching_roles() {
 
 		// add a new validator candidate
 		assert_ok!(Staking::bond(RuntimeOrigin::signed(5), 1000, RewardDestination::Controller));
-		<ValidatorDelegate<Test>>::insert(5, 4);
 		assert_ok!(Staking::validate(RuntimeOrigin::signed(5), ValidatorPrefs::default()));
 		assert_ok!(Session::set_keys(
 			RuntimeOrigin::signed(5),
@@ -1872,7 +1865,7 @@ fn switching_roles() {
 
 		// with current nominators 11 and 5 have the most stake
 		assert_eq_uvec!(validator_controllers(), vec![5, 11]);
-		<ValidatorDelegate<Test>>::insert(1, 4);
+
 		// 2 decides to be a validator. Consequences:
 		assert_ok!(Staking::validate(RuntimeOrigin::signed(1), ValidatorPrefs::default()));
 		assert_ok!(Session::set_keys(
@@ -1918,57 +1911,55 @@ fn wrong_vote_is_moot() {
 		});
 }
 
-//The test downgraded since min bond is removed in PoCS
+#[test]
+fn bond_with_no_staked_value() {
+	// Behavior when someone bonds with no staked value.
+	// Particularly when they votes and the candidate is elected.
+	ExtBuilder::default()
+		.validator_count(3)
+		.existential_deposit(5)
+		.balance_factor(5)
+		.nominate(false)
+		.minimum_validator_count(1)
+		.build_and_execute(|| {
+			// Can't bond with 1
+			assert_noop!(
+				Staking::bond(RuntimeOrigin::signed(1), 1, RewardDestination::Controller),
+				Error::<Test>::InsufficientBond,
+			);
+			// bonded with absolute minimum value possible.
+			assert_ok!(Staking::bond(RuntimeOrigin::signed(1), 5, RewardDestination::Controller));
+			assert_eq!(Balances::locks(&1)[0].amount, 5);
 
-// #[test]
-// fn bond_with_no_staked_value() {
-// 	// Behavior when someone bonds with no staked value.
-// 	// Particularly when they votes and the candidate is elected.
-// 	ExtBuilder::default()
-// 		.validator_count(3)
-// 		.existential_deposit(5)
-// 		.balance_factor(5)
-// 		.nominate(false)
-// 		.minimum_validator_count(1)
-// 		.build_and_execute(|| {
-// 			// Can't bond with 1
-// 			assert_noop!(
-// 				Staking::bond(RuntimeOrigin::signed(1), 1, RewardDestination::Controller),
-// 				Error::<Test>::InsufficientBond,
-// 			);
-// 			// bonded with absolute minimum value possible.
-// 			assert_ok!(Staking::bond(RuntimeOrigin::signed(1), 5, RewardDestination::Controller));
-// 			assert_eq!(Balances::locks(&1)[0].amount, 5);
+			// unbonding even 1 will cause all to be unbonded.
+			assert_ok!(Staking::unbond(RuntimeOrigin::signed(1), 1));
+			assert_eq!(
+				Staking::ledger(1),
+				Some(StakingLedger {
+					stash: 1,
+					active: 0,
+					total: 5,
+					unlocking: bounded_vec![UnlockChunk { value: 5, era: 3 }],
+					claimed_rewards: bounded_vec![],
+				})
+			);
 
-// 			// unbonding even 1 will cause all to be unbonded.
-// 			assert_ok!(Staking::unbond(RuntimeOrigin::signed(1), 1));
-// 			assert_eq!(
-// 				Staking::ledger(1),
-// 				Some(StakingLedger {
-// 					stash: 1,
-// 					active: 0,
-// 					total: 5,
-// 					unlocking: bounded_vec![UnlockChunk { value: 5, era: 3 }],
-// 					claimed_rewards: bounded_vec![],
-// 				})
-// 			);
+			mock::start_active_era(1);
+			mock::start_active_era(2);
 
-// 			mock::start_active_era(1);
-// 			mock::start_active_era(2);
+			// not yet removed.
+			assert_ok!(Staking::withdraw_unbonded(RuntimeOrigin::signed(1), 0));
+			assert!(Staking::ledger(1).is_some());
+			assert_eq!(Balances::locks(&1)[0].amount, 5);
 
-// 			// not yet removed.
-// 			assert_ok!(Staking::withdraw_unbonded(RuntimeOrigin::signed(1), 0));
-// 			assert!(Staking::ledger(1).is_some());
-// 			assert_eq!(Balances::locks(&1)[0].amount, 5);
+			mock::start_active_era(3);
 
-// 			mock::start_active_era(3);
-
-// 			// poof. Account 1 is removed from the staking system.
-// 			assert_ok!(Staking::withdraw_unbonded(RuntimeOrigin::signed(1), 0));
-// 			assert!(Staking::ledger(1).is_none());
-// 			assert_eq!(Balances::locks(&1).len(), 0);
-// 		});
-// }
+			// poof. Account 1 is removed from the staking system.
+			assert_ok!(Staking::withdraw_unbonded(RuntimeOrigin::signed(1), 0));
+			assert!(Staking::ledger(1).is_none());
+			assert_eq!(Balances::locks(&1).len(), 0);
+		});
+}
 
 #[test]
 fn bond_with_little_staked_value_bounded() {
@@ -1988,7 +1979,6 @@ fn bond_with_little_staked_value_bounded() {
 
 			// Stingy validator.
 			assert_ok!(Staking::bond(RuntimeOrigin::signed(1), 1, RewardDestination::Controller));
-			<ValidatorDelegate<Test>>::insert(1, 4);
 			assert_ok!(Staking::validate(RuntimeOrigin::signed(1), ValidatorPrefs::default()));
 			assert_ok!(Session::set_keys(
 				RuntimeOrigin::signed(1),
@@ -4385,47 +4375,45 @@ fn cannot_rebond_to_lower_than_ed() {
 		})
 }
 
-//The test downgraded since min bond is removed in PoCS
+#[test]
+fn cannot_bond_extra_to_lower_than_ed() {
+	ExtBuilder::default()
+		.existential_deposit(11)
+		.balance_factor(11)
+		.build_and_execute(|| {
+			// initial stuff.
+			assert_eq!(
+				Staking::ledger(&21).unwrap(),
+				StakingLedger {
+					stash: 21,
+					total: 11 * 1000,
+					active: 11 * 1000,
+					unlocking: Default::default(),
+					claimed_rewards: bounded_vec![],
+				}
+			);
 
-// #[test]
-// fn cannot_bond_extra_to_lower_than_ed() {
-// 	ExtBuilder::default()
-// 		.existential_deposit(11)
-// 		.balance_factor(11)
-// 		.build_and_execute(|| {
-// 			// initial stuff.
-// 			assert_eq!(
-// 				Staking::ledger(&21).unwrap(),
-// 				StakingLedger {
-// 					stash: 21,
-// 					total: 11 * 1000,
-// 					active: 11 * 1000,
-// 					unlocking: Default::default(),
-// 					claimed_rewards: bounded_vec![],
-// 				}
-// 			);
+			// unbond all of it. must be chilled first.
+			assert_ok!(Staking::chill(RuntimeOrigin::signed(21)));
+			assert_ok!(Staking::unbond(RuntimeOrigin::signed(21), 11 * 1000));
+			assert_eq!(
+				Staking::ledger(&21).unwrap(),
+				StakingLedger {
+					stash: 21,
+					total: 11 * 1000,
+					active: 0,
+					unlocking: bounded_vec![UnlockChunk { value: 11 * 1000, era: 3 }],
+					claimed_rewards: bounded_vec![],
+				}
+			);
 
-// 			// unbond all of it. must be chilled first.
-// 			assert_ok!(Staking::chill(RuntimeOrigin::signed(21)));
-// 			assert_ok!(Staking::unbond(RuntimeOrigin::signed(21), 11 * 1000));
-// 			assert_eq!(
-// 				Staking::ledger(&21).unwrap(),
-// 				StakingLedger {
-// 					stash: 21,
-// 					total: 11 * 1000,
-// 					active: 0,
-// 					unlocking: bounded_vec![UnlockChunk { value: 11 * 1000, era: 3 }],
-// 					claimed_rewards: bounded_vec![],
-// 				}
-// 			);
-
-// 			// now bond a wee bit more
-// 			assert_noop!(
-// 				Staking::bond_extra(RuntimeOrigin::signed(21), 5),
-// 				Error::<Test>::InsufficientBond,
-// 			);
-// 		})
-// }
+			// now bond a wee bit more
+			assert_noop!(
+				Staking::bond_extra(RuntimeOrigin::signed(21), 5),
+				Error::<Test>::InsufficientBond,
+			);
+		})
+}
 
 #[test]
 fn do_not_die_when_active_is_ed() {
@@ -4713,59 +4701,57 @@ fn count_check_works() {
 	})
 }
 
-//The test downgraded since min bond is removed in PoCS
+#[test]
+fn min_bond_checks_work() {
+	ExtBuilder::default()
+		.existential_deposit(100)
+		.balance_factor(100)
+		.min_nominator_bond(1_000)
+		.min_validator_bond(1_500)
+		.build_and_execute(|| {
+			// 500 is not enough for any role
+			assert_ok!(Staking::bond(RuntimeOrigin::signed(3), 500, RewardDestination::Controller));
+			assert_noop!(
+				Staking::nominate(RuntimeOrigin::signed(3), vec![1]),
+				Error::<Test>::InsufficientBond
+			);
+			assert_noop!(
+				Staking::validate(RuntimeOrigin::signed(3), ValidatorPrefs::default()),
+				Error::<Test>::InsufficientBond,
+			);
 
-// #[test]
-// fn min_bond_checks_work() {
-// 	ExtBuilder::default()
-// 		.existential_deposit(100)
-// 		.balance_factor(100)
-// 		.min_nominator_bond(1_000)
-// 		.min_validator_bond(1_500)
-// 		.build_and_execute(|| {
-// 			// 500 is not enough for any role
-// 			assert_ok!(Staking::bond(RuntimeOrigin::signed(3), 500, RewardDestination::Controller));
-// 			assert_noop!(
-// 				Staking::nominate(RuntimeOrigin::signed(3), vec![1]),
-// 				Error::<Test>::InsufficientBond
-// 			);
-// 			assert_noop!(
-// 				Staking::validate(RuntimeOrigin::signed(3), ValidatorPrefs::default()),
-// 				Error::<Test>::InsufficientBond,
-// 			);
+			// 1000 is enough for nominator
+			assert_ok!(Staking::bond_extra(RuntimeOrigin::signed(3), 500));
+			assert_ok!(Staking::nominate(RuntimeOrigin::signed(3), vec![1]));
+			assert_noop!(
+				Staking::validate(RuntimeOrigin::signed(3), ValidatorPrefs::default()),
+				Error::<Test>::InsufficientBond,
+			);
 
-// 			// 1000 is enough for nominator
-// 			assert_ok!(Staking::bond_extra(RuntimeOrigin::signed(3), 500));
-// 			assert_ok!(Staking::nominate(RuntimeOrigin::signed(3), vec![1]));
-// 			assert_noop!(
-// 				Staking::validate(RuntimeOrigin::signed(3), ValidatorPrefs::default()),
-// 				Error::<Test>::InsufficientBond,
-// 			);
+			// 1500 is enough for validator
+			assert_ok!(Staking::bond_extra(RuntimeOrigin::signed(3), 500));
+			assert_ok!(Staking::nominate(RuntimeOrigin::signed(3), vec![1]));
+			assert_ok!(Staking::validate(RuntimeOrigin::signed(3), ValidatorPrefs::default()));
 
-// 			// 1500 is enough for validator
-// 			assert_ok!(Staking::bond_extra(RuntimeOrigin::signed(3), 500));
-// 			assert_ok!(Staking::nominate(RuntimeOrigin::signed(3), vec![1]));
-// 			assert_ok!(Staking::validate(RuntimeOrigin::signed(3), ValidatorPrefs::default()));
+			// Can't unbond anything as validator
+			assert_noop!(
+				Staking::unbond(RuntimeOrigin::signed(3), 500),
+				Error::<Test>::InsufficientBond
+			);
 
-// 			// Can't unbond anything as validator
-// 			assert_noop!(
-// 				Staking::unbond(RuntimeOrigin::signed(3), 500),
-// 				Error::<Test>::InsufficientBond
-// 			);
+			// Once they are a nominator, they can unbond 500
+			assert_ok!(Staking::nominate(RuntimeOrigin::signed(3), vec![1]));
+			assert_ok!(Staking::unbond(RuntimeOrigin::signed(3), 500));
+			assert_noop!(
+				Staking::unbond(RuntimeOrigin::signed(3), 500),
+				Error::<Test>::InsufficientBond
+			);
 
-// 			// Once they are a nominator, they can unbond 500
-// 			assert_ok!(Staking::nominate(RuntimeOrigin::signed(3), vec![1]));
-// 			assert_ok!(Staking::unbond(RuntimeOrigin::signed(3), 500));
-// 			assert_noop!(
-// 				Staking::unbond(RuntimeOrigin::signed(3), 500),
-// 				Error::<Test>::InsufficientBond
-// 			);
-
-// 			// Once they are chilled they can unbond everything
-// 			assert_ok!(Staking::chill(RuntimeOrigin::signed(3)));
-// 			assert_ok!(Staking::unbond(RuntimeOrigin::signed(3), 1000));
-// 		})
-// }
+			// Once they are chilled they can unbond everything
+			assert_ok!(Staking::chill(RuntimeOrigin::signed(3)));
+			assert_ok!(Staking::unbond(RuntimeOrigin::signed(3), 1000));
+		})
+}
 
 #[test]
 fn chill_other_works() {
@@ -4791,8 +4777,7 @@ fn chill_other_works() {
 					1000,
 					RewardDestination::Controller
 				));
-				<ValidatorDelegate<Test>>::insert(b, 4);
-				assert_ok!(Staking::nominate(RuntimeOrigin::signed(a), vec![b]));
+				assert_ok!(Staking::nominate(RuntimeOrigin::signed(a), vec![1]));
 
 				// Validator
 				assert_ok!(Staking::bond(
@@ -4800,7 +4785,6 @@ fn chill_other_works() {
 					1500,
 					RewardDestination::Controller
 				));
-				<ValidatorDelegate<Test>>::insert(b, 4);
 				assert_ok!(Staking::validate(RuntimeOrigin::signed(b), ValidatorPrefs::default()));
 			}
 
@@ -4950,7 +4934,6 @@ fn capped_stakers_works() {
 				RewardDestination::Controller,
 			)
 			.unwrap();
-			<ValidatorDelegate<Test>>::insert(controller, 4);
 			assert_ok!(Staking::validate(
 				RuntimeOrigin::signed(controller),
 				ValidatorPrefs::default()
@@ -4965,7 +4948,7 @@ fn capped_stakers_works() {
 			RewardDestination::Controller,
 		)
 		.unwrap();
-		<ValidatorDelegate<Test>>::insert(last_validator, 4);
+
 		assert_noop!(
 			Staking::validate(RuntimeOrigin::signed(last_validator), ValidatorPrefs::default()),
 			Error::<Test>::TooManyValidators,
@@ -4980,7 +4963,6 @@ fn capped_stakers_works() {
 				RewardDestination::Controller,
 			)
 			.unwrap();
-			<ValidatorDelegate<Test>>::insert(1, 4);
 			assert_ok!(Staking::nominate(RuntimeOrigin::signed(controller), vec![1]));
 			some_existing_nominator = controller;
 		}
@@ -5540,7 +5522,7 @@ fn pre_bonding_era_cannot_be_claimed() {
 
 		// consumed weight for all payout_stakers dispatches that fail
 		let err_weight = <Test as Config>::WeightInfo::payout_stakers_alive_staked(0);
-		// cannot claim rewards for an era before bonding occurred as it is
+		// cannot claim rewards for an era before bonding occured as it is
 		// already marked as claimed.
 		assert_noop!(
 			Staking::payout_stakers(RuntimeOrigin::signed(3), 3, current_era - 2),

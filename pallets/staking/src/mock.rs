@@ -571,7 +571,6 @@ pub(crate) fn bond(who: AccountId, val: Balance) {
 
 pub(crate) fn bond_validator(who: AccountId, val: Balance) {
 	bond(who, val);
-	<ValidatorDelegate<Test>>::insert(who, 4);
 	assert_ok!(Staking::validate(RuntimeOrigin::signed(who), ValidatorPrefs::default()));
 	assert_ok!(Session::set_keys(
 		RuntimeOrigin::signed(who),
