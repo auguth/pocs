@@ -778,7 +778,7 @@ pub mod pallet {
 			)
 		}
 
-		/// Updates the validator address that the developer delegated to, resets all the stake score
+		/// Updates the validator address and only allows nomination when the reputation criteria is met, resets all the stake score
 		/// for the referred contract (PoCS)
 		///
 		/// This resets the stake score of the contracts by updating [`pallet::AccountStakeinfoMap`]
@@ -792,6 +792,7 @@ pub mod pallet {
 		/// Updating the delegate is executed as follows:
 		///
 		/// - The owner of the contract address is verified from Origin
+		/// - The reputation criteria is ensured 
 		/// - The [`pallet::AccountStakeinfoMap`] is updated to the newly delegated validator
 		/// - [`pallet::ContractStakeinfoMap`] is reset to `default` values.
 		/// - `default` values are reputation value = 1, stake_score = 0, recentblockheight = currentblockheight.
@@ -804,10 +805,10 @@ pub mod pallet {
 			)-> DispatchResult {
 				let origin = ensure_signed(origin)?;
 				let account_stake_info: AccountStakeinfo<T> = Self::getterstakeinfo(&contract_address).ok_or(<Error<T>>::ContractAddressNotFound)?;
-				let _contract_stake_info: ContractScarcityInfo<T> = Self::gettercontractinfo(&contract_address).ok_or(<Error<T>>::ContractAddressNotFound)?;
+				let contract_stake_info: ContractScarcityInfo<T> = Self::gettercontractinfo(&contract_address).ok_or(<Error<T>>::ContractAddressNotFound)?;
 				ensure!(origin == account_stake_info.owner, Error::<T>::InvalidOwner);
 				let new_account_stake_info: AccountStakeinfo<T> = AccountStakeinfo::set_new_stakeinfo(account_stake_info.owner,delegate_to);
-				let new_contract_stake_info: ContractScarcityInfo<T> = ContractScarcityInfo::set_scarcity_info();
+				let new_contract_stake_info: ContractScarcityInfo<T> = ContractScarcityInfo::reset_scarcity_info(contract_stake_info.reputation);
 				<ContractStakeinfoMap<T>>::insert(&contract_address.clone(), new_contract_stake_info.clone());
 				<AccountStakeinfoMap<T>>::insert(&contract_address.clone(),new_account_stake_info.clone());
 				let _eventemit = Self::deposit_event(
@@ -828,13 +829,14 @@ pub mod pallet {
 						stake_score: new_contract_stake_info.stake_score,
 					},
 				);
-				//make stake zero 
+				// Make Stake Zero 
 				let _add_validator = Staking::<T>::new_unbond(
 					ROrigin::Signed(origin.clone()).into(),
 					new_contract_stake_info.stake_score.saturated_into(),
-				);				
-				
-				//make the validator(nominator) nominate a validator(pocs)
+				);
+				// Reputation Criteria Constant (PoCS) 		
+				ensure!(new_contract_stake_info.reputation >= 10, Error::<T>::InsufficientReputation);
+				// The deployer as a validator/nominator nominates the required validator (PoCS)
 				let _nominate_validator = <pallet_staking::Pallet<T> as sp_staking::StakingInterface>::nominate(
 					&new_account_stake_info.owner.clone(),
 					vec![new_account_stake_info.delegate_to.clone()],
@@ -1007,6 +1009,8 @@ pub mod pallet {
 		InvalidSchedule,
 		/// Invalid combination of flags supplied to `seal_call` or `seal_delegate_call`.
 		InvalidCallFlags,
+		///pocs
+		InsufficientReputation,
 		/// The executed contract exhausted its gas limit.
 		OutOfGas,
 		/// The output buffer supplied to a contract API call was too small.

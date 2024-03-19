@@ -422,7 +422,7 @@ benchmarks! {
 			delegate_at: <frame_system::Pallet<T>>::block_number(),
 		});
 		<ContractStakeinfoMap<T>>::insert(&contract_address, ContractScarcityInfo::<T> {
-			reputation: 1,
+			reputation: 10,
 			recent_blockheight: <frame_system::Pallet<T>>::block_number(),
 			stake_score: 0,
 		});

@@ -94,6 +94,16 @@ impl<T: frame_system::Config> ContractScarcityInfo<T>{
 			stake_score: 0,
 		}
 	}
+	/// Reset the scarcity information for a contract, 
+	pub fn reset_scarcity_info(current_reputation: u64,)->Self{
+		// Get the current block number.
+		let current_block_number = <frame_system::Pallet<T>>::block_number();
+		Self{
+			reputation: current_reputation,
+			recent_blockheight: current_block_number,
+			stake_score: 0,
+		}
+	}
     /// Updates the contract's reputation based on its usage.
 	pub fn update_scarcity_info(
 		current_reputation: u64,
