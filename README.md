@@ -36,7 +36,17 @@ This [Substrate](https://substrate.io) Node is an adaptation of the [substrate-s
     ```
 5.  Use [Polkadot-JS-App](https://polkadot.js.org/apps/) and [Contracts UI](https://contracts-ui.substrate.io/) to interact with the Node. Refer to [Testing Guide.md](/TESTING-GUIDE.md) for extended information.
 
+## External Links
+
+1. [Litepaper]()
+2. [Yellowpaper](/formal-spec/pocs-yellowpaper.pdf)
+3. [PoCS Research Paper](https://jobyreuben.in/JOURNALS/pocs)
+4. [Alpha Testing Documentation](/alpha/README.md)
+5. [W3F Grant Application](https://github.com/w3f/Grants-Program/blob/master/applications/PoCS.md)
+   1. [Milestone 1](https://github.com/w3f/Grant-Milestone-Delivery/blob/master/deliveries/pocs-milestone_1.md), [Milestone 1 Evaluation](https://github.com/w3f/Grant-Milestone-Delivery/blob/master/evaluations/pocs_1_keeganquigley.md) by [Keegan | W3F](https://github.com/keeganquigley), [Milestone 1 Branch Archive](https://github.com/auguth/pocs/tree/w3f_milestone_1)
+   2. [Milestone 2](), [Milestone 2 Evaluation]() by [Piet | W3F](https://github.com/PieWol), [Milestone 2 Branch Archive]()
+   3. [Milestone 3](), [Milestone 3 Evaluation]() by [Name | W3F]() , [Milestone 3 Branch Archive]()
 
 ## Acknowledgment
 
-Sincere Thanks to the [Web3 Foundation](https://web3.foundation) for their vital grant support, enabling the progress of PoCS Substrate Implementation project. For project application details, visit the [PoCS W3F Grant Application](https://grants.web3.foundation/applications/PoCS)
+Sincere Thanks to the [Web3 Foundation](https://web3.foundation) for their vital [grant](https://grants.web3.foundation/applications/PoCS) support, enabling the progress of PoCS Substrate Implementation project.
