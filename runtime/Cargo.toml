@@ -153,6 +153,7 @@ runtime-benchmarks = [
 	"sp-runtime/runtime-benchmarks",
 	"pallet-assets/runtime-benchmarks",
 	"pallet-contracts/runtime-benchmarks",
+	"pallet-staking/runtime-benchmarks",
 	"pallet-nomination-pools-benchmarking/runtime-benchmarks",
 ]
 try-runtime = [
@@ -168,6 +169,7 @@ try-runtime = [
 	"pallet-transaction-payment/try-runtime",
 	"pallet-assets/try-runtime",
 	"pallet-contracts/try-runtime",
+	"pallet-staking/try-runtime",
 	"pallet-nomination-pools/try-runtime",
 ]
 
