@@ -29,7 +29,7 @@ pallet-transaction-payment = { version = "4.0.0-dev", default-features = false, 
 pallet-bags-list = { version = "4.0.0-dev", default-features = false, git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v1.0.0" }
 pallet-session = { version = "4.0.0-dev", default-features = false, features = [ "historical" ], git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v1.0.0" }
 pallet-staking = { version = "4.0.0-dev", default-features = false,path = "../pallets/staking"}
-pallet-staking-reward-curve = { version = "4.0.0-dev", default-features = false, git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v1.0.0" }
+pallet-staking-reward-curve = { version = "4.0.0-dev", default-features = false, path = "../pallets/staking/reward-curve" }
 pallet-election-provider-multi-phase = { version = "4.0.0-dev", default-features = false, git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v1.0.0" }
 pallet-authorship = { version = "4.0.0-dev", default-features = false, git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v1.0.0" }
 pallet-utility = { version = "4.0.0-dev", default-features = false, git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v1.0.0" }
@@ -60,10 +60,10 @@ pallet-contracts-primitives = { version = "24.0.0", default-features = false, pa
 pallet-insecure-randomness-collective-flip = {  default-features = false, git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v1.0.0" }
 pallet-assets = { version = "4.0.0-dev", default-features = false, git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v1.0.0" }
 
-pallet-nomination-pools = { version = "1.0.0", default-features = false, git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v1.0.0" }
-pallet-nomination-pools-benchmarking = { version = "1.0.0", default-features = false, optional = true, git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v1.0.0" }
+pallet-nomination-pools = { version = "1.0.0-dev", default-features = false, git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v1.0.0" }
+pallet-nomination-pools-benchmarking = { version = "1.0.0-dev", default-features = false, optional = true, git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v1.0.0" }
 pallet-nomination-pools-runtime-api = { version = "1.0.0-dev", default-features = false, git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v1.0.0" }
-pallet-staking-runtime-api = { version = "4.0.0-dev", default-features = false,  git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v1.0.0" }
+pallet-staking-runtime-api = { version = "4.0.0-dev", default-features = false,  path = "../pallets/staking/runtime-api" }
 
 # Used for the node template's RPCs
 frame-system-rpc-runtime-api = { version = "4.0.0-dev", default-features = false, git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v1.0.0" }
