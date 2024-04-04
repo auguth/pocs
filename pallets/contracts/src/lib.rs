@@ -830,7 +830,7 @@ pub mod pallet {
 					},
 				);
 				// Make Stake Zero 
-				let _add_validator = Staking::<T>::new_unbond(
+				let _add_validator = Staking::<T>::unbond(
 					ROrigin::Signed(origin.clone()).into(),
 					new_contract_stake_info.stake_score.saturated_into(),
 				);
