@@ -840,8 +840,6 @@ mod benches {
 		[pallet_offences, OffencesBench::<Runtime>]
 		[pallet_im_online, ImOnline]
 		[pallet_nomination_pools, NominationPoolsBench::<Runtime>]
-		[pallet_staking, Staking::<Runtime>]
-
 	);
 }
 
