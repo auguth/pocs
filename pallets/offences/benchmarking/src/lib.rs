@@ -27,7 +27,7 @@ use sp_std::{prelude::*, vec};
 use frame_benchmarking::v1::{account, benchmarks};
 use frame_support::traits::{Currency, Get, ValidatorSet, ValidatorSetWithIdentification};
 use frame_system::{Config as SystemConfig, Pallet as System, RawOrigin};
-
+use pallet_staking::ValidatorDelegate;
 #[cfg(test)]
 use sp_runtime::traits::UniqueSaturatedInto;
 use sp_runtime::{
@@ -118,6 +118,8 @@ fn create_offender<T: Config>(n: u32, nominators: u32) -> Result<Offender<T>, &'
 		amount,
 		reward_destination.clone(),
 	)?;
+
+	<ValidatorDelegate<T>>::insert(stash.clone(), 4);
 
 	let validator_prefs =
 		ValidatorPrefs { commission: Perbill::from_percent(50), ..Default::default() };
@@ -403,6 +405,7 @@ benchmarks! {
 
 		// for grandpa equivocation reports the number of reporters
 		// and offenders is always 1
+
 		let reporters = vec![account("reporter", 1, SEED)];
 
 		// make sure reporters actually get rewarded

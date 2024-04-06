@@ -35,6 +35,7 @@ use pallet_nomination_pools::{
 	MaxPoolMembersPerPool, MaxPools, Metadata, MinCreateBond, MinJoinBond, Pallet as Pools,
 	PoolMembers, PoolRoles, PoolState, RewardPools, SubPoolsStorage,
 };
+use pallet_staking::ValidatorDelegate;
 use sp_runtime::{
 	traits::{Bounded, StaticLookup, Zero},
 	Perbill,
@@ -133,6 +134,7 @@ impl<T: Config> ListScenario<T> {
 	///   of storage reads and writes.
 	///
 	/// - the destination bag has at least one node, which will need its next pointer updated.
+
 	pub(crate) fn new(
 		origin_weight: BalanceOf<T>,
 		is_increase: bool,
@@ -148,14 +150,15 @@ impl<T: Config> ListScenario<T> {
 		let i = CurrencyOf::<T>::burn(CurrencyOf::<T>::total_issuance());
 		sp_std::mem::forget(i);
 
+		let dummyadd: T::AccountId = account("account1",0,0);
+		<ValidatorDelegate<T>>::insert(dummyadd.clone(), 4);
 		// Create accounts with the origin weight
 		let (pool_creator1, pool_origin1) =
 			create_pool_account::<T>(USER_SEED + 1, origin_weight, Some(Perbill::from_percent(50)));
-
 		T::Staking::nominate(
 			&pool_origin1,
 			// NOTE: these don't really need to be validators.
-			vec![account("random_validator", 0, USER_SEED)],
+			vec![dummyadd.clone()],
 		)?;
 
 		let (_, pool_origin2) =
@@ -163,7 +166,7 @@ impl<T: Config> ListScenario<T> {
 
 		T::Staking::nominate(
 			&pool_origin2,
-			vec![account("random_validator", 0, USER_SEED)].clone(),
+			vec![dummyadd.clone()].clone(),
 		)?;
 
 		// Find a destination weight that will trigger the worst case scenario
@@ -179,7 +182,7 @@ impl<T: Config> ListScenario<T> {
 		let (_, pool_dest1) =
 			create_pool_account::<T>(USER_SEED + 3, dest_weight, Some(Perbill::from_percent(50)));
 
-		T::Staking::nominate(&pool_dest1, vec![account("random_validator", 0, USER_SEED)])?;
+		T::Staking::nominate(&pool_dest1, vec![dummyadd.clone()])?;
 
 		let weight_of = pallet_staking::Pallet::<T>::weight_of_fn();
 		assert_eq!(vote_to_balance::<T>(weight_of(&pool_origin1)).unwrap(), origin_weight);
@@ -570,11 +573,12 @@ frame_benchmarking::benchmarks! {
 		let min_create_bond = Pools::<T>::depositor_min_bond() * 2u32.into();
 		let (depositor, pool_account) = create_pool_account::<T>(0, min_create_bond, None);
 
+		let dummyadd: T::AccountId = account("account1",0,0);
+		<ValidatorDelegate<T>>::insert(dummyadd.clone(), 4);
+
 		// Create some accounts to nominate. For the sake of benchmarking they don't need to be
 		// actual validators
-		 let validators: Vec<_> = (0..n)
-			.map(|i| account("stash", USER_SEED, i))
-			.collect();
+		 let validators: Vec<_> = vec![dummyadd];
 
 		whitelist_account!(depositor);
 	}:_(RuntimeOrigin::Signed(depositor.clone()), 1, validators)
@@ -677,12 +681,10 @@ frame_benchmarking::benchmarks! {
 	chill {
 		// Create a pool
 		let (depositor, pool_account) = create_pool_account::<T>(0, Pools::<T>::depositor_min_bond() * 2u32.into(), None);
-
+		let dummyadd: T::AccountId = account("account1",0,0);
+		<ValidatorDelegate<T>>::insert(dummyadd.clone(), 4);
 		// Nominate with the pool.
-		 let validators: Vec<_> = (0..T::MaxNominations::get())
-			.map(|i| account("stash", USER_SEED, i))
-			.collect();
-
+		 let validators: Vec<_> = vec![dummyadd.clone()];
 		assert_ok!(T::Staking::nominate(&pool_account, validators));
 		assert!(T::Staking::nominations(&Pools::<T>::create_bonded_account(1)).is_some());
 
