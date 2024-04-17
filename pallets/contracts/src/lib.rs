@@ -845,6 +845,57 @@ pub mod pallet {
 				Ok(())  
 		}
 		
+		#[pallet::weight(T::DbWeight::get().reads(10))]
+		pub fn reward_claim(
+			origin: OriginFor<T>,
+			reward_contract: T::AccountId,
+			contract_addr: T::AccountId,
+			mut selector: Vec<u8>,
+		)-> DispatchResult{
+			let origin = ensure_signed(origin)?;
+			let account_stake_info: AccountStakeinfo<T> = Self::getterstakeinfo(&contract_addr).ok_or(<Error<T>>::ContractAddressNotFound)?;
+			let account_stake_info_reward_contract: AccountStakeinfo<T> = Self::getterstakeinfo(&reward_contract).ok_or(<Error<T>>::ContractAddressNotFound)?;
+			let contract_stake_info: ContractScarcityInfo<T> = Self::gettercontractinfo(&contract_addr).ok_or(<Error<T>>::ContractAddressNotFound)?;
+
+			ensure!(origin == account_stake_info.owner, Error::<T>::InvalidOwner);
+			ensure!(account_stake_info.delegate_to == account_stake_info_reward_contract.owner, Error::<T>::InvalidOwner);
+
+			let value: BalanceOf<T> = Default::default();
+			let gas_limit:Weight = Weight::from_parts(100_000_000_000, 3 * 1024 * 1024);
+			let debug = false;
+
+			// let mut selector: Vec<u8> = [0xFA, 0x67, 0xAC, 0xD0].into();
+			let mut message_arg1 = (account_stake_info.owner).encode();
+			let mut message_arg2 = (account_stake_info.delegate_to).encode();
+			let mut message_arg3 = (account_stake_info.delegate_at).encode();
+			let mut message_arg4 = (contract_stake_info.reputation).encode();
+			let mut message_arg5 = (contract_stake_info.recent_blockheight).encode();
+			let mut message_arg6 = (contract_stake_info.stake_score).encode();
+
+			let mut data = Vec::new();
+			data.append(&mut selector);
+			data.append(&mut message_arg1);
+			data.append(&mut message_arg2);
+			data.append(&mut message_arg3);
+			data.append(&mut message_arg4);
+			data.append(&mut message_arg5);
+			data.append(&mut message_arg6);
+
+			Self::bare_call(
+				origin,
+				reward_contract,
+				value,
+				gas_limit,
+				None,
+				data,
+				DebugInfo::Skip,
+				CollectEvents::Skip,
+				Determinism::Relaxed,
+			).result?;
+
+			Ok(())
+
+		}
 
 		/// Instantiates a contract from a previously deployed wasm binary.
 		///
