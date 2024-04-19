@@ -4,7 +4,11 @@
 
 ## Abstract
 
-Proof of Contract Stake (PoCS) is a staking system utilizing contract gas history introducing **code-mining** by incentivizing developers to secure the network. Contracts’ stake scores depend on age, reputation, and gas use, deterring collusion attacks. Further information on PoCS Protocol Design are detailed in the [PoCS Research Page](https://jobyreuben.in/JOURNALS/pocs)
+Proof of Contract Stake (PoCS) is an innovative staking system utilizing contract gas history to select block producers. It [merges](https://jobyreuben.in/JOURNALS/pocs#security-equals-scarcity) proof-of-work and proof-of-stake, introducing "code-mining" by incentivizing developers to secure the network. Contracts' [stake scores](https://jobyreuben.in/JOURNALS/pocs#contract-stake-score) depend on [reputation](https://jobyreuben.in/JOURNALS/pocs#contract-reputation), and gas use, deterring [collusion attacks](https://jobyreuben.in/JOURNALS/pocs#majority-stake-attack). PoCS eliminates the ["nothing at stake"]() attack with a non-fungible non-transferable unit of scarcity to stake. A stake accumulation attack in PoCS is time constraint and patterned which can be easily detected, escalates costs over time, and cannot be expedited with any external resources.
+
+## Additional References
+
+For further exploration into Proof of Contract Stake (PoCS) and its associated materials, you can visit the primary research paper available at [this link](https://jobyreuben.in/JOURNALS/pocs). Additionally, to gain insights into the project's development and progress, you may find valuable information through the [grant link](https://grants.web3.foundation/applications/PoCS) provided by the [Web3 Foundation](https://web3.foundation/) (W3F). For a more detailed understanding of the project's milestones and implementation, you can access the respective branches on GitHub: [Milestone 1 Branch](https://github.com/auguth/pocs/tree/w3f_milestone_1), [Milestone 2 Branch](https://github.com/auguth/pocs/tree/w3f_milestone_2), and [Milestone 3 Branch](https://github.com/auguth/pocs/tree/w3f_milestone_3). These resources offer comprehensive insights into the PoCS ecosystem and its development trajectory.
 
 ## Substrate Implementation
 
