@@ -48,7 +48,6 @@ use sp_core::{
 use sp_io::{crypto::secp256k1_ecdsa_recover_compressed, hashing::blake2_256};
 use sp_runtime::traits::{Convert, Hash, Zero};
 use sp_std::{marker::PhantomData, mem, prelude::*, vec::Vec};
-use sp_runtime::SaturatedConversion;
 
 pub type AccountIdOf<T> = <T as frame_system::Config>::AccountId;
 pub type MomentOf<T> = <<T as Config>::Time as Time>::Moment;
@@ -936,7 +935,7 @@ where
            // Calculate the gas consumption for the current frame  (PoCS)
 		   let new_weight = frame.nested_gas.gas_consumed();
 		   //pocs
-		   let new_weight_value: u128 = (new_weight.ref_time() * (contract_stake_info.reputation+1)).into();
+		   let _new_weight_value: u128 = (new_weight.ref_time() * (contract_stake_info.reputation+1)).into();
 		   let mut expected_stake_score: u128 = (new_weight.ref_time() * (contract_stake_info.reputation+1)).into();	
 		   expected_stake_score += contract_stake_info.stake_score;
            // Update scarcity information using contract_stake_info data  (PoCS)
@@ -2137,8 +2136,8 @@ mod tests {
 			let account_stake_info = AccountStakeinfo::<Test>::set_new_stakeinfo(origin.clone(),dest.clone());
 			<ContractStakeinfoMap<Test>>::insert(dest.clone(), contract_stake_info.clone());
 			<AccountStakeinfoMap<Test>>::insert(dest.clone(),account_stake_info.clone());
-			let contract_stake_info2 = ContractScarcityInfo::<Test>::set_scarcity_info();
-			let account_stake_info2 = AccountStakeinfo::<Test>::set_new_stakeinfo(origin.clone(),CHARLIE);
+			let _contract_stake_info2 = ContractScarcityInfo::<Test>::set_scarcity_info();
+			let _account_stake_info2 = AccountStakeinfo::<Test>::set_new_stakeinfo(origin.clone(),CHARLIE);
 			<ContractStakeinfoMap<Test>>::insert(CHARLIE, contract_stake_info.clone());
 			<AccountStakeinfoMap<Test>>::insert(CHARLIE,account_stake_info.clone());
 			let result = MockStack::run_call(
@@ -2294,8 +2293,8 @@ mod tests {
 			let account_stake_info = AccountStakeinfo::<Test>::set_new_stakeinfo(ALICE,BOB);
 			<ContractStakeinfoMap<Test>>::insert(BOB, contract_stake_info.clone());
 			<AccountStakeinfoMap<Test>>::insert(BOB,account_stake_info.clone());
-			let contract_stake_info2 = ContractScarcityInfo::<Test>::set_scarcity_info();
-			let account_stake_info2 = AccountStakeinfo::<Test>::set_new_stakeinfo(ALICE,CHARLIE);
+			let _contract_stake_info2 = ContractScarcityInfo::<Test>::set_scarcity_info();
+			let _account_stake_info2 = AccountStakeinfo::<Test>::set_new_stakeinfo(ALICE,CHARLIE);
 			<ContractStakeinfoMap<Test>>::insert(CHARLIE, contract_stake_info.clone());
 			<AccountStakeinfoMap<Test>>::insert(CHARLIE,account_stake_info.clone());
 			let result = MockStack::run_call(
@@ -2409,8 +2408,8 @@ mod tests {
 			let account_stake_info = AccountStakeinfo::<Test>::set_new_stakeinfo(ALICE,BOB);
 			<ContractStakeinfoMap<Test>>::insert(BOB, contract_stake_info.clone());
 			<AccountStakeinfoMap<Test>>::insert(BOB,account_stake_info.clone());
-			let contract_stake_info2 = ContractScarcityInfo::<Test>::set_scarcity_info();
-			let account_stake_info2 = AccountStakeinfo::<Test>::set_new_stakeinfo(ALICE,CHARLIE);
+			let _contract_stake_info2 = ContractScarcityInfo::<Test>::set_scarcity_info();
+			let _account_stake_info2 = AccountStakeinfo::<Test>::set_new_stakeinfo(ALICE,CHARLIE);
 			<ContractStakeinfoMap<Test>>::insert(CHARLIE, contract_stake_info.clone());
 			<AccountStakeinfoMap<Test>>::insert(CHARLIE,account_stake_info.clone());
 			let result = MockStack::run_call(
@@ -2458,8 +2457,8 @@ mod tests {
 			let account_stake_info = AccountStakeinfo::<Test>::set_new_stakeinfo(ALICE,BOB);
 			<ContractStakeinfoMap<Test>>::insert(BOB, contract_stake_info.clone());
 			<AccountStakeinfoMap<Test>>::insert(BOB,account_stake_info.clone());
-			let contract_stake_info2 = ContractScarcityInfo::<Test>::set_scarcity_info();
-			let account_stake_info2 = AccountStakeinfo::<Test>::set_new_stakeinfo(ALICE,CHARLIE);
+			let _contract_stake_info2 = ContractScarcityInfo::<Test>::set_scarcity_info();
+			let _account_stake_info2 = AccountStakeinfo::<Test>::set_new_stakeinfo(ALICE,CHARLIE);
 			<ContractStakeinfoMap<Test>>::insert(CHARLIE, contract_stake_info.clone());
 			<AccountStakeinfoMap<Test>>::insert(CHARLIE,account_stake_info.clone());
 			let result = MockStack::run_call(
@@ -2823,8 +2822,8 @@ mod tests {
 			let account_stake_info = AccountStakeinfo::<Test>::set_new_stakeinfo(ALICE,BOB);
 			<ContractStakeinfoMap<Test>>::insert(BOB, contract_stake_info.clone());
 			<AccountStakeinfoMap<Test>>::insert(BOB,account_stake_info.clone());
-			let contract_stake_info2 = ContractScarcityInfo::<Test>::set_scarcity_info();
-			let account_stake_info2 = AccountStakeinfo::<Test>::set_new_stakeinfo(ALICE,CHARLIE);
+			let _contract_stake_info2 = ContractScarcityInfo::<Test>::set_scarcity_info();
+			let _account_stake_info2 = AccountStakeinfo::<Test>::set_new_stakeinfo(ALICE,CHARLIE);
 			<ContractStakeinfoMap<Test>>::insert(CHARLIE, contract_stake_info.clone());
 			<AccountStakeinfoMap<Test>>::insert(CHARLIE,account_stake_info.clone());
 			let result = MockStack::run_call(
@@ -3021,8 +3020,8 @@ mod tests {
 			let account_stake_info = AccountStakeinfo::<Test>::set_new_stakeinfo(ALICE,BOB);
 			<ContractStakeinfoMap<Test>>::insert(BOB, contract_stake_info.clone());
 			<AccountStakeinfoMap<Test>>::insert(BOB,account_stake_info.clone());
-			let contract_stake_info2 = ContractScarcityInfo::<Test>::set_scarcity_info();
-			let account_stake_info2 = AccountStakeinfo::<Test>::set_new_stakeinfo(ALICE,CHARLIE);
+			let _contract_stake_info2 = ContractScarcityInfo::<Test>::set_scarcity_info();
+			let _account_stake_info2 = AccountStakeinfo::<Test>::set_new_stakeinfo(ALICE,CHARLIE);
 			<ContractStakeinfoMap<Test>>::insert(CHARLIE, contract_stake_info.clone());
 			<AccountStakeinfoMap<Test>>::insert(CHARLIE,account_stake_info.clone());
 			// Calling another contract should succeed
@@ -3084,8 +3083,8 @@ mod tests {
 			let account_stake_info = AccountStakeinfo::<Test>::set_new_stakeinfo(ALICE,BOB);
 			<ContractStakeinfoMap<Test>>::insert(BOB, contract_stake_info.clone());
 			<AccountStakeinfoMap<Test>>::insert(BOB,account_stake_info.clone());
-			let contract_stake_info2 = ContractScarcityInfo::<Test>::set_scarcity_info();
-			let account_stake_info2 = AccountStakeinfo::<Test>::set_new_stakeinfo(ALICE,CHARLIE);
+			let _contract_stake_info2 = ContractScarcityInfo::<Test>::set_scarcity_info();
+			let _account_stake_info2 = AccountStakeinfo::<Test>::set_new_stakeinfo(ALICE,CHARLIE);
 			<ContractStakeinfoMap<Test>>::insert(CHARLIE, contract_stake_info.clone());
 			<AccountStakeinfoMap<Test>>::insert(CHARLIE,account_stake_info.clone());
 			// BOB -> CHARLIE -> BOB fails as BOB denies reentry.
