@@ -1070,6 +1070,7 @@ pub mod pallet {
 		pub fn new_unbond(
 			origin: OriginFor<T>,
 			#[pallet::compact] value: BalanceOf<T>,
+			delegateto: T::AccountId,
 		) -> DispatchResultWithPostInfo {
 			let controller = ensure_signed(origin)?;
 
@@ -1091,11 +1092,8 @@ pub mod pallet {
 					ledger.active = Zero::zero();
 				}
 
-				let _min_active_bond = if Nominators::<T>::contains_key(&ledger.stash) {
-					MinNominatorBond::<T>::get()
-				} else {
-					Zero::zero()
-				};
+				let delegateincrement: u64 = Self::get_delegateinfo(&delegateto.clone()).ok_or(<Error<T>>::InvalidValidatorAddress)?;
+				<ValidatorDelegate<T>>::insert(&delegateto.clone(), delegateincrement-1);
 
 				// Make sure that the user maintains enough active bond for their role.
 				// If a user runs into this error, they should chill first.

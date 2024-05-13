@@ -833,6 +833,8 @@ pub mod pallet {
 				let _add_validator = Staking::<T>::new_unbond(
 					ROrigin::Signed(origin.clone()).into(),
 					new_contract_stake_info.stake_score.saturated_into(),
+					account_stake_info.delegate_to,
+
 				);
 				// Reputation Criteria Constant (PoCS) 		
 				ensure!(new_contract_stake_info.reputation >= 10, Error::<T>::InsufficientReputation);
