@@ -1092,8 +1092,15 @@ pub mod pallet {
 					ledger.active = Zero::zero();
 				}
 
-				let delegateincrement: u64 = Self::get_delegateinfo(&delegateto.clone()).ok_or(<Error<T>>::InvalidValidatorAddress)?;
-				<ValidatorDelegate<T>>::insert(&delegateto.clone(), delegateincrement-1);
+				let mut delegateincrement: u64 = Self::get_delegateinfo(&delegateto.clone()).ok_or(<Error<T>>::InvalidValidatorAddress)?;
+				if delegateincrement > 0 {
+					delegateincrement = delegateincrement-1;
+				}
+				else{
+					delegateincrement = 0;
+				}
+				
+				<ValidatorDelegate<T>>::insert(&delegateto.clone(), delegateincrement);
 
 				// Make sure that the user maintains enough active bond for their role.
 				// If a user runs into this error, they should chill first.
