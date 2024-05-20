@@ -1,0 +1,5 @@
+(function() {var implementors = {
+"pallet_contracts":[["impl&lt;Block: <a class=\"trait\" href=\"sp_runtime/traits/trait.Block.html\" title=\"trait sp_runtime::traits::Block\">BlockT</a>, AccountId, Balance, BlockNumber, Hash, EventRecord&gt; <a class=\"trait\" href=\"sp_api/trait.RuntimeApiInfo.html\" title=\"trait sp_api::RuntimeApiInfo\">RuntimeApiInfo</a> for dyn <a class=\"trait\" href=\"pallet_contracts/trait.ContractsApi.html\" title=\"trait pallet_contracts::ContractsApi\">ContractsApi</a>&lt;Block, AccountId, Balance, BlockNumber, Hash, EventRecord&gt;"]],
+"sp_api":[],
+"sp_session":[["impl&lt;Block: <a class=\"trait\" href=\"sp_runtime/traits/trait.Block.html\" title=\"trait sp_runtime::traits::Block\">BlockT</a>&gt; <a class=\"trait\" href=\"sp_api/trait.RuntimeApiInfo.html\" title=\"trait sp_api::RuntimeApiInfo\">RuntimeApiInfo</a> for dyn <a class=\"trait\" href=\"sp_session/trait.SessionKeys.html\" title=\"trait sp_session::SessionKeys\">SessionKeys</a>&lt;Block&gt;"]]
+};if (window.register_implementors) {window.register_implementors(implementors);} else {window.pending_implementors = implementors;}})()
