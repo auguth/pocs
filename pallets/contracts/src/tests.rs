@@ -1091,13 +1091,13 @@ fn gas_syncs_work() {
 		<ContractStakeinfoMap<Test>>::insert(addr0.clone(), contract_stake_info.clone());
 		<AccountStakeinfoMap<Test>>::insert(addr0.clone(),account_stake_info.clone());
 
-		let _contract_stake_info2 = ContractScarcityInfo::<Test>::set_scarcity_info();
-		let _account_stake_info2 = AccountStakeinfo::<Test>::set_new_stakeinfo(ALICE,addr1.clone());
+		ContractScarcityInfo::<Test>::set_scarcity_info();
+		AccountStakeinfo::<Test>::set_new_stakeinfo(ALICE,addr1.clone());
 		<ContractStakeinfoMap<Test>>::insert(addr1.clone(), contract_stake_info.clone());
 		<AccountStakeinfoMap<Test>>::insert(addr1.clone(),account_stake_info.clone());
 
-		let _contract_stake_info3 = ContractScarcityInfo::<Test>::set_scarcity_info();
-		let _account_stake_info3 = AccountStakeinfo::<Test>::set_new_stakeinfo(ALICE,addr2.clone());
+		ContractScarcityInfo::<Test>::set_scarcity_info();
+		AccountStakeinfo::<Test>::set_new_stakeinfo(ALICE,addr2.clone());
 		<ContractStakeinfoMap<Test>>::insert(addr2.clone(), contract_stake_info.clone());
 		<AccountStakeinfoMap<Test>>::insert(addr2.clone(),account_stake_info.clone());
 
@@ -1314,8 +1314,8 @@ fn deploy_and_call_other_contract() {
 		let account_stake_info = AccountStakeinfo::<Test>::set_new_stakeinfo(ALICE,caller_addr.clone());
 		<ContractStakeinfoMap<Test>>::insert(caller_addr.clone(), contract_stake_info.clone());
 		<AccountStakeinfoMap<Test>>::insert(caller_addr.clone(),account_stake_info.clone());
-		let _contract_stake_info2 = ContractScarcityInfo::<Test>::set_scarcity_info();
-		let _account_stake_info2 = AccountStakeinfo::<Test>::set_new_stakeinfo(ALICE,callee_addr.clone());
+		ContractScarcityInfo::<Test>::set_scarcity_info();
+		AccountStakeinfo::<Test>::set_new_stakeinfo(ALICE,callee_addr.clone());
 		<ContractStakeinfoMap<Test>>::insert(callee_addr.clone(), contract_stake_info.clone());
 		<AccountStakeinfoMap<Test>>::insert(callee_addr.clone(),account_stake_info.clone());
 		// Call BOB contract, which attempts to instantiate and call the callee contract and
@@ -1851,10 +1851,10 @@ fn destroy_contract_and_transfer_funds() {
 		let account_stake_info = AccountStakeinfo::<Test>::set_new_stakeinfo(ALICE,addr_bob.clone());
 		<ContractStakeinfoMap<Test>>::insert(addr_bob.clone(), contract_stake_info.clone());
 		<AccountStakeinfoMap<Test>>::insert(addr_bob.clone(),account_stake_info.clone());
-		let _contract_stake_info2 = ContractScarcityInfo::<Test>::set_scarcity_info();
-		let _account_stake_info2 = AccountStakeinfo::<Test>::set_new_stakeinfo(ALICE,addr_charlie.clone());
-		<ContractStakeinfoMap<Test>>::insert(addr_charlie.clone(), _contract_stake_info2.clone());
-		<AccountStakeinfoMap<Test>>::insert(addr_charlie.clone(),_account_stake_info2.clone());
+		let contract_stake_info2 = ContractScarcityInfo::<Test>::set_scarcity_info();
+		let account_stake_info2 = AccountStakeinfo::<Test>::set_new_stakeinfo(ALICE,addr_charlie.clone());
+		<ContractStakeinfoMap<Test>>::insert(addr_charlie.clone(), contract_stake_info2.clone());
+		<AccountStakeinfoMap<Test>>::insert(addr_charlie.clone(),account_stake_info2.clone());
 		// Call BOB, which calls CHARLIE, forcing CHARLIE to self-destruct.
 		assert_ok!(Contracts::call(
 			RuntimeOrigin::signed(ALICE),
@@ -3218,8 +3218,8 @@ fn gas_estimation_nested_call_fixed_limit() {
 		<ContractStakeinfoMap<Test>>::insert(addr_caller.clone(), contract_stake_info.clone());
 		<AccountStakeinfoMap<Test>>::insert(addr_caller.clone(),account_stake_info.clone());
 
-		let _contract_stake_info2 = ContractScarcityInfo::<Test>::set_scarcity_info();
-		let _account_stake_info2 = AccountStakeinfo::<Test>::set_new_stakeinfo(ALICE,addr_callee.clone());
+		ContractScarcityInfo::<Test>::set_scarcity_info();
+		AccountStakeinfo::<Test>::set_new_stakeinfo(ALICE,addr_callee.clone());
 		<ContractStakeinfoMap<Test>>::insert(addr_callee.clone(), contract_stake_info.clone());
 		<AccountStakeinfoMap<Test>>::insert(addr_callee.clone(),account_stake_info.clone());
 
@@ -3747,10 +3747,10 @@ fn failed_deposit_charge_should_roll_back_call() {
 			let account_stake_info = AccountStakeinfo::<Test>::set_new_stakeinfo(ALICE,addr_caller.clone());
 			<ContractStakeinfoMap<Test>>::insert(addr_caller.clone(), contract_stake_info.clone());
 			<AccountStakeinfoMap<Test>>::insert(addr_caller.clone(),account_stake_info.clone());
-			let _contract_stake_info2 = ContractScarcityInfo::<Test>::set_scarcity_info();
-			let _account_stake_info2 = AccountStakeinfo::<Test>::set_new_stakeinfo(ALICE,addr_callee.clone());
-			<ContractStakeinfoMap<Test>>::insert(addr_callee.clone(), _contract_stake_info2.clone());
-			<AccountStakeinfoMap<Test>>::insert(addr_callee.clone(),_account_stake_info2.clone());
+			let contract_stake_info2 = ContractScarcityInfo::<Test>::set_scarcity_info();
+			let account_stake_info2 = AccountStakeinfo::<Test>::set_new_stakeinfo(ALICE,addr_callee.clone());
+			<ContractStakeinfoMap<Test>>::insert(addr_callee.clone(), contract_stake_info2.clone());
+			<AccountStakeinfoMap<Test>>::insert(addr_callee.clone(), account_stake_info2.clone());
 			// Give caller proxy access to Alice.
 			assert_ok!(Proxy::add_proxy(RuntimeOrigin::signed(ALICE), addr_caller.clone(), (), 0));
 
@@ -4482,8 +4482,8 @@ fn storage_deposit_callee_works() {
 		let account_stake_info = AccountStakeinfo::<Test>::set_new_stakeinfo(ALICE,addr_caller.clone());
 		<ContractStakeinfoMap<Test>>::insert(addr_caller.clone(), contract_stake_info.clone());
 		<AccountStakeinfoMap<Test>>::insert(addr_caller.clone(),account_stake_info.clone());
-		let _contract_stake_info2 = ContractScarcityInfo::<Test>::set_scarcity_info();
-		let _account_stake_info2 = AccountStakeinfo::<Test>::set_new_stakeinfo(ALICE,addr_callee.clone());
+		ContractScarcityInfo::<Test>::set_scarcity_info();
+		AccountStakeinfo::<Test>::set_new_stakeinfo(ALICE,addr_callee.clone());
 		<ContractStakeinfoMap<Test>>::insert(addr_callee.clone(), contract_stake_info.clone());
 		<AccountStakeinfoMap<Test>>::insert(addr_callee.clone(),account_stake_info.clone());
 		assert_ok!(Contracts::call(
@@ -5112,8 +5112,8 @@ fn deposit_limit_in_nested_calls() {
 		let account_stake_info = AccountStakeinfo::<Test>::set_new_stakeinfo(ALICE,addr_caller.clone());
 		<ContractStakeinfoMap<Test>>::insert(addr_caller.clone(), contract_stake_info.clone());
 		<AccountStakeinfoMap<Test>>::insert(addr_caller.clone(),account_stake_info.clone());
-		let _contract_stake_info2 = ContractScarcityInfo::<Test>::set_scarcity_info();
-		let _account_stake_info2 = AccountStakeinfo::<Test>::set_new_stakeinfo(ALICE,addr_callee.clone());
+		ContractScarcityInfo::<Test>::set_scarcity_info();
+		AccountStakeinfo::<Test>::set_new_stakeinfo(ALICE,addr_callee.clone());
 		<ContractStakeinfoMap<Test>>::insert(addr_callee.clone(), contract_stake_info.clone());
 		<AccountStakeinfoMap<Test>>::insert(addr_callee.clone(),account_stake_info.clone());
 		// Create 100 bytes of storage with a price of per byte
@@ -5268,8 +5268,8 @@ fn deposit_limit_in_nested_instantiate() {
 		let account_stake_info = AccountStakeinfo::<Test>::set_new_stakeinfo(ALICE,addr_caller.clone());
 		<ContractStakeinfoMap<Test>>::insert(addr_caller.clone(), contract_stake_info.clone());
 		<AccountStakeinfoMap<Test>>::insert(addr_caller.clone(),account_stake_info.clone());
-		let _contract_stake_info2 = ContractScarcityInfo::<Test>::set_scarcity_info();
-		let _account_stake_info2 = AccountStakeinfo::<Test>::set_new_stakeinfo(ALICE,addr.clone());
+		ContractScarcityInfo::<Test>::set_scarcity_info();
+		AccountStakeinfo::<Test>::set_new_stakeinfo(ALICE,addr.clone());
 		<ContractStakeinfoMap<Test>>::insert(addr.clone(), contract_stake_info.clone());
 		<AccountStakeinfoMap<Test>>::insert(addr.clone(),account_stake_info.clone());
 		// We don't set a special deposit limit for the nested instantiation.
