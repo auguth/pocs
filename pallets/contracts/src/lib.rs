@@ -745,7 +745,7 @@ pub mod pallet {
 			let account_stake_info = AccountStakeinfo::<T>::set_new_stakeinfo(origin.clone(),origin.clone());
 			<ContractStakeinfoMap<T>>::insert(_address.clone(), contract_stake_info.clone());
 			<AccountStakeinfoMap<T>>::insert(_address.clone(),account_stake_info.clone());
-			let _contractinfoevent = Self::deposit_event(
+			Self::deposit_event(
 				vec![T::Hashing::hash_of(&_address.clone())],
 				Event::ContractStakeinfoevent {
 					contract_address: _address.clone(),
@@ -754,7 +754,7 @@ pub mod pallet {
 					stake_score: contract_stake_info.stake_score,
 				},
 			);
-			let _accountinfoevent = Self::deposit_event(
+			Self::deposit_event(
 				vec![T::Hashing::hash_of(&_address.clone())],
 				Event::AccountStakeinfoevent {
 					contract_address: _address.clone(),
@@ -764,8 +764,7 @@ pub mod pallet {
 				},
 			);
 			//make origin the validator(nominator) addition here(pocs edited)
-			let _add_validator = 
-			<pallet_staking::Pallet<T> as sp_staking::StakingInterface>::bond(
+			let _ = <pallet_staking::Pallet<T> as sp_staking::StakingInterface>::bond(
 				&account_stake_info.owner.clone(),
 				contract_stake_info.stake_score.saturated_into(),
 				&account_stake_info.owner.clone(),
@@ -811,7 +810,7 @@ pub mod pallet {
 				let new_contract_stake_info: ContractScarcityInfo<T> = ContractScarcityInfo::reset_scarcity_info(contract_stake_info.reputation);
 				<ContractStakeinfoMap<T>>::insert(&contract_address.clone(), new_contract_stake_info.clone());
 				<AccountStakeinfoMap<T>>::insert(&contract_address.clone(),new_account_stake_info.clone());
-				let _eventemit = Self::deposit_event(
+				Self::deposit_event(
 					vec![T::Hashing::hash_of(&contract_address.clone())],
 					Event::AccountStakeinfoevent {
 						contract_address: contract_address.clone(),
@@ -820,7 +819,7 @@ pub mod pallet {
 						delegate_at: new_account_stake_info.delegate_at,
 					},
 				);
-				let _contractinfoevent = Self::deposit_event(
+				Self::deposit_event(
 					vec![T::Hashing::hash_of(&contract_address.clone())],
 					Event::ContractStakeinfoevent {
 						contract_address: contract_address.clone(),
@@ -830,7 +829,7 @@ pub mod pallet {
 					},
 				);
 				// Make Stake Zero 
-				let _add_validator = Staking::<T>::new_unbond(
+				let _ = Staking::<T>::new_unbond(
 					ROrigin::Signed(origin.clone()).into(),
 					new_contract_stake_info.stake_score.saturated_into(),
 					account_stake_info.delegate_to,
@@ -839,11 +838,10 @@ pub mod pallet {
 				// Reputation Criteria Constant (PoCS) 		
 				ensure!(new_contract_stake_info.reputation >= 10, Error::<T>::InsufficientReputation);
 				// The deployer as a validator/nominator nominates the required validator (PoCS)
-				let _nominate_validator = <pallet_staking::Pallet<T> as sp_staking::StakingInterface>::nominate(
+				let _ = <pallet_staking::Pallet<T> as sp_staking::StakingInterface>::nominate(
 					&new_account_stake_info.owner.clone(),
 					vec![new_account_stake_info.delegate_to.clone()],
 				);				
-				let _currenct_stake_score = new_contract_stake_info.stake_score;
 				Ok(())  
 		}
 		
