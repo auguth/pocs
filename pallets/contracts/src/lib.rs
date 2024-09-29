@@ -844,7 +844,7 @@ pub mod pallet {
 				let _currenct_stake_score = new_contract_stake_info.stake_score;
 				Ok(())  
 		}
-		
+		//pocs
 		#[pallet::weight(T::DbWeight::get().reads(10))]
 		pub fn reward_claim(
 			origin: OriginFor<T>,
