@@ -845,57 +845,67 @@ pub mod pallet {
 				Ok(())  
 		}
 		//pocs
-		#[pallet::weight(T::DbWeight::get().reads(10))]
+		#[pallet::weight(0)]
 		pub fn reward_claim(
 			origin: OriginFor<T>,
 			reward_contract: T::AccountId,
 			contract_addr: T::AccountId,
-			mut selector: Vec<u8>,
-		)-> DispatchResult{
+		) -> DispatchResult {
 			let origin = ensure_signed(origin)?;
-			let account_stake_info: AccountStakeinfo<T> = Self::getterstakeinfo(&contract_addr).ok_or(<Error<T>>::ContractAddressNotFound)?;
-			let account_stake_info_reward_contract: AccountStakeinfo<T> = Self::getterstakeinfo(&reward_contract).ok_or(<Error<T>>::ContractAddressNotFound)?;
-			let contract_stake_info: ContractScarcityInfo<T> = Self::gettercontractinfo(&contract_addr).ok_or(<Error<T>>::ContractAddressNotFound)?;
-
+		
+			// Fetch contract and stake information
+			let account_stake_info = Self::getterstakeinfo(&contract_addr)
+				.ok_or(<Error<T>>::ContractAddressNotFound)?;
+			let account_stake_info_reward_contract = Self::getterstakeinfo(&reward_contract)
+				.ok_or(<Error<T>>::ContractAddressNotFound)?;
+			let contract_stake_info = Self::gettercontractinfo(&contract_addr)
+				.ok_or(<Error<T>>::ContractAddressNotFound)?;
+		
+			// Ensure the caller is the owner and delegation is valid
 			ensure!(origin == account_stake_info.owner, Error::<T>::InvalidOwner);
 			ensure!(account_stake_info.delegate_to == account_stake_info_reward_contract.owner, Error::<T>::InvalidOwner);
+		
+			// Setup contract call parameters
+			let value: BalanceOf<T> = Default::default();  // No funds transferred.
+			let gas_limit: Weight = Weight::from_parts(100_000_000_000, 3 * 1024 * 1024); // Adjust gas as necessary.
+	
+		
+			// Prepare the function arguments
+			let owner = account_stake_info.owner.encode();              // owner: AccountId
+			let delegate_to = account_stake_info.delegate_to.encode();         // delegate_to: AccountId
+			let delegate_at = account_stake_info.delegate_at.encode();         // delegate_at: BlockNumber
+			let reputation = contract_stake_info.reputation.encode();         // reputation: u64
+			let recent_blockheight = contract_stake_info.recent_blockheight.encode(); // recent_blockheight: BlockNumber
+			let stake_score = contract_stake_info.stake_score.encode();        // stake_score: u128
 
-			let value: BalanceOf<T> = Default::default();
-			let gas_limit:Weight = Weight::from_parts(100_000_000_000, 3 * 1024 * 1024);
-			let debug = false;
+		
+			let mut payload= vec![0xb3, 0x88, 0x80, 0x3f]; 
 
-			// let mut selector: Vec<u8> = [0xFA, 0x67, 0xAC, 0xD0].into();
-			let mut message_arg1 = (account_stake_info.owner).encode();
-			let mut message_arg2 = (account_stake_info.delegate_to).encode();
-			let mut message_arg3 = (account_stake_info.delegate_at).encode();
-			let mut message_arg4 = (contract_stake_info.reputation).encode();
-			let mut message_arg5 = (contract_stake_info.recent_blockheight).encode();
-			let mut message_arg6 = (contract_stake_info.stake_score).encode();
+			payload.extend(owner.clone().encode());
+			payload.extend(delegate_to.clone().encode());
+			payload.extend(delegate_at.clone().encode());
+			payload.extend(reputation.clone().encode());
+			payload.extend(recent_blockheight.clone().encode());
+			payload.extend(stake_score.clone().encode());
 
-			let mut data = Vec::new();
-			data.append(&mut selector);
-			data.append(&mut message_arg1);
-			data.append(&mut message_arg2);
-			data.append(&mut message_arg3);
-			data.append(&mut message_arg4);
-			data.append(&mut message_arg5);
-			data.append(&mut message_arg6);
-
-			Self::bare_call(
-				origin,
-				reward_contract,
-				value,
-				gas_limit,
-				None,
-				data,
-				DebugInfo::Skip,
-				CollectEvents::Skip,
-				Determinism::Relaxed,
-			).result?;
+			// Perform the call
+			let result = Self::bare_call(
+				origin.clone(),          // The caller
+				reward_contract.clone(), // The destination contract
+				0u32.into(),                   // Funds to transfer
+				gas_limit,               // Gas limit
+				None,   				 // Optional storage deposit
+				payload,                    // Encoded selector and arguments
+				DebugInfo::UnsafeDebug,  // Enable debug information
+				CollectEvents::UnsafeCollect,  // Enable event collection
+				Determinism::Enforced,
+			);
+			
+			ensure!(result.result.is_ok(), Error::<T>::ContractCallFailed);
 
 			Ok(())
-
 		}
+		
 
 		/// Instantiates a contract from a previously deployed wasm binary.
 		///
@@ -1045,6 +1055,11 @@ pub mod pallet {
 			recent_blockheight: BlockNumberFor<T>,
 			stake_score: u128,
 		},
+
+		Reward_Claimed{
+			contract_address: T::AccountId,
+			reward_contract_address: T::AccountId,
+		},
 		/// Outputs the current contract address's account delegation information (PoCS)
 		AccountStakeinfoevent {
 			contract_address: T::AccountId,
@@ -1062,6 +1077,8 @@ pub mod pallet {
 		InvalidCallFlags,
 		///pocs
 		InsufficientReputation,
+		///pocs 
+		TooEarlyToClaim,
 		/// The executed contract exhausted its gas limit.
 		OutOfGas,
 		/// The output buffer supplied to a contract API call was too small.
@@ -1076,6 +1093,7 @@ pub mod pallet {
 		InvalidOwner,
 		/// No Contract Address Found (PoCS)
 		ContractAddressNotFound,
+		ContractCallFailed,
 		/// No contract was found at the specified address.
 		ContractNotFound,
 		/// The code supplied to `instantiate_with_code` exceeds the limit specified in the

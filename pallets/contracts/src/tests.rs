@@ -6284,3 +6284,154 @@ fn pocs_update_delegate_valid_owner() {
 		assert_eq!(*account_stake_info_event.3, System::block_number());
 	});
 }
+
+fn setup_reward_contract() -> AccountId32 {
+    // Load the WASM binary from the specified file path
+	let (wasm, code_hash) = compile_module::<Test>("validator_reward_contract").unwrap();
+
+    // Instantiate the contract
+	
+	
+	let addr = Contracts::bare_instantiate(
+		BOB,
+		0,
+		GAS_LIMIT,
+		None,
+		Code::Upload(wasm),
+		BOB.encode(),
+		vec![],
+		DebugInfo::Skip,
+		CollectEvents::Skip,
+	)
+	.result
+	.unwrap()
+	.account_id;
+
+    return addr // Return the contract address and owner
+}
+
+fn setup_user_contract() -> AccountId32 {
+    // Load the WASM binary from the specified file path
+	let (wasm, code_hash) = compile_module::<Test>("dummy").unwrap();
+
+    // Instantiate the contract
+	
+	let addr = Contracts::bare_instantiate(
+		ALICE,
+		10,
+		GAS_LIMIT,
+		None,
+		Code::Upload(wasm),
+		vec![],
+		vec![],
+		DebugInfo::Skip,
+		CollectEvents::Skip,
+	)
+	.result
+	.unwrap()
+	.account_id;
+
+    return addr // Return the contract address and owner
+}
+
+
+
+
+#[test]
+fn claim_with_valid_owner_after_update_delegate() {
+	ExtBuilder::default().existential_deposit(50).build().execute_with(|| {
+        let _ = Balances::deposit_creating(&ALICE, 1_000_000);
+        let _ = Balances::deposit_creating(&BOB, 1_000_000);
+
+			let bond_value = 10;
+			assert_ok!(Staking::bond(
+				RuntimeOrigin::signed(BOB),
+				bond_value,
+				pallet_staking::RewardDestination::Account(BOB),
+			));
+
+            let reward_contract_address = setup_reward_contract();
+            let contract_address = setup_user_contract();
+
+
+			let contract_stake_info = ContractScarcityInfo::<Test>::set_scarcity_info();
+			let account_stake_info = AccountStakeinfo::<Test>::set_new_stakeinfo(ALICE,BOB);
+			<ContractStakeinfoMap<Test>>::insert(contract_address.clone(), contract_stake_info.clone());
+			<AccountStakeinfoMap<Test>>::insert(contract_address.clone(),account_stake_info.clone());
+
+			let contract_stake_info = ContractScarcityInfo::<Test>::set_scarcity_info();
+			let account_stake_info = AccountStakeinfo::<Test>::set_new_stakeinfo(BOB,BOB);
+			<ContractStakeinfoMap<Test>>::insert(reward_contract_address.clone(), contract_stake_info.clone());
+			<AccountStakeinfoMap<Test>>::insert(reward_contract_address.clone(),account_stake_info.clone());
+
+			let _ = Balances::deposit_creating(&reward_contract_address, 10_000_000);
+			let initial_balance = Balances::free_balance(&reward_contract_address);
+			assert!(initial_balance > 100, "The contract balance should be greater than zero.");
+
+            // Now attempt to claim reward as ALICE (valid owner)
+            assert_ok!(Contracts::reward_claim(
+                RuntimeOrigin::signed(ALICE),
+                reward_contract_address.clone(),
+                contract_address.clone(),
+            ));
+
+			let x = initial_balance - 10;
+
+			let final_balance = Balances::free_balance(&reward_contract_address);
+			assert_eq!(
+				final_balance, x,
+				"The contract balance should change after a reward claim."
+			);
+
+        });
+}
+
+#[test]
+fn claim_with_invalid_owner_after_update_delegate() {
+	ExtBuilder::default().existential_deposit(50).build().execute_with(|| {
+        let _ = Balances::deposit_creating(&ALICE, 1_000_000);
+        let _ = Balances::deposit_creating(&BOB, 1_000_000);
+
+			let bond_value = 10;
+			assert_ok!(Staking::bond(
+				RuntimeOrigin::signed(BOB),
+				bond_value,
+				pallet_staking::RewardDestination::Account(BOB),
+			));
+
+            let reward_contract_address = setup_reward_contract();
+            let contract_address = setup_user_contract();
+
+
+			let contract_stake_info = ContractScarcityInfo::<Test>::set_scarcity_info();
+			let account_stake_info = AccountStakeinfo::<Test>::set_new_stakeinfo(ALICE,BOB);
+			<ContractStakeinfoMap<Test>>::insert(contract_address.clone(), contract_stake_info.clone());
+			<AccountStakeinfoMap<Test>>::insert(contract_address.clone(),account_stake_info.clone());
+
+			let contract_stake_info = ContractScarcityInfo::<Test>::set_scarcity_info();
+			let account_stake_info = AccountStakeinfo::<Test>::set_new_stakeinfo(BOB,BOB);
+			<ContractStakeinfoMap<Test>>::insert(reward_contract_address.clone(), contract_stake_info.clone());
+			<AccountStakeinfoMap<Test>>::insert(reward_contract_address.clone(),account_stake_info.clone());
+
+			let _ = Balances::deposit_creating(&reward_contract_address, 10_000_000);
+			let initial_balance = Balances::free_balance(&reward_contract_address);
+			assert!(initial_balance > 100, "The contract balance should be greater than zero.");
+            // Attempt to claim reward as BOB (invalid owner)
+            assert_err!(Contracts::reward_claim(
+                RuntimeOrigin::signed(BOB),
+                reward_contract_address.clone(),
+                contract_address.clone(), // Assuming the reward contract is the same for this example
+            ), pallet_contracts::Error::<Test>::InvalidOwner);
+
+
+			let final_balance = Balances::free_balance(&reward_contract_address);
+			assert_eq!(
+				final_balance, initial_balance,
+				"The contract balance should remain unchanged after a failed reward claim."
+			);
+        });
+}
+
+
+
+
