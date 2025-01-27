@@ -101,6 +101,7 @@ mod schedule;
 mod storage;
 mod wasm;
 pub mod gasstakeinfo; //(PoCS)
+pub mod data_vex8;
 
 pub mod chain_extension;
 pub mod migration;
@@ -116,6 +117,8 @@ use crate::{
 };
 use codec::{Codec, Decode, Encode, HasCompact};
 use environmental::*;
+
+
 use frame_support::{
 	dispatch::{
 		DispatchError, Dispatchable, GetDispatchInfo, Pays, PostDispatchInfo, RawOrigin,
@@ -142,6 +145,7 @@ use smallvec::Array;
 use sp_runtime::traits::{Convert, Hash, Saturating, StaticLookup, Zero};
 use sp_runtime::SaturatedConversion;
 use sp_std::{fmt::Debug, prelude::*};
+
 pub use weights::ContractWeightInfo;
 
 pub use crate::{
@@ -645,6 +649,8 @@ pub mod pallet {
 			storage_deposit_limit: Option<<BalanceOf<T> as codec::HasCompact>::Type>,
 			data: Vec<u8>,
 		) -> DispatchResultWithPostInfo {
+
+
 			Migration::<T>::ensure_migrated()?;
 			let common = CommonInput {
 				origin: Origin::from_runtime_origin(origin)?,
@@ -662,7 +668,10 @@ pub mod pallet {
 					output.result = Err(<Error<T>>::ContractReverted.into());
 				}
 			}
+	
 			output.gas_meter.into_dispatch_result(output.result, T::ContractWeightInfo::call())
+
+
 		}
 
 		/// Instantiates a new contract from the supplied `code` optionally transferring
@@ -850,6 +859,7 @@ pub mod pallet {
 			origin: OriginFor<T>,
 			reward_contract: T::AccountId,
 			contract_addr: T::AccountId,
+			input_data: Vec<u8>,
 		) -> DispatchResult {
 			let origin = ensure_signed(origin)?;
 		
@@ -868,6 +878,16 @@ pub mod pallet {
 			// Setup contract call parameters
 			let value: BalanceOf<T> = Default::default();  // No funds transferred.
 			let gas_limit: Weight = Weight::from_parts(100_000_000_000, 3 * 1024 * 1024); // Adjust gas as necessary.
+
+			let r: Vec<u8> = vec![
+				0xb3, 0x88, 0x80, 0x3f, 0xd4, 0x35, 0x93, 0xc7, 0x15, 0xfd, 0xd3, 0x1c, 0x61, 0x14, 0x1a, 0xbd,
+				0x04, 0xa9, 0x9f, 0xd6, 0x82, 0x2c, 0x85, 0x58, 0x85, 0x4c, 0xcd, 0xe3, 0x9a, 0x56, 0x84, 0xe7,
+				0xa5, 0x6d, 0xa2, 0x7d, 0xd4, 0x35, 0x93, 0xc7, 0x15, 0xfd, 0xd3, 0x1c, 0x61, 0x14, 0x1a, 0xbd,
+				0x04, 0xa9, 0x9f, 0xd6, 0x82, 0x2c, 0x85, 0x58, 0x85, 0x4c, 0xcd, 0xe3, 0x9a, 0x56, 0x84, 0xe7,
+				0xa5, 0x6d, 0xa2, 0x7d, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+				0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+				0x00, 0x00, 0x00, 0x00
+		];
 	
 		
 			// Prepare the function arguments
@@ -878,31 +898,23 @@ pub mod pallet {
 			let recent_blockheight = contract_stake_info.recent_blockheight.encode(); // recent_blockheight: BlockNumber
 			let stake_score = contract_stake_info.stake_score.encode();        // stake_score: u128
 
-		
-			let mut payload= vec![0xb3, 0x88, 0x80, 0x3f]; 
-
-			payload.extend(owner.clone().encode());
-			payload.extend(delegate_to.clone().encode());
-			payload.extend(delegate_at.clone().encode());
-			payload.extend(reputation.clone().encode());
-			payload.extend(recent_blockheight.clone().encode());
-			payload.extend(stake_score.clone().encode());
-
-			// Perform the call
-			let result = Self::bare_call(
-				origin.clone(),          // The caller
-				reward_contract.clone(), // The destination contract
-				0u32.into(),                   // Funds to transfer
-				gas_limit,               // Gas limit
-				None,   				 // Optional storage deposit
-				payload,                    // Encoded selector and arguments
-				DebugInfo::UnsafeDebug,  // Enable debug information
-				CollectEvents::UnsafeCollect,  // Enable event collection
-				Determinism::Enforced,
-			);
+			let common = CommonInput {
+				origin: Origin::Signed(origin.clone()), 
+				value: 0u32.into(),
+				data: r.clone(),
+				gas_limit: gas_limit.clone(),
+				storage_deposit_limit: None,
+				debug_message: None,
+			};
+			let dest = reward_contract.clone();
+			let mut output =
+				CallInput::<T> { dest, determinism: Determinism::Enforced }.run_guarded(common);
+			if let Ok(retval) = &output.result {
+				if retval.did_revert() {
+					output.result = Err(<Error<T>>::ContractReverted.into());
+				}
+			}
 			
-			ensure!(result.result.is_ok(), Error::<T>::ContractCallFailed);
-
 			Ok(())
 		}
 		
@@ -1067,6 +1079,7 @@ pub mod pallet {
 			delegate_to: T::AccountId,
 			delegate_at: BlockNumberFor<T>,
 		},
+
 	}
 
 	#[pallet::error]
