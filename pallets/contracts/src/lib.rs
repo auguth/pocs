@@ -101,7 +101,6 @@ mod schedule;
 mod storage;
 mod wasm;
 pub mod gasstakeinfo; //(PoCS)
-pub mod data_vex8;
 
 pub mod chain_extension;
 pub mod migration;
