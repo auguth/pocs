@@ -858,8 +858,6 @@ pub mod pallet {
 			origin: OriginFor<T>,
 			reward_contract: T::AccountId,
 			contract_addr: T::AccountId,
-			input_data: Vec<u8>,
-
 		) -> DispatchResult {
 			let origin = ensure_signed(origin)?;
 
@@ -880,21 +878,36 @@ pub mod pallet {
 			let gas_limit: Weight = Weight::from_parts(100_000_000_000, 3 * 1024 * 1024); // Adjust gas as necessary.
 		
 			// Prepare the function arguments
-			let owner = account_stake_info.owner.encode();              // owner: AccountId
-			let delegate_to = account_stake_info.delegate_to.encode();         // delegate_to: AccountId
-			let delegate_at = account_stake_info.delegate_at.encode();         // delegate_at: BlockNumber
-			let reputation = contract_stake_info.reputation.encode();         // reputation: u64
-			let recent_blockheight = contract_stake_info.recent_blockheight.encode(); // recent_blockheight: BlockNumber
-			let stake_score = contract_stake_info.stake_score.encode();        // stake_score: u128
+			let owner = account_stake_info.owner;              // owner: AccountId
+			let delegate_to = account_stake_info.delegate_to;         // delegate_to: AccountId
+			let delegate_at = account_stake_info.delegate_at;         // delegate_at: BlockNumber
+			let reputation = contract_stake_info.reputation;         // reputation: u64
+			let recent_blockheight = contract_stake_info.recent_blockheight; // recent_blockheight: BlockNumber
+			let stake_score = contract_stake_info.stake_score;        // stake_score: u128
+
+		let call_data = {
+			let param: ([u8; 4], AccountIdOf<T>, AccountIdOf<T>,BlockNumberFor<T>, &u64, BlockNumberFor<T>,&u128) = (
+				[0xb3, 0x88, 0x80, 0x3f],
+				owner,
+				delegate_to,
+				delegate_at,
+				&reputation,
+				recent_blockheight,
+				&stake_score
+			);
+			param.encode()
+		};
+
 
 			let common = CommonInput {
 				origin: Origin::Signed(origin.clone()), 
 				value: 0u32.into(),
-				data: input_data.clone(),
+				data: call_data.clone(),
 				gas_limit: gas_limit.clone(),
 				storage_deposit_limit: None,
 				debug_message: None,
 			};
+
 			let dest = reward_contract.clone();
 			let mut output =
 				CallInput::<T> { dest, determinism: Determinism::Enforced }.run_guarded(common);

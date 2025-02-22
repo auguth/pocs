@@ -26,7 +26,6 @@ use crate::{
 		Result as ExtensionResult, RetVal, ReturnFlags, SysConfig,
 	},
 	exec::{Frame, Key},
-	data_vex8,
 	storage::DeletionQueueManager,
 	gasstakeinfo::{AccountStakeinfo,ContractScarcityInfo}, //(PoCS)
 	tests::test_utils::{get_contract, get_contract_checked},
@@ -6321,8 +6320,6 @@ fn reward_claim_passes_when_delegate_valid() {
 					RuntimeOrigin::signed(ALICE),
             reward_contract_address, 
             contract_address,         
-            input_data,
-            GAS_LIMIT,
         ));
     });
 }
@@ -6352,8 +6349,6 @@ fn reward_claim_fails_when_delegate_invalid() {
 							RuntimeOrigin::signed(ALICE),
 							reward_contract_address, 
 							contract_address,         
-							input_data,
-							GAS_LIMIT,
             ),
 						Error::<Test>::InvalidOwner
         );
