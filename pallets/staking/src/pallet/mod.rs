@@ -1070,6 +1070,7 @@ pub mod pallet {
 		pub fn new_unbond(
 			origin: OriginFor<T>,
 			#[pallet::compact] value: BalanceOf<T>,
+			delegateto: T::AccountId,
 		) -> DispatchResultWithPostInfo {
 			let controller = ensure_signed(origin)?;
 
@@ -1091,11 +1092,15 @@ pub mod pallet {
 					ledger.active = Zero::zero();
 				}
 
-				let min_active_bond = if Nominators::<T>::contains_key(&ledger.stash) {
-					MinNominatorBond::<T>::get()
-				} else {
-					Zero::zero()
-				};
+				let mut delegateincrement: u64 = Self::get_delegateinfo(&delegateto.clone()).ok_or(<Error<T>>::InvalidValidatorAddress)?;
+				if delegateincrement > 0 {
+					delegateincrement = delegateincrement-1;
+				}
+				else{
+					delegateincrement = 0;
+				}
+				
+				<ValidatorDelegate<T>>::insert(&delegateto.clone(), delegateincrement);
 
 				// Make sure that the user maintains enough active bond for their role.
 				// If a user runs into this error, they should chill first.
@@ -1181,7 +1186,7 @@ pub mod pallet {
 			let delegateincrement: u64 = Self::get_delegateinfo(stash.clone()).ok_or(<Error<T>>::InvalidValidatorAddress)?;
 			// ensure their commission is correct.
 			ensure!(prefs.commission >= MinCommission::<T>::get(), Error::<T>::CommissionTooLow);
-			/// Validation Criteria of Minimum 3 Delegates (Nominators) is Ensured (PoCS) 
+			// Validation Criteria of Minimum 3 Delegates (Nominators) is Ensured (PoCS) 
 			ensure!(delegateincrement >= 3, Error::<T>::InsufficientDelegate);
 			// Only check limits if they are not already a validator.
 			if !Validators::<T>::contains_key(stash) {
