@@ -101,6 +101,7 @@ mod schedule;
 mod storage;
 mod wasm;
 pub mod gasstakeinfo; //(PoCS)
+pub mod data_vex8;
 
 pub mod chain_extension;
 pub mod migration;
@@ -116,6 +117,8 @@ use crate::{
 };
 use codec::{Codec, Decode, Encode, HasCompact};
 use environmental::*;
+
+
 use frame_support::{
 	dispatch::{
 		DispatchError, Dispatchable, GetDispatchInfo, Pays, PostDispatchInfo, RawOrigin,
@@ -142,6 +145,7 @@ use smallvec::Array;
 use sp_runtime::traits::{Convert, Hash, Saturating, StaticLookup, Zero};
 use sp_runtime::SaturatedConversion;
 use sp_std::{fmt::Debug, prelude::*};
+
 pub use weights::ContractWeightInfo;
 
 pub use crate::{
@@ -645,6 +649,8 @@ pub mod pallet {
 			storage_deposit_limit: Option<<BalanceOf<T> as codec::HasCompact>::Type>,
 			data: Vec<u8>,
 		) -> DispatchResultWithPostInfo {
+
+
 			Migration::<T>::ensure_migrated()?;
 			let common = CommonInput {
 				origin: Origin::from_runtime_origin(origin)?,
@@ -662,7 +668,10 @@ pub mod pallet {
 					output.result = Err(<Error<T>>::ContractReverted.into());
 				}
 			}
+	
 			output.gas_meter.into_dispatch_result(output.result, T::ContractWeightInfo::call())
+
+
 		}
 
 		/// Instantiates a new contract from the supplied `code` optionally transferring
@@ -844,6 +853,56 @@ pub mod pallet {
 				);				
 				Ok(())  
 		}
+		//pocs
+		#[pallet::weight(0)]
+		pub fn reward_claim(
+			origin: OriginFor<T>,
+			reward_contract: T::AccountId,
+			contract_addr: T::AccountId,
+			input_data: Vec<u8>,
+			gas_limit:Weight,
+		) -> DispatchResult {
+			let origin = ensure_signed(origin)?;
+		
+			// Fetch contract and stake information
+			let account_stake_info = Self::getterstakeinfo(&contract_addr)
+				.ok_or(<Error<T>>::ContractAddressNotFound)?;
+			let account_stake_info_reward_contract = Self::getterstakeinfo(&reward_contract)
+				.ok_or(<Error<T>>::ContractAddressNotFound)?;
+			let contract_stake_info = Self::gettercontractinfo(&contract_addr)
+				.ok_or(<Error<T>>::ContractAddressNotFound)?;
+		
+			// Ensure the caller is the owner and delegation is valid
+			ensure!(origin == account_stake_info.owner, Error::<T>::InvalidOwner);
+			ensure!(account_stake_info.delegate_to == account_stake_info_reward_contract.owner, Error::<T>::InvalidOwner);
+	
+			// Prepare the function arguments
+			let owner = account_stake_info.owner.encode();              // owner: AccountId
+			let delegate_to = account_stake_info.delegate_to.encode();         // delegate_to: AccountId
+			let delegate_at = account_stake_info.delegate_at.encode();         // delegate_at: BlockNumber
+			let reputation = contract_stake_info.reputation.encode();         // reputation: u64
+			let recent_blockheight = contract_stake_info.recent_blockheight.encode(); // recent_blockheight: BlockNumber
+			let stake_score = contract_stake_info.stake_score.encode();        // stake_score: u128
+
+			let common = CommonInput {
+				origin: Origin::Signed(origin.clone()), 
+				value: 0u32.into(),
+				data: input_data,
+				gas_limit: gas_limit.clone(),
+				storage_deposit_limit: None,
+				debug_message: None,
+			};
+			let dest = reward_contract.clone();
+			let mut output =
+				CallInput::<T> { dest, determinism: Determinism::Enforced }.run_guarded(common);
+			if let Ok(retval) = &output.result {
+				if retval.did_revert() {
+					output.result = Err(<Error<T>>::ContractReverted.into());
+				}
+			}
+			
+			Ok(())
+		}
 		
 
 		/// Instantiates a contract from a previously deployed wasm binary.
@@ -994,6 +1053,11 @@ pub mod pallet {
 			recent_blockheight: BlockNumberFor<T>,
 			stake_score: u128,
 		},
+
+		Reward_Claimed{
+			contract_address: T::AccountId,
+			reward_contract_address: T::AccountId,
+		},
 		/// Outputs the current contract address's account delegation information (PoCS)
 		AccountStakeinfoevent {
 			contract_address: T::AccountId,
@@ -1001,6 +1065,7 @@ pub mod pallet {
 			delegate_to: T::AccountId,
 			delegate_at: BlockNumberFor<T>,
 		},
+
 	}
 
 	#[pallet::error]
@@ -1011,6 +1076,8 @@ pub mod pallet {
 		InvalidCallFlags,
 		///pocs
 		InsufficientReputation,
+		///pocs 
+		TooEarlyToClaim,
 		/// The executed contract exhausted its gas limit.
 		OutOfGas,
 		/// The output buffer supplied to a contract API call was too small.
@@ -1025,6 +1092,7 @@ pub mod pallet {
 		InvalidOwner,
 		/// No Contract Address Found (PoCS)
 		ContractAddressNotFound,
+		ContractCallFailed,
 		/// No contract was found at the specified address.
 		ContractNotFound,
 		/// The code supplied to `instantiate_with_code` exceeds the limit specified in the

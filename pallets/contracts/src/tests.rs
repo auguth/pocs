@@ -1,6 +1,5 @@
 // This file is part of Substrate.
 mod pallet_dummy;
-
 // Copyright (C) Parity Technologies (UK) Ltd.
 // SPDX-License-Identifier: Apache-2.0
 
@@ -27,6 +26,7 @@ use crate::{
 		Result as ExtensionResult, RetVal, ReturnFlags, SysConfig,
 	},
 	exec::{Frame, Key},
+	data_vex8,
 	storage::DeletionQueueManager,
 	gasstakeinfo::{AccountStakeinfo,ContractScarcityInfo}, //(PoCS)
 	tests::test_utils::{get_contract, get_contract_checked},
@@ -636,6 +636,7 @@ where
 	let code_hash = T::Hashing::hash(&wasm_binary);
 	Ok((wasm_binary, code_hash))
 }
+
 
 fn initialize_block(number: u64) {
 	System::reset_events();
@@ -6283,4 +6284,79 @@ fn pocs_update_delegate_valid_owner() {
 		assert_eq!(account_stake_info_event.2, CHARLIE);
 		assert_eq!(*account_stake_info_event.3, System::block_number());
 	});
+
 }
+
+// 			let contract_stake_info = ContractScarcityInfo::<Test>::set_scarcity_info();
+// 			let account_stake_info = AccountStakeinfo::<Test>::set_new_stakeinfo(ALICE,BOB);
+// 			<ContractStakeinfoMap<Test>>::insert(contract_address.clone(), contract_stake_info.clone());
+// 			<AccountStakeinfoMap<Test>>::insert(contract_address.clone(),account_stake_info.clone());
+
+// 			let contract_stake_info = ContractScarcityInfo::<Test>::set_scarcity_info();
+// 			let account_stake_info = AccountStakeinfo::<Test>::set_new_stakeinfo(BOB,BOB);
+// 			<ContractStakeinfoMap<Test>>::insert(reward_contract_address.clone(), contract_stake_info.clone());
+// 			<AccountStakeinfoMap<Test>>::insert(reward_contract_address.clone(),account_stake_info.clone());
+
+
+#[test]
+fn reward_claim_passes_when_delegate_valid() {
+	ExtBuilder::default().existential_deposit(50).build().execute_with(|| {
+
+			let reward_contract_address: AccountId32  = AccountId32::new([3u8; 32]);
+			let contract_address: AccountId32 = AccountId32::new([4u8; 32]);
+
+			let contract_stake_info_1 = ContractScarcityInfo::<Test>::set_scarcity_info();
+			let account_stake_info_1 = AccountStakeinfo::<Test>::set_new_stakeinfo(ALICE,BOB);
+			<ContractStakeinfoMap<Test>>::insert(contract_address.clone(), contract_stake_info_1.clone());
+			<AccountStakeinfoMap<Test>>::insert(contract_address.clone(),account_stake_info_1.clone());
+
+			let contract_stake_info_2 = ContractScarcityInfo::<Test>::set_scarcity_info();
+			let account_stake_info_2 = AccountStakeinfo::<Test>::set_new_stakeinfo(BOB,BOB);
+			<ContractStakeinfoMap<Test>>::insert(reward_contract_address.clone(), contract_stake_info_2.clone());
+			<AccountStakeinfoMap<Test>>::insert(reward_contract_address.clone(),account_stake_info_2.clone());
+
+        let input_data = vec![1, 2, 3]; 
+
+        assert_ok!(Pallet::<Test>::reward_claim(
+					RuntimeOrigin::signed(ALICE),
+            reward_contract_address, 
+            contract_address,         
+            input_data,
+            GAS_LIMIT,
+        ));
+    });
+}
+
+#[test]
+fn reward_claim_fails_when_delegate_invalid() {
+	ExtBuilder::default().existential_deposit(50).build().execute_with(|| {
+
+
+			let reward_contract_address: AccountId32  = AccountId32::new([3u8; 32]);
+			let contract_address: AccountId32 = AccountId32::new([4u8; 32]);
+
+			let contract_stake_info_1 = ContractScarcityInfo::<Test>::set_scarcity_info();
+			let account_stake_info_1 = AccountStakeinfo::<Test>::set_new_stakeinfo(ALICE,ALICE);
+			<ContractStakeinfoMap<Test>>::insert(contract_address.clone(), contract_stake_info_1.clone());
+			<AccountStakeinfoMap<Test>>::insert(contract_address.clone(),account_stake_info_1.clone());
+
+			let contract_stake_info_2 = ContractScarcityInfo::<Test>::set_scarcity_info();
+			let account_stake_info_2 = AccountStakeinfo::<Test>::set_new_stakeinfo(BOB,BOB);
+			<ContractStakeinfoMap<Test>>::insert(reward_contract_address.clone(), contract_stake_info_2.clone());
+			<AccountStakeinfoMap<Test>>::insert(reward_contract_address.clone(),account_stake_info_2.clone());
+
+        let input_data = vec![1, 2, 3];
+
+        assert_noop!(
+            Pallet::<Test>::reward_claim(
+							RuntimeOrigin::signed(ALICE),
+							reward_contract_address, 
+							contract_address,         
+							input_data,
+							GAS_LIMIT,
+            ),
+						Error::<Test>::InvalidOwner
+        );
+    });
+}
+
