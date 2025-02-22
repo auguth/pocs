@@ -859,10 +859,10 @@ pub mod pallet {
 			reward_contract: T::AccountId,
 			contract_addr: T::AccountId,
 			input_data: Vec<u8>,
-			gas_limit:Weight,
+
 		) -> DispatchResult {
 			let origin = ensure_signed(origin)?;
-		
+
 			// Fetch contract and stake information
 			let account_stake_info = Self::getterstakeinfo(&contract_addr)
 				.ok_or(<Error<T>>::ContractAddressNotFound)?;
@@ -870,11 +870,15 @@ pub mod pallet {
 				.ok_or(<Error<T>>::ContractAddressNotFound)?;
 			let contract_stake_info = Self::gettercontractinfo(&contract_addr)
 				.ok_or(<Error<T>>::ContractAddressNotFound)?;
-		
+
 			// Ensure the caller is the owner and delegation is valid
 			ensure!(origin == account_stake_info.owner, Error::<T>::InvalidOwner);
 			ensure!(account_stake_info.delegate_to == account_stake_info_reward_contract.owner, Error::<T>::InvalidOwner);
-	
+		
+			// Setup contract call parameters
+			let value: BalanceOf<T> = Default::default();  // No funds transferred.
+			let gas_limit: Weight = Weight::from_parts(100_000_000_000, 3 * 1024 * 1024); // Adjust gas as necessary.
+		
 			// Prepare the function arguments
 			let owner = account_stake_info.owner.encode();              // owner: AccountId
 			let delegate_to = account_stake_info.delegate_to.encode();         // delegate_to: AccountId
@@ -886,7 +890,7 @@ pub mod pallet {
 			let common = CommonInput {
 				origin: Origin::Signed(origin.clone()), 
 				value: 0u32.into(),
-				data: input_data,
+				data: input_data.clone(),
 				gas_limit: gas_limit.clone(),
 				storage_deposit_limit: None,
 				debug_message: None,
@@ -899,7 +903,7 @@ pub mod pallet {
 					output.result = Err(<Error<T>>::ContractReverted.into());
 				}
 			}
-			
+
 			Ok(())
 		}
 		
