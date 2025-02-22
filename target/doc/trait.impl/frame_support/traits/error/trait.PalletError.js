@@ -1,0 +1,7 @@
+(function() {var implementors = {
+"frame_support":[],
+"frame_system":[["impl&lt;T&gt; <a class=\"trait\" href=\"frame_support/traits/error/trait.PalletError.html\" title=\"trait frame_support::traits::error::PalletError\">PalletError</a> for <a class=\"enum\" href=\"frame_system/pallet/enum.Error.html\" title=\"enum frame_system::pallet::Error\">Error</a>&lt;T&gt;"]],
+"pallet_contracts":[["impl&lt;T&gt; <a class=\"trait\" href=\"frame_support/traits/error/trait.PalletError.html\" title=\"trait frame_support::traits::error::PalletError\">PalletError</a> for <a class=\"enum\" href=\"pallet_contracts/pallet/enum.Error.html\" title=\"enum pallet_contracts::pallet::Error\">Error</a>&lt;T&gt;"]],
+"pallet_session":[["impl&lt;T&gt; <a class=\"trait\" href=\"frame_support/traits/error/trait.PalletError.html\" title=\"trait frame_support::traits::error::PalletError\">PalletError</a> for <a class=\"enum\" href=\"pallet_session/pallet/enum.Error.html\" title=\"enum pallet_session::pallet::Error\">Error</a>&lt;T&gt;"]],
+"pallet_staking":[["impl&lt;T&gt; <a class=\"trait\" href=\"frame_support/traits/error/trait.PalletError.html\" title=\"trait frame_support::traits::error::PalletError\">PalletError</a> for <a class=\"enum\" href=\"pallet_staking/enum.Error.html\" title=\"enum pallet_staking::Error\">Error</a>&lt;T&gt;"]]
+};if (window.register_implementors) {window.register_implementors(implementors);} else {window.pending_implementors = implementors;}})()

@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"enum":["IsFinished","MigrateResult","StepResult"],"mod":["v10","v11","v12","v9"],"struct":["Migration"],"trait":["MigrateSequence","MigrationStep"],"type":["Cursor"]};
