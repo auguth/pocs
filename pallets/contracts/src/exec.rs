@@ -21,9 +21,9 @@
 use crate::{
 	gas::GasMeter,
 	storage::{self, DepositAccount, WriteOutcome},
-	gasstakeinfo::{AccountStakeinfo,ContractScarcityInfo}, //(PoCS)
+	gasstakeinfo::{AccountStakeInfo,ContractScarcityInfo}, //(PoCS)
 	BalanceOf, CodeHash, Config, ContractInfo, ContractInfoOf, DebugBufferVec, Determinism, Error,
-	Event, Nonce, Origin, Pallet as Contracts, Schedule, System, LOG_TARGET,ContractStakeinfoMap
+	Event, Nonce, Origin, Pallet as Contracts, Schedule, System, LOG_TARGET,ContractStakeInfoMap
 };
 use frame_support::{
 	crypto::ecdsa::ECDSAExt,
@@ -931,18 +931,18 @@ where
 		   // Retrieve contract scarcity information for the given account_id (PoCS)
            let contract_stake_info: ContractScarcityInfo<T> = Contracts::gettercontractinfo(&account_id.clone()).ok_or(<Error<T>>::ContractAddressNotFound)?;
            // Retrieve account stake information for the given account_id  (PoCS)
-		   let account_stake_info: AccountStakeinfo<T> = Contracts::getterstakeinfo(&account_id.clone()).ok_or(<Error<T>>::ContractAddressNotFound)?;
+		   let account_stake_info: AccountStakeInfo<T> = Contracts::getterstakeinfo(&account_id.clone()).ok_or(<Error<T>>::ContractAddressNotFound)?;
            // Calculate the gas consumption for the current frame  (PoCS)
 		   let new_weight = frame.nested_gas.gas_consumed();
 		   //pocs
 		   let mut expected_stake_score: u128 = (new_weight.ref_time() * (contract_stake_info.reputation+1)).into();	
 		   expected_stake_score += contract_stake_info.stake_score;
            // Update scarcity information using contract_stake_info data  (PoCS)
-		   let new_scarcity_info = ContractScarcityInfo::<T>::update_scarcity_info(
-               contract_stake_info.reputation,
-               contract_stake_info.recent_blockheight,
-			   contract_stake_info.stake_score,
-			   expected_stake_score,
+		   let new_scarcity_info = ContractScarcityInfo::<T>::update(
+               &contract_stake_info.reputation,
+               &contract_stake_info.recent_blockheight,
+			   &contract_stake_info.stake_score,
+			   &expected_stake_score,
            );
 		   
 			//increase the stake score of the nominator(dev)
@@ -950,12 +950,12 @@ where
 				&account_stake_info.owner.clone(),
 				(new_scarcity_info.stake_score - contract_stake_info.stake_score).try_into().unwrap_or_default(),
 			);		   
-		   // Insert the updated scarcity information into ContractStakeinfoMap  (PoCS)
-           <ContractStakeinfoMap<T>>::insert(&account_id.clone(), new_scarcity_info.clone());
+		   // Insert the updated scarcity information into ContractStakeInfoMap  (PoCS)
+           <ContractStakeInfoMap<T>>::insert(&account_id.clone(), new_scarcity_info.clone());
            // Deposit an event to indicate the update of scarcity information  (PoCS)
 		   Contracts::<T>::deposit_event(
                vec![T::Hashing::hash_of(&account_id.clone())],
-               Event::ContractStakeinfoevent {
+               Event::ContractStakeInfoEvent {
                    contract_address: account_id.clone(),
                    reputation: new_scarcity_info.reputation,
                    recent_blockheight: new_scarcity_info.recent_blockheight,
@@ -1531,14 +1531,14 @@ mod tests {
 	use super::*;
 	use crate::{
 		exec::ExportedFunction::*,
-		gasstakeinfo::{AccountStakeinfo,ContractScarcityInfo}, //(PoCS)
+		gasstakeinfo::{AccountStakeInfo,ContractScarcityInfo}, //(PoCS)
 		gas::GasMeter,
 		tests::{
 			test_utils::{get_balance, hash, place_contract, set_balance},
 			ExtBuilder, RuntimeCall, RuntimeEvent as MetaEvent, Test, TestFilter, ALICE, BOB,
 			CHARLIE, GAS_LIMIT,
 		},
-		Error,ContractStakeinfoMap,AccountStakeinfoMap,
+		Error,ContractStakeInfoMap,AccountStakeInfoMap,
 	};
 	use assert_matches::assert_matches;
 	use codec::{Decode, Encode};
@@ -1707,10 +1707,7 @@ mod tests {
 			let mut storage_meter =
 				storage::meter::Meter::new(&Origin::from_account_id(ALICE), Some(0), value)
 					.unwrap();
-			let contract_stake_info = ContractScarcityInfo::<Test>::set_scarcity_info();
-			let account_stake_info = AccountStakeinfo::<Test>::set_new_stakeinfo(ALICE,BOB);
-			<ContractStakeinfoMap<Test>>::insert(BOB, contract_stake_info.clone());
-			<AccountStakeinfoMap<Test>>::insert(BOB,account_stake_info.clone());
+
 			assert_matches!(
 				MockStack::run_call(
 					Origin::from_account_id(ALICE),
@@ -1767,10 +1764,8 @@ mod tests {
 			let contract_origin = Origin::from_account_id(origin.clone());
 			let mut storage_meter =
 				storage::meter::Meter::new(&contract_origin, Some(0), value).unwrap();
-			let contract_stake_info = ContractScarcityInfo::<Test>::set_scarcity_info();
-			let account_stake_info = AccountStakeinfo::<Test>::set_new_stakeinfo(origin.clone(),dest.clone());
-			<ContractStakeinfoMap<Test>>::insert(dest.clone(), contract_stake_info.clone());
-			<AccountStakeinfoMap<Test>>::insert(dest.clone(),account_stake_info.clone());
+
+				
 			let _ = MockStack::run_call(
 				contract_origin.clone(),
 				dest.clone(),
@@ -1814,10 +1809,8 @@ mod tests {
 			let contract_origin = Origin::from_account_id(origin.clone());
 			let mut storage_meter =
 				storage::meter::Meter::new(&contract_origin, Some(0), 55).unwrap();
-			let contract_stake_info = ContractScarcityInfo::<Test>::set_scarcity_info();
-			let account_stake_info = AccountStakeinfo::<Test>::set_new_stakeinfo(origin.clone(),dest.clone());
-			<ContractStakeinfoMap<Test>>::insert(dest.clone(), contract_stake_info.clone());
-			<AccountStakeinfoMap<Test>>::insert(dest.clone(),account_stake_info.clone());
+
+				
 			let _ = MockStack::run_call(
 				contract_origin.clone(),
 				dest.clone(),
@@ -1855,10 +1848,7 @@ mod tests {
 			let contract_origin = Origin::from_account_id(origin.clone());
 			let mut storage_meter =
 				storage::meter::Meter::new(&contract_origin, Some(0), 55).unwrap();
-			let contract_stake_info = ContractScarcityInfo::<Test>::set_scarcity_info();
-			let account_stake_info = AccountStakeinfo::<Test>::set_new_stakeinfo(origin.clone(),dest.clone());
-			<ContractStakeinfoMap<Test>>::insert(dest.clone(), contract_stake_info.clone());
-			<AccountStakeinfoMap<Test>>::insert(dest.clone(),account_stake_info.clone());
+
 			let output = MockStack::run_call(
 				contract_origin.clone(),
 				dest.clone(),
@@ -1912,10 +1902,7 @@ mod tests {
 			let mut storage_meter =
 				storage::meter::Meter::new(&contract_origin, Some(0), 0).unwrap();
 			place_contract(&BOB, return_ch);
-			let contract_stake_info = ContractScarcityInfo::<Test>::set_scarcity_info();
-			let account_stake_info = AccountStakeinfo::<Test>::set_new_stakeinfo(origin.clone(),BOB);
-			<ContractStakeinfoMap<Test>>::insert(BOB, contract_stake_info.clone());
-			<AccountStakeinfoMap<Test>>::insert(BOB,account_stake_info.clone());
+
 			let result = MockStack::run_call(
 				contract_origin,
 				dest,
@@ -1950,10 +1937,7 @@ mod tests {
 			let contract_origin = Origin::from_account_id(origin.clone());
 			let mut storage_meter =
 				storage::meter::Meter::new(&contract_origin, Some(0), 0).unwrap();
-			let contract_stake_info = ContractScarcityInfo::<Test>::set_scarcity_info();
-			let account_stake_info = AccountStakeinfo::<Test>::set_new_stakeinfo(origin.clone(),BOB);
-			<ContractStakeinfoMap<Test>>::insert(BOB, contract_stake_info.clone());
-			<AccountStakeinfoMap<Test>>::insert(BOB,account_stake_info.clone());
+
 			let result = MockStack::run_call(
 				contract_origin,
 				dest,
@@ -1986,10 +1970,7 @@ mod tests {
 			let contract_origin = Origin::from_account_id(ALICE);
 			let mut storage_meter =
 				storage::meter::Meter::new(&contract_origin, Some(0), 0).unwrap();
-			let contract_stake_info = ContractScarcityInfo::<Test>::set_scarcity_info();
-			let account_stake_info = AccountStakeinfo::<Test>::set_new_stakeinfo(ALICE,BOB);
-			<ContractStakeinfoMap<Test>>::insert(BOB, contract_stake_info.clone());
-			<AccountStakeinfoMap<Test>>::insert(BOB,account_stake_info.clone());
+
 			let result = MockStack::run_call(
 				contract_origin,
 				BOB,
@@ -2072,10 +2053,7 @@ mod tests {
 			let contract_origin = Origin::from_account_id(ALICE);
 			let mut storage_meter =
 				storage::meter::Meter::new(&contract_origin, Some(0), value).unwrap();
-			let contract_stake_info = ContractScarcityInfo::<Test>::set_scarcity_info();
-			let account_stake_info = AccountStakeinfo::<Test>::set_new_stakeinfo(ALICE,BOB);
-			<ContractStakeinfoMap<Test>>::insert(BOB, contract_stake_info.clone());
-			<AccountStakeinfoMap<Test>>::insert(BOB,account_stake_info.clone());
+
 			let result = MockStack::run_call(
 				contract_origin,
 				BOB,
@@ -2131,14 +2109,7 @@ mod tests {
 			let contract_origin = Origin::from_account_id(origin.clone());
 			let mut storage_meter =
 				storage::meter::Meter::new(&contract_origin, Some(0), 0).unwrap();
-			let contract_stake_info = ContractScarcityInfo::<Test>::set_scarcity_info();
-			let account_stake_info = AccountStakeinfo::<Test>::set_new_stakeinfo(origin.clone(),dest.clone());
-			<ContractStakeinfoMap<Test>>::insert(dest.clone(), contract_stake_info.clone());
-			<AccountStakeinfoMap<Test>>::insert(dest.clone(),account_stake_info.clone());
-			ContractScarcityInfo::<Test>::set_scarcity_info();
-			AccountStakeinfo::<Test>::set_new_stakeinfo(origin.clone(),CHARLIE);
-			<ContractStakeinfoMap<Test>>::insert(CHARLIE, contract_stake_info.clone());
-			<AccountStakeinfoMap<Test>>::insert(CHARLIE,account_stake_info.clone());
+
 			let result = MockStack::run_call(
 				contract_origin.clone(),
 				dest.clone(),
@@ -2175,10 +2146,7 @@ mod tests {
 			let contract_origin = Origin::from_account_id(ALICE);
 			let mut storage_meter =
 				storage::meter::Meter::new(&contract_origin, Some(0), 0).unwrap();
-			let contract_stake_info = ContractScarcityInfo::<Test>::set_scarcity_info();
-			let account_stake_info = AccountStakeinfo::<Test>::set_new_stakeinfo(ALICE,BOB);
-			<ContractStakeinfoMap<Test>>::insert(BOB, contract_stake_info.clone());
-			<AccountStakeinfoMap<Test>>::insert(BOB,account_stake_info.clone());
+
 			let result = MockStack::run_call(
 				contract_origin,
 				BOB,
@@ -2211,10 +2179,7 @@ mod tests {
 			let mut storage_meter =
 				storage::meter::Meter::new(&contract_origin, Some(0), 0).unwrap();
 			// ALICE (not contract) -> BOB (contract)
-			let contract_stake_info = ContractScarcityInfo::<Test>::set_scarcity_info();
-			let account_stake_info = AccountStakeinfo::<Test>::set_new_stakeinfo(ALICE,BOB);
-			<ContractStakeinfoMap<Test>>::insert(BOB, contract_stake_info.clone());
-			<AccountStakeinfoMap<Test>>::insert(BOB,account_stake_info.clone());
+
 			let result = MockStack::run_call(
 				contract_origin,
 				BOB,
@@ -2245,10 +2210,7 @@ mod tests {
 			let mut storage_meter =
 				storage::meter::Meter::new(&contract_origin, Some(0), 0).unwrap();
 			// ALICE (not contract) -> BOB (contract)
-			let contract_stake_info = ContractScarcityInfo::<Test>::set_scarcity_info();
-			let account_stake_info = AccountStakeinfo::<Test>::set_new_stakeinfo(ALICE,BOB);
-			<ContractStakeinfoMap<Test>>::insert(BOB, contract_stake_info.clone());
-			<AccountStakeinfoMap<Test>>::insert(BOB,account_stake_info.clone());
+
 			let result = MockStack::run_call(
 				contract_origin,
 				BOB,
@@ -2288,14 +2250,7 @@ mod tests {
 			let mut storage_meter =
 				storage::meter::Meter::new(&contract_origin, Some(0), 0).unwrap();
 			// ALICE -> BOB (caller is origin) -> CHARLIE (caller is not origin)
-			let contract_stake_info = ContractScarcityInfo::<Test>::set_scarcity_info();
-			let account_stake_info = AccountStakeinfo::<Test>::set_new_stakeinfo(ALICE,BOB);
-			<ContractStakeinfoMap<Test>>::insert(BOB, contract_stake_info.clone());
-			<AccountStakeinfoMap<Test>>::insert(BOB,account_stake_info.clone());
-			ContractScarcityInfo::<Test>::set_scarcity_info();
-			AccountStakeinfo::<Test>::set_new_stakeinfo(ALICE,CHARLIE);
-			<ContractStakeinfoMap<Test>>::insert(CHARLIE, contract_stake_info.clone());
-			<AccountStakeinfoMap<Test>>::insert(CHARLIE,account_stake_info.clone());
+
 			let result = MockStack::run_call(
 				contract_origin,
 				BOB,
@@ -2326,10 +2281,7 @@ mod tests {
 			let mut storage_meter =
 				storage::meter::Meter::new(&contract_origin, Some(0), 0).unwrap();
 			// root -> BOB (caller is root)
-			let contract_stake_info = ContractScarcityInfo::<Test>::set_scarcity_info();
-			let account_stake_info = AccountStakeinfo::<Test>::set_new_stakeinfo(ALICE,BOB);
-			<ContractStakeinfoMap<Test>>::insert(BOB, contract_stake_info.clone());
-			<AccountStakeinfoMap<Test>>::insert(BOB,account_stake_info.clone());
+
 			let result = MockStack::run_call(
 				contract_origin,
 				BOB,
@@ -2360,10 +2312,7 @@ mod tests {
 			let mut storage_meter =
 				storage::meter::Meter::new(&contract_origin, Some(0), 0).unwrap();
 			// root -> BOB (caller is root)
-			let contract_stake_info = ContractScarcityInfo::<Test>::set_scarcity_info();
-			let account_stake_info = AccountStakeinfo::<Test>::set_new_stakeinfo(ALICE,BOB);
-			<ContractStakeinfoMap<Test>>::insert(BOB, contract_stake_info.clone());
-			<AccountStakeinfoMap<Test>>::insert(BOB,account_stake_info.clone());
+
 			let result = MockStack::run_call(
 				contract_origin,
 				BOB,
@@ -2403,14 +2352,7 @@ mod tests {
 			let mut storage_meter =
 				storage::meter::Meter::new(&contract_origin, Some(0), 0).unwrap();
 			// root -> BOB (caller is root) -> CHARLIE (caller is not root)
-			let contract_stake_info = ContractScarcityInfo::<Test>::set_scarcity_info();
-			let account_stake_info = AccountStakeinfo::<Test>::set_new_stakeinfo(ALICE,BOB);
-			<ContractStakeinfoMap<Test>>::insert(BOB, contract_stake_info.clone());
-			<AccountStakeinfoMap<Test>>::insert(BOB,account_stake_info.clone());
-			ContractScarcityInfo::<Test>::set_scarcity_info();
-			AccountStakeinfo::<Test>::set_new_stakeinfo(ALICE,CHARLIE);
-			<ContractStakeinfoMap<Test>>::insert(CHARLIE, contract_stake_info.clone());
-			<AccountStakeinfoMap<Test>>::insert(CHARLIE,account_stake_info.clone());
+
 			let result = MockStack::run_call(
 				contract_origin,
 				BOB,
@@ -2452,14 +2394,7 @@ mod tests {
 			let contract_origin = Origin::from_account_id(ALICE);
 			let mut storage_meter =
 				storage::meter::Meter::new(&contract_origin, Some(0), 0).unwrap();
-			let contract_stake_info = ContractScarcityInfo::<Test>::set_scarcity_info();
-			let account_stake_info = AccountStakeinfo::<Test>::set_new_stakeinfo(ALICE,BOB);
-			<ContractStakeinfoMap<Test>>::insert(BOB, contract_stake_info.clone());
-			<AccountStakeinfoMap<Test>>::insert(BOB,account_stake_info.clone());
-			ContractScarcityInfo::<Test>::set_scarcity_info();
-			AccountStakeinfo::<Test>::set_new_stakeinfo(ALICE,CHARLIE);
-			<ContractStakeinfoMap<Test>>::insert(CHARLIE, contract_stake_info.clone());
-			<AccountStakeinfoMap<Test>>::insert(CHARLIE,account_stake_info.clone());
+
 			let result = MockStack::run_call(
 				contract_origin,
 				BOB,
@@ -2625,10 +2560,7 @@ mod tests {
 				min_balance * 10,
 			)
 			.unwrap();
-			let contract_stake_info = ContractScarcityInfo::<Test>::set_scarcity_info();
-			let account_stake_info = AccountStakeinfo::<Test>::set_new_stakeinfo(ALICE,BOB);
-			<ContractStakeinfoMap<Test>>::insert(BOB, contract_stake_info.clone());
-			<AccountStakeinfoMap<Test>>::insert(BOB,account_stake_info.clone());
+
 			assert_matches!(
 				MockStack::run_call(
 					contract_origin,
@@ -2657,7 +2589,7 @@ mod tests {
 				&events(),
 				&[
 					Event::Instantiated { deployer: BOB, contract: instantiated_contract_address },
-					Event::ContractStakeinfoevent {
+					Event::ContractStakeInfoEvent {
 						contract_address: BOB,
 						reputation: contract_stake_info.reputation,
 						recent_blockheight: contract_stake_info.recent_blockheight,
@@ -2702,10 +2634,7 @@ mod tests {
 			let contract_origin = Origin::from_account_id(ALICE);
 			let mut storage_meter =
 				storage::meter::Meter::new(&contract_origin, Some(200), 0).unwrap();
-			let contract_stake_info = ContractScarcityInfo::<Test>::set_scarcity_info();
-			let account_stake_info = AccountStakeinfo::<Test>::set_new_stakeinfo(ALICE,BOB);
-			<ContractStakeinfoMap<Test>>::insert(BOB, contract_stake_info.clone());
-			<AccountStakeinfoMap<Test>>::insert(BOB,account_stake_info.clone());
+
 			assert_matches!(
 				MockStack::run_call(
 					contract_origin,
@@ -2725,7 +2654,7 @@ mod tests {
 			// event here.
 			assert_eq!(
 				&events(),
-				&[ Event::ContractStakeinfoevent {
+				&[ Event::ContractStakeInfoEvent {
 					contract_address: BOB,
 					reputation: contract_stake_info.reputation,
 					recent_blockheight: contract_stake_info.recent_blockheight,
@@ -2817,14 +2746,7 @@ mod tests {
 			let contract_origin = Origin::from_account_id(ALICE);
 			let mut storage_meter =
 				storage::meter::Meter::new(&contract_origin, Some(0), 0).unwrap();
-			let contract_stake_info = ContractScarcityInfo::<Test>::set_scarcity_info();
-			let account_stake_info = AccountStakeinfo::<Test>::set_new_stakeinfo(ALICE,BOB);
-			<ContractStakeinfoMap<Test>>::insert(BOB, contract_stake_info.clone());
-			<AccountStakeinfoMap<Test>>::insert(BOB,account_stake_info.clone());
-			ContractScarcityInfo::<Test>::set_scarcity_info();
-			AccountStakeinfo::<Test>::set_new_stakeinfo(ALICE,CHARLIE);
-			<ContractStakeinfoMap<Test>>::insert(CHARLIE, contract_stake_info.clone());
-			<AccountStakeinfoMap<Test>>::insert(CHARLIE,account_stake_info.clone());
+
 			let result = MockStack::run_call(
 				contract_origin,
 				BOB,
@@ -2895,10 +2817,7 @@ mod tests {
 			let contract_origin = Origin::from_account_id(ALICE);
 			let mut storage_meter =
 				storage::meter::Meter::new(&contract_origin, Some(0), 0).unwrap();
-			let contract_stake_info = ContractScarcityInfo::<Test>::set_scarcity_info();
-			let account_stake_info = AccountStakeinfo::<Test>::set_new_stakeinfo(ALICE,BOB);
-			<ContractStakeinfoMap<Test>>::insert(BOB, contract_stake_info.clone());
-			<AccountStakeinfoMap<Test>>::insert(BOB,account_stake_info.clone());
+
 			MockStack::run_call(
 				contract_origin,
 				BOB,
@@ -2935,10 +2854,7 @@ mod tests {
 			let contract_origin = Origin::from_account_id(ALICE);
 			let mut storage_meter =
 				storage::meter::Meter::new(&contract_origin, Some(0), 0).unwrap();
-			let contract_stake_info = ContractScarcityInfo::<Test>::set_scarcity_info();
-			let account_stake_info = AccountStakeinfo::<Test>::set_new_stakeinfo(ALICE,BOB);
-			<ContractStakeinfoMap<Test>>::insert(BOB, contract_stake_info.clone());
-			<AccountStakeinfoMap<Test>>::insert(BOB,account_stake_info.clone());
+
 			let result = MockStack::run_call(
 				contract_origin,
 				BOB,
@@ -2978,10 +2894,7 @@ mod tests {
 			let contract_origin = Origin::from_account_id(ALICE);
 			let mut storage_meter =
 				storage::meter::Meter::new(&contract_origin, Some(0), 0).unwrap();
-			let contract_stake_info = ContractScarcityInfo::<Test>::set_scarcity_info();
-			let account_stake_info = AccountStakeinfo::<Test>::set_new_stakeinfo(ALICE,BOB);
-			<ContractStakeinfoMap<Test>>::insert(BOB, contract_stake_info.clone());
-			<AccountStakeinfoMap<Test>>::insert(BOB,account_stake_info.clone());
+
 			MockStack::run_call(
 				contract_origin,
 				BOB,
@@ -3015,14 +2928,7 @@ mod tests {
 			let contract_origin = Origin::from_account_id(ALICE);
 			let mut storage_meter =
 				storage::meter::Meter::new(&contract_origin, Some(0), 0).unwrap();
-			let contract_stake_info = ContractScarcityInfo::<Test>::set_scarcity_info();
-			let account_stake_info = AccountStakeinfo::<Test>::set_new_stakeinfo(ALICE,BOB);
-			<ContractStakeinfoMap<Test>>::insert(BOB, contract_stake_info.clone());
-			<AccountStakeinfoMap<Test>>::insert(BOB,account_stake_info.clone());
-			ContractScarcityInfo::<Test>::set_scarcity_info();
-			AccountStakeinfo::<Test>::set_new_stakeinfo(ALICE,CHARLIE);
-			<ContractStakeinfoMap<Test>>::insert(CHARLIE, contract_stake_info.clone());
-			<AccountStakeinfoMap<Test>>::insert(CHARLIE,account_stake_info.clone());
+
 			// Calling another contract should succeed
 			assert_ok!(MockStack::run_call(
 				contract_origin.clone(),
@@ -3078,14 +2984,7 @@ mod tests {
 			let contract_origin = Origin::from_account_id(ALICE);
 			let mut storage_meter =
 				storage::meter::Meter::new(&contract_origin, Some(0), 0).unwrap();
-			let contract_stake_info = ContractScarcityInfo::<Test>::set_scarcity_info();
-			let account_stake_info = AccountStakeinfo::<Test>::set_new_stakeinfo(ALICE,BOB);
-			<ContractStakeinfoMap<Test>>::insert(BOB, contract_stake_info.clone());
-			<AccountStakeinfoMap<Test>>::insert(BOB,account_stake_info.clone());
-			ContractScarcityInfo::<Test>::set_scarcity_info();
-			AccountStakeinfo::<Test>::set_new_stakeinfo(ALICE,CHARLIE);
-			<ContractStakeinfoMap<Test>>::insert(CHARLIE, contract_stake_info.clone());
-			<AccountStakeinfoMap<Test>>::insert(CHARLIE,account_stake_info.clone());
+
 			// BOB -> CHARLIE -> BOB fails as BOB denies reentry.
 			assert_err!(
 				MockStack::run_call(
@@ -3125,10 +3024,7 @@ mod tests {
 			let mut storage_meter =
 				storage::meter::Meter::new(&contract_origin, Some(0), 0).unwrap();
 			System::reset_events();
-			let contract_stake_info = ContractScarcityInfo::<Test>::set_scarcity_info();
-			let account_stake_info = AccountStakeinfo::<Test>::set_new_stakeinfo(ALICE,BOB);
-			<ContractStakeinfoMap<Test>>::insert(BOB, contract_stake_info.clone());
-			<AccountStakeinfoMap<Test>>::insert(BOB,account_stake_info.clone());
+
 			MockStack::run_call(
 				contract_origin,
 				BOB,
@@ -3157,7 +3053,7 @@ mod tests {
 					EventRecord {
 						phase: Phase::Initialization,
 						event: MetaEvent::Contracts(
-							crate::Event::ContractStakeinfoevent {
+							crate::Event::ContractStakeInfoEvent {
 								contract_address: BOB,
 								reputation: contract_stake_info.reputation,
 								recent_blockheight: contract_stake_info.recent_blockheight,
@@ -3228,10 +3124,7 @@ mod tests {
 			let mut storage_meter =
 				storage::meter::Meter::new(&contract_origin, Some(0), 0).unwrap();
 			System::reset_events();
-			let contract_stake_info = ContractScarcityInfo::<Test>::set_scarcity_info();
-			let account_stake_info = AccountStakeinfo::<Test>::set_new_stakeinfo(ALICE,BOB);
-			<ContractStakeinfoMap<Test>>::insert(BOB, contract_stake_info.clone());
-			<AccountStakeinfoMap<Test>>::insert(BOB,account_stake_info.clone());
+
 			MockStack::run_call(
 				contract_origin,
 				BOB,
@@ -3272,7 +3165,7 @@ mod tests {
 					},
 					EventRecord {
 						phase: Phase::Initialization,
-						event: MetaEvent::Contracts(crate::Event::ContractStakeinfoevent {
+						event: MetaEvent::Contracts(crate::Event::ContractStakeInfoEvent {
 							contract_address: BOB,
 							reputation: contract_stake_info.reputation,
 							recent_blockheight: contract_stake_info.recent_blockheight,
@@ -3322,10 +3215,7 @@ mod tests {
 					&[],
 				)
 				.unwrap();
-				let contract_stake_info = ContractScarcityInfo::<Test>::set_scarcity_info();
-				let account_stake_info = AccountStakeinfo::<Test>::set_new_stakeinfo(ALICE,account_id.clone());
-				<ContractStakeinfoMap<Test>>::insert(account_id.clone(), contract_stake_info.clone());
-				<AccountStakeinfoMap<Test>>::insert(account_id.clone(),account_stake_info.clone());
+
 			// a plain call should not influence the account counter
 			ctx.ext
 				.call(Weight::zero(), BalanceOf::<Test>::zero(), account_id.clone(), 0, vec![], false)
@@ -3458,10 +3348,7 @@ mod tests {
 			place_contract(&BOB, code_hash);
 			let contract_origin = Origin::from_account_id(ALICE);
 			let mut storage_meter = storage::meter::Meter::new(&contract_origin, None, 0).unwrap();
-			let contract_stake_info = ContractScarcityInfo::<Test>::set_scarcity_info();
-			let account_stake_info = AccountStakeinfo::<Test>::set_new_stakeinfo(ALICE,BOB);
-			<ContractStakeinfoMap<Test>>::insert(BOB, contract_stake_info.clone());
-			<AccountStakeinfoMap<Test>>::insert(BOB,account_stake_info.clone());
+
 			assert_ok!(MockStack::run_call(
 				contract_origin,
 				BOB,
@@ -3590,10 +3477,7 @@ mod tests {
 			place_contract(&BOB, code_hash);
 			let contract_origin = Origin::from_account_id(ALICE);
 			let mut storage_meter = storage::meter::Meter::new(&contract_origin, None, 0).unwrap();
-			let contract_stake_info = ContractScarcityInfo::<Test>::set_scarcity_info();
-			let account_stake_info = AccountStakeinfo::<Test>::set_new_stakeinfo(ALICE,BOB);
-			<ContractStakeinfoMap<Test>>::insert(BOB, contract_stake_info.clone());
-			<AccountStakeinfoMap<Test>>::insert(BOB,account_stake_info.clone());
+
 			assert_ok!(MockStack::run_call(
 				contract_origin,
 				BOB,
@@ -3634,10 +3518,7 @@ mod tests {
 			place_contract(&BOB, code_hash);
 			let contract_origin = Origin::from_account_id(ALICE);
 			let mut storage_meter = storage::meter::Meter::new(&contract_origin, None, 0).unwrap();
-			let contract_stake_info = ContractScarcityInfo::<Test>::set_scarcity_info();
-			let account_stake_info = AccountStakeinfo::<Test>::set_new_stakeinfo(ALICE,BOB);
-			<ContractStakeinfoMap<Test>>::insert(BOB, contract_stake_info.clone());
-			<AccountStakeinfoMap<Test>>::insert(BOB,account_stake_info.clone());
+
 			assert_ok!(MockStack::run_call(
 				contract_origin,
 				BOB,
@@ -3678,10 +3559,7 @@ mod tests {
 			place_contract(&BOB, code_hash);
 			let contract_origin = Origin::from_account_id(ALICE);
 			let mut storage_meter = storage::meter::Meter::new(&contract_origin, None, 0).unwrap();
-			let contract_stake_info = ContractScarcityInfo::<Test>::set_scarcity_info();
-			let account_stake_info = AccountStakeinfo::<Test>::set_new_stakeinfo(ALICE,BOB);
-			<ContractStakeinfoMap<Test>>::insert(BOB, contract_stake_info.clone());
-			<AccountStakeinfoMap<Test>>::insert(BOB,account_stake_info.clone());
+
 			assert_ok!(MockStack::run_call(
 				contract_origin,
 				BOB,
@@ -3739,10 +3617,7 @@ mod tests {
 			place_contract(&BOB, code_hash);
 			let contract_origin = Origin::from_account_id(ALICE);
 			let mut storage_meter = storage::meter::Meter::new(&contract_origin, None, 0).unwrap();
-			let contract_stake_info = ContractScarcityInfo::<Test>::set_scarcity_info();
-			let account_stake_info = AccountStakeinfo::<Test>::set_new_stakeinfo(ALICE,BOB);
-			<ContractStakeinfoMap<Test>>::insert(BOB, contract_stake_info.clone());
-			<AccountStakeinfoMap<Test>>::insert(BOB,account_stake_info.clone());
+
 			assert_ok!(MockStack::run_call(
 				contract_origin,
 				BOB,
@@ -3800,10 +3675,7 @@ mod tests {
 			place_contract(&BOB, code_hash);
 			let contract_origin = Origin::from_account_id(ALICE);
 			let mut storage_meter = storage::meter::Meter::new(&contract_origin, None, 0).unwrap();
-			let contract_stake_info = ContractScarcityInfo::<Test>::set_scarcity_info();
-			let account_stake_info = AccountStakeinfo::<Test>::set_new_stakeinfo(ALICE,BOB);
-			<ContractStakeinfoMap<Test>>::insert(BOB, contract_stake_info.clone());
-			<AccountStakeinfoMap<Test>>::insert(BOB,account_stake_info.clone());
+
 			assert_ok!(MockStack::run_call(
 				contract_origin,
 				BOB,
@@ -3840,10 +3712,7 @@ mod tests {
 			let contract_origin = Origin::from_account_id(ALICE);
 			let mut storage_meter =
 				storage::meter::Meter::new(&contract_origin, Some(0), 0).unwrap();
-			let contract_stake_info = ContractScarcityInfo::<Test>::set_scarcity_info();
-			let account_stake_info = AccountStakeinfo::<Test>::set_new_stakeinfo(ALICE,BOB);
-			<ContractStakeinfoMap<Test>>::insert(BOB, contract_stake_info.clone());
-			<AccountStakeinfoMap<Test>>::insert(BOB,account_stake_info.clone());
+
 			let result = MockStack::run_call(
 				contract_origin,
 				BOB,
@@ -3907,10 +3776,7 @@ mod tests {
 			place_contract(&BOB, code_hash);
 			let contract_origin = Origin::from_account_id(ALICE);
 			let mut storage_meter = storage::meter::Meter::new(&contract_origin, None, 0).unwrap();
-			let contract_stake_info = ContractScarcityInfo::<Test>::set_scarcity_info();
-			let account_stake_info = AccountStakeinfo::<Test>::set_new_stakeinfo(ALICE,BOB);
-			<ContractStakeinfoMap<Test>>::insert(BOB, contract_stake_info.clone());
-			<AccountStakeinfoMap<Test>>::insert(BOB,account_stake_info.clone());
+
 			assert_ok!(MockStack::run_call(
 				contract_origin,
 				BOB,
@@ -3943,10 +3809,7 @@ mod tests {
 			let contract_origin = Origin::from_account_id(ALICE);
 			let mut storage_meter =
 				storage::meter::Meter::new(&contract_origin, Some(0), 0).unwrap();
-			let contract_stake_info = ContractScarcityInfo::<Test>::set_scarcity_info();
-			let account_stake_info = AccountStakeinfo::<Test>::set_new_stakeinfo(ALICE,BOB);
-			<ContractStakeinfoMap<Test>>::insert(BOB, contract_stake_info.clone());
-			<AccountStakeinfoMap<Test>>::insert(BOB,account_stake_info.clone());
+
 			let result = MockStack::run_call(
 				contract_origin,
 				BOB,

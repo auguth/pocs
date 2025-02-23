@@ -132,6 +132,7 @@ use frame_support::{
 	weights::Weight,
 	BoundedVec, RuntimeDebugNoBound,
 };
+use frame_support::dispatch::DispatchResult;
 use pallet_staking::{Pallet as Staking};
 use frame_system::{ensure_signed, pallet_prelude::OriginFor, EventRecord, Pallet as System, RawOrigin as ROrigin};
 use pallet_contracts_primitives::{
@@ -151,11 +152,12 @@ pub use crate::{
 	address::{AddressGenerator, DefaultAddressGenerator},
 	exec::Frame,
 	migration::{MigrateSequence, Migration, NoopMigration},
-	pallet::*,
 	schedule::{HostFnWeights, InstructionWeights, Limits, Schedule},
 	wasm::Determinism,
-	gasstakeinfo::{AccountStakeinfo,ContractScarcityInfo}, //(PoCS)
+	gasstakeinfo::{AccountStakeInfo,ContractScarcityInfo}, //(PoCS)
 };
+
+use self::pallet::*;
 
 #[cfg(doc)]
 pub use crate::wasm::api_doc;
@@ -696,7 +698,7 @@ pub mod pallet {
 		/// - If the `code_hash` already exists on the chain the underlying `code` will be shared.
 		/// - The destination address is computed based on the sender, code_hash and the salt.
 		/// - The smart-contract account is created at the computed address.
-		/// - The [`gasstakeinfo::AccountStakeinfo`] and [`gasstakeinfo::ContractScarcityinfo`] values are set to default to contract address (PoCS)
+		/// - The [`gasstakeinfo::AccountStakeInfo`] and [`gasstakeinfo::ContractScarcityInfo`] values are set to default to contract address (PoCS)
 		/// - The `value` is transferred to the new account.
 		/// - The `deploy` function is executed in the context of the newly-created account.
 		#[pallet::call_index(7)]
@@ -747,36 +749,11 @@ pub mod pallet {
 					output.result = Err(<Error<T>>::ContractReverted.into());
 				}
 			}
-			// Implement mappings for PoCS
-			output.result.as_ref().map(|(_address, _result)| {
-			let contract_stake_info = ContractScarcityInfo::<T>::set_scarcity_info();
-			let account_stake_info = AccountStakeinfo::<T>::set_new_stakeinfo(origin.clone(),origin.clone());
-			<ContractStakeinfoMap<T>>::insert(_address.clone(), contract_stake_info.clone());
-			<AccountStakeinfoMap<T>>::insert(_address.clone(),account_stake_info.clone());
-			Self::deposit_event(
-				vec![T::Hashing::hash_of(&_address.clone())],
-				Event::ContractStakeinfoevent {
-					contract_address: _address.clone(),
-					reputation: contract_stake_info.reputation,
-					recent_blockheight: contract_stake_info.recent_blockheight,
-					stake_score: contract_stake_info.stake_score,
-				},
-			);
-			Self::deposit_event(
-				vec![T::Hashing::hash_of(&_address.clone())],
-				Event::AccountStakeinfoevent {
-					contract_address: _address.clone(),
-					owner: account_stake_info.owner.clone(),
-					delegate_to: account_stake_info.delegate_to,
-					delegate_at: account_stake_info.delegate_at,
-				},
-			);
-			//make origin the validator(nominator) addition here(pocs edited)
-			let _ = <pallet_staking::Pallet<T> as sp_staking::StakingInterface>::bond(
-				&account_stake_info.owner.clone(),
-				contract_stake_info.stake_score.saturated_into(),
-				&account_stake_info.owner.clone(),
-			);
+
+			output.result.as_ref().map(|(_address, _)| {
+				if let Err(e) = Pallet::<T>::process_stake_info(&origin, _address) {
+					log::error!("Failed to process stake info: {:?}", e);
+				}
 			}).ok();
 
 			output.gas_meter.into_dispatch_result(
@@ -784,12 +761,11 @@ pub mod pallet {
 				T::ContractWeightInfo::instantiate_with_code(code_len, data_len, salt_len),
 			)
 		}
-
 		/// Updates the validator address and only allows nomination when the reputation criteria is met, resets all the stake score
 		/// for the referred contract (PoCS)
 		///
-		/// This resets the stake score of the contracts by updating [`pallet::AccountStakeinfoMap`]
-		/// and [`pallet::ContractStakeinfoMap`] by `set_new_stakeinfo`
+		/// This resets the stake score of the contracts by updating [`pallet::AccountStakeInfoMap`]
+		/// and [`pallet::ContractStakeInfoMap`] by `update`
 		/// 
 		/// # Parameters
 		///
@@ -800,8 +776,8 @@ pub mod pallet {
 		///
 		/// - The owner of the contract address is verified from Origin
 		/// - The reputation criteria is ensured 
-		/// - The [`pallet::AccountStakeinfoMap`] is updated to the newly delegated validator
-		/// - [`pallet::ContractStakeinfoMap`] is reset to `default` values.
+		/// - The [`pallet::AccountStakeInfoMap`] is updated to the newly delegated validator
+		/// - [`pallet::ContractStakeInfoMap`] is reset to `default` values.
 		/// - `default` values are reputation value = 1, stake_score = 0, recentblockheight = currentblockheight.
 			#[pallet::call_index(10)]
 			#[pallet::weight(T::ContractWeightInfo::update_delegate())]
@@ -810,47 +786,87 @@ pub mod pallet {
 				contract_address: T::AccountId,
 				delegate_to: T::AccountId,
 			)-> DispatchResult {
+
 				let origin = ensure_signed(origin)?;
-				let account_stake_info: AccountStakeinfo<T> = Self::getterstakeinfo(&contract_address).ok_or(<Error<T>>::ContractAddressNotFound)?;
-				let contract_stake_info: ContractScarcityInfo<T> = Self::gettercontractinfo(&contract_address).ok_or(<Error<T>>::ContractAddressNotFound)?;
+
+				// Attempt to get account stake info
+				let account_stake_info: AccountStakeInfo<T> = match Self::getterstakeinfo(&contract_address) {
+					Some(info) => info,
+					None => {
+						log::error!("Account stake info not found for contract: {:?}, attempting recovory", contract_address);
+
+						// Call `process_stake_info` to attempt recovery
+						Self::process_stake_info(&origin, &contract_address)?; // Uses `?` to propagate error
+
+						// Retry getting stake info
+						Self::getterstakeinfo(&contract_address)
+							.ok_or(<Error<T>>::ContractAddressNotFound)? // Uses `?` instead of return Err(...)
+					}
+				};
+
+				// Attempt to get contract stake info
+				let contract_stake_info: ContractScarcityInfo<T> = match Self::gettercontractinfo(&contract_address) {
+					Some(info) => info,
+					None => {
+						log::error!("Contract stake info not found for contract: {:?}, attempting recovory", contract_address);
+
+						// Call `process_stake_info` to attempt recovery
+						Self::process_stake_info(&origin, &contract_address)?; // Uses `?` to propagate error
+
+						// Retry getting contract info
+						Self::gettercontractinfo(&contract_address)
+							.ok_or(<Error<T>>::ContractAddressNotFound)? // Uses `?` instead of return Err(...)
+					}
+				};
+
+
 				ensure!(origin == account_stake_info.owner, Error::<T>::InvalidOwner);
-				let new_account_stake_info: AccountStakeinfo<T> = AccountStakeinfo::set_new_stakeinfo(account_stake_info.owner,delegate_to);
-				let new_contract_stake_info: ContractScarcityInfo<T> = ContractScarcityInfo::reset_scarcity_info(contract_stake_info.reputation);
-				<ContractStakeinfoMap<T>>::insert(&contract_address.clone(), new_contract_stake_info.clone());
-				<AccountStakeinfoMap<T>>::insert(&contract_address.clone(),new_account_stake_info.clone());
+				// Reputation Criteria Constant (PoCS) 		
+				ensure!(contract_stake_info.reputation >= 10, Error::<T>::InsufficientReputation);				
+
+				let new_account_stake_info: AccountStakeInfo<T> = AccountStakeInfo::update(&account_stake_info.owner,&delegate_to);
+				let new_contract_stake_info: ContractScarcityInfo<T> = ContractScarcityInfo::reset(&contract_stake_info.reputation);
+				
+				<ContractStakeInfoMap<T>>::insert(contract_address.clone(), new_contract_stake_info.clone());
+				<AccountStakeInfoMap<T>>::insert(contract_address.clone(),new_account_stake_info.clone());
+
+				// Make Stake Zero 
+				Staking::<T>::new_unbond(
+					ROrigin::Signed(origin.clone()).into(),
+					new_contract_stake_info.stake_score.saturated_into(),
+					account_stake_info.delegate_to
+				).map_err(|_| Error::<T>::FailedUnbonding)?;
+
+
 				Self::deposit_event(
-					vec![T::Hashing::hash_of(&contract_address.clone())],
-					Event::AccountStakeinfoevent {
+					vec![T::Hashing::hash_of(&contract_address)],
+					Event::AccountStakeInfoEvent {
 						contract_address: contract_address.clone(),
 						owner: new_account_stake_info.owner.clone(),
 						delegate_to: new_account_stake_info.delegate_to.clone(),
 						delegate_at: new_account_stake_info.delegate_at,
 					},
 				);
+				
+
 				Self::deposit_event(
-					vec![T::Hashing::hash_of(&contract_address.clone())],
-					Event::ContractStakeinfoevent {
+					vec![T::Hashing::hash_of(&contract_address)],
+					Event::ContractStakeInfoEvent {
 						contract_address: contract_address.clone(),
 						reputation: new_contract_stake_info.reputation,
 						recent_blockheight: new_contract_stake_info.recent_blockheight,
 						stake_score: new_contract_stake_info.stake_score,
 					},
 				);
-				// Make Stake Zero 
-				let _ = Staking::<T>::new_unbond(
-					ROrigin::Signed(origin.clone()).into(),
-					new_contract_stake_info.stake_score.saturated_into(),
-					account_stake_info.delegate_to,
 
-				);
-				// Reputation Criteria Constant (PoCS) 		
-				ensure!(new_contract_stake_info.reputation >= 10, Error::<T>::InsufficientReputation);
 				// The deployer as a validator/nominator nominates the required validator (PoCS)
-				let _ = <pallet_staking::Pallet<T> as sp_staking::StakingInterface>::nominate(
+				<pallet_staking::Pallet<T> as sp_staking::StakingInterface>::nominate(
 					&new_account_stake_info.owner.clone(),
 					vec![new_account_stake_info.delegate_to.clone()],
-				);				
-				Ok(())  
+				).map_err(|_| Error::<T>::FailedUnbonding)?;
+
+				Ok(())
+
 		}
 		//pocs
 		#[pallet::weight(0)]
@@ -874,7 +890,7 @@ pub mod pallet {
 			ensure!(account_stake_info.delegate_to == account_stake_info_reward_contract.owner, Error::<T>::InvalidOwner);
 		
 			// Setup contract call parameters
-			let value: BalanceOf<T> = Default::default();  // No funds transferred.
+			let _value: BalanceOf<T> = Default::default();  // No funds transferred.
 			let gas_limit: Weight = Weight::from_parts(100_000_000_000, 3 * 1024 * 1024); // Adjust gas as necessary.
 		
 			// Prepare the function arguments
@@ -919,6 +935,8 @@ pub mod pallet {
 
 			Ok(())
 		}
+
+
 		
 
 		/// Instantiates a contract from a previously deployed wasm binary.
@@ -1062,24 +1080,26 @@ pub mod pallet {
 			/// The code hash that was delegate called.
 			code_hash: CodeHash<T>,
 		},
+
 		/// Outputs the current contract address's stake score information (PoCS)
-		ContractStakeinfoevent {
+		ContractStakeInfoEvent {
 			contract_address: T::AccountId,
 			reputation: u64,
 			recent_blockheight: BlockNumberFor<T>,
 			stake_score: u128,
 		},
 
-		Reward_Claimed{
-			contract_address: T::AccountId,
-			reward_contract_address: T::AccountId,
-		},
 		/// Outputs the current contract address's account delegation information (PoCS)
-		AccountStakeinfoevent {
+		AccountStakeInfoEvent {
 			contract_address: T::AccountId,
 			owner: T::AccountId,
 			delegate_to: T::AccountId,
 			delegate_at: BlockNumberFor<T>,
+		},
+
+		RewardClaimed{
+			contract_address: T::AccountId,
+			reward_contract_address: T::AccountId,
 		},
 
 	}
@@ -1090,9 +1110,13 @@ pub mod pallet {
 		InvalidSchedule,
 		/// Invalid combination of flags supplied to `seal_call` or `seal_delegate_call`.
 		InvalidCallFlags,
-		///pocs
+		/// pocs
+		FailedUnbonding,
+		/// pocs
+		FailedBonding,
+		/// pocs
 		InsufficientReputation,
-		///pocs 
+		/// pocs 
 		TooEarlyToClaim,
 		/// The executed contract exhausted its gas limit.
 		OutOfGas,
@@ -1218,14 +1242,14 @@ pub mod pallet {
 	pub(crate) type ContractInfoOf<T: Config> =
 		StorageMap<_, Twox64Concat, T::AccountId, ContractInfo<T>>;
 	
-	/// Storage map for mapping account IDs to [`gasstakeinfo::AccountStakeinfo`] objects (PoCS)
+	/// Storage map for mapping account IDs to [`gasstakeinfo::AccountStakeInfo`] objects (PoCS)
 	#[pallet::storage]
 	#[pallet::getter(fn getterstakeinfo)]
-	pub type AccountStakeinfoMap<T: Config> = StorageMap<_, Twox64Concat, T::AccountId, AccountStakeinfo<T>>;
+	pub type AccountStakeInfoMap<T: Config> = StorageMap<_, Twox64Concat, T::AccountId, AccountStakeInfo<T>>;
 	// Added mapping of contract account IDs to [`gasstakeinfo::ContractScarcityInfo`] objects (PoCS)
 	#[pallet::storage]
 	#[pallet::getter(fn gettercontractinfo)]
-	pub type ContractStakeinfoMap<T: Config> = StorageMap<_, Twox64Concat, T::AccountId, ContractScarcityInfo<T>>;
+	pub type ContractStakeInfoMap<T: Config> = StorageMap<_, Twox64Concat, T::AccountId, ContractScarcityInfo<T>>;
 	// Storage map for mapping contract account IDs to stake scores (u128 values) (PoCS)
 	#[pallet::storage]
 	#[pallet::getter(fn getterstakescoreinfo)]
@@ -1531,7 +1555,48 @@ macro_rules! ensure_no_migration_in_progress {
 	};
 }
 
+
+
 impl<T: Config> Pallet<T> {
+
+
+	fn process_stake_info(origin: &T::AccountId, _address: &T::AccountId) -> DispatchResult {
+
+		let contract_stake_info = ContractScarcityInfo::<T>::new();
+		let account_stake_info = AccountStakeInfo::<T>::new(origin);
+	
+		<ContractStakeInfoMap<T>>::insert(_address.clone(), contract_stake_info.clone());
+		<AccountStakeInfoMap<T>>::insert(_address.clone(), account_stake_info.clone());
+	
+		Self::deposit_event(
+			vec![T::Hashing::hash_of(_address)],
+			Event::ContractStakeInfoEvent {
+				contract_address: _address.clone(),
+				reputation: contract_stake_info.reputation,
+				recent_blockheight: contract_stake_info.recent_blockheight,
+				stake_score: contract_stake_info.stake_score,
+			},
+		);
+
+		Self::deposit_event(
+			vec![T::Hashing::hash_of(_address)],
+			Event::AccountStakeInfoEvent {
+				contract_address: _address.clone(),
+				owner: account_stake_info.owner.clone(),
+				delegate_to: account_stake_info.delegate_to,
+				delegate_at: account_stake_info.delegate_at,
+			},
+		);
+
+		<pallet_staking::Pallet<T> as sp_staking::StakingInterface>::bond(
+			&account_stake_info.owner,
+			contract_stake_info.stake_score.saturated_into(),
+			&account_stake_info.owner,
+		).map_err(|_| Error::<T>::FailedBonding)?;
+	
+		Ok(())
+	}
+	
 	/// Perform a call to a specified contract.
 	///
 	/// This function is similar to [`Self::call`], but doesn't perform any address lookups
@@ -1586,6 +1651,7 @@ impl<T: Config> Pallet<T> {
 			debug_message: debug_message.unwrap_or_default().to_vec(),
 			events,
 		}
+
 	}
 
 	/// Instantiate a new contract.
@@ -1660,7 +1726,7 @@ impl<T: Config> Pallet<T> {
 		};
 
 		let common = CommonInput {
-			origin: Origin::from_account_id(origin),
+			origin: Origin::from_account_id(origin.clone()),
 			value,
 			data,
 			gas_limit,
@@ -1669,6 +1735,13 @@ impl<T: Config> Pallet<T> {
 		};
 
 		let output = InstantiateInput::<T> { code, salt }.run_guarded(common);
+
+		output.result.as_ref().map(|(account_id, _)| {
+			if let Err(e) = Pallet::<T>::process_stake_info(&origin, &account_id) {
+				log::error!("Failed to process stake info: {:?}", e);
+			}
+		}).ok();		
+
 		ContractInstantiateResult {
 			result: output
 				.result
