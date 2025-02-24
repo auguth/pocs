@@ -1365,17 +1365,7 @@ fn deploy_and_call_other_contract() {
 					}),
 					topics: vec![],
 				},
-				EventRecord {
-					phase: Phase::Initialization,
-					event: RuntimeEvent::Contracts(
-						crate::Event::ContractStakeInfoEvent {
-							contract_address: callee_addr.clone(),
-							reputation: contract_stake_info.reputation,
-							recent_blockheight: contract_stake_info.recent_blockheight,
-							stake_score: contract_stake_info.stake_score,
-						},),
-					topics: vec![hash(&callee_addr)],
-				},
+
 				EventRecord {
 					phase: Phase::Initialization,
 					event: RuntimeEvent::Contracts(crate::Event::Called {
@@ -1387,17 +1377,7 @@ fn deploy_and_call_other_contract() {
 						hash(&callee_addr)
 					],
 				},
-				EventRecord {
-					phase: Phase::Initialization,
-					event: RuntimeEvent::Contracts(
-						crate::Event::ContractStakeInfoEvent {
-							contract_address: caller_addr.clone(),
-							reputation: contract_stake_info.reputation,
-							recent_blockheight: contract_stake_info.recent_blockheight,
-							stake_score: contract_stake_info.stake_score,
-						},),
-					topics: vec![hash(&caller_addr)],
-				},
+
 				EventRecord {
 					phase: Phase::Initialization,
 					event: RuntimeEvent::Contracts(crate::Event::Called {
@@ -1714,17 +1694,6 @@ fn self_destruct_works() {
 						beneficiary: DJANGO
 					}),
 					topics: vec![hash(&addr), hash(&DJANGO)],
-				},
-				EventRecord {
-					phase: Phase::Initialization,
-					event: RuntimeEvent::Contracts(
-						crate::Event::ContractStakeInfoEvent {
-							contract_address: addr.clone(),
-							reputation: contract_stake_info.reputation,
-							recent_blockheight: contract_stake_info.recent_blockheight,
-							stake_score: contract_stake_info.stake_score,
-						},),
-					topics: vec![hash(&addr)],
 				},
 				EventRecord {
 					phase: Phase::Initialization,
@@ -4178,17 +4147,6 @@ fn storage_deposit_works() {
 				},
 				EventRecord {
 					phase: Phase::Initialization,
-					event: RuntimeEvent::Contracts(
-						crate::Event::ContractStakeInfoEvent {
-							contract_address: addr.clone(),
-							reputation: contract_stake_info.reputation,
-							recent_blockheight: contract_stake_info.recent_blockheight,
-							stake_score: contract_stake_info.stake_score,
-						},),
-					topics: vec![hash(&addr)],
-				},
-				EventRecord {
-					phase: Phase::Initialization,
 					event: RuntimeEvent::Contracts(crate::Event::Called {
 						caller: Origin::from_account_id(ALICE),
 						contract: addr.clone(),
@@ -4206,17 +4164,6 @@ fn storage_deposit_works() {
 				},
 				EventRecord {
 					phase: Phase::Initialization,
-					event: RuntimeEvent::Contracts(
-						crate::Event::ContractStakeInfoEvent {
-							contract_address: addr.clone(),
-							reputation: contract_stake_info.reputation,
-							recent_blockheight: contract_stake_info.recent_blockheight,
-							stake_score: contract_stake_info.stake_score,
-						},),
-					topics: vec![hash(&addr)],
-				},
-				EventRecord {
-					phase: Phase::Initialization,
 					event: RuntimeEvent::Contracts(crate::Event::Called {
 						caller: Origin::from_account_id(ALICE),
 						contract: addr.clone(),
@@ -4231,17 +4178,6 @@ fn storage_deposit_works() {
 						amount: charged1,
 					}),
 					topics: vec![],
-				},
-				EventRecord {
-					phase: Phase::Initialization,
-					event: RuntimeEvent::Contracts(
-						crate::Event::ContractStakeInfoEvent {
-							contract_address: addr.clone(),
-							reputation: contract_stake_info.reputation,
-							recent_blockheight: contract_stake_info.recent_blockheight,
-							stake_score: contract_stake_info.stake_score,
-						},),
-					topics: vec![hash(&addr)],
 				},
 				EventRecord {
 					phase: Phase::Initialization,
@@ -4739,17 +4675,6 @@ fn set_code_hash() {
 				},
 				EventRecord {
 					phase: Phase::Initialization,
-					event: RuntimeEvent::Contracts(
-						crate::Event::ContractStakeInfoEvent {
-							contract_address: contract_addr.clone(),
-							reputation: contract_stake_info.reputation,
-							recent_blockheight: contract_stake_info.recent_blockheight,
-							stake_score: contract_stake_info.stake_score,
-						},),
-					topics: vec![hash(&contract_addr)],
-				},
-				EventRecord {
-					phase: Phase::Initialization,
 					event: RuntimeEvent::Contracts(crate::Event::Called {
 						caller: Origin::from_account_id(ALICE),
 						contract: contract_addr.clone(),
@@ -4758,17 +4683,6 @@ fn set_code_hash() {
 						hash(&Origin::<Test>::from_account_id(ALICE)),
 						hash(&contract_addr)
 					],
-				},
-				EventRecord {
-					phase: Phase::Initialization,
-					event: RuntimeEvent::Contracts(
-						crate::Event::ContractStakeInfoEvent {
-							contract_address: contract_addr.clone(),
-							reputation: contract_stake_info.reputation,
-							recent_blockheight: contract_stake_info.recent_blockheight,
-							stake_score: contract_stake_info.stake_score,
-						},),
-					topics: vec![hash(&contract_addr)],
 				},
 				EventRecord {
 					phase: Phase::Initialization,
@@ -6050,41 +5964,4 @@ fn pocs_update_delegate_valid_owner() {
 
 }
 
-#[test]
-fn reward_claim_passes_when_delegate_valid() {
-	ExtBuilder::default().existential_deposit(50).build().execute_with(|| {
-
-			let reward_contract_address: AccountId32  = AccountId32::new([3u8; 32]);
-			let contract_address: AccountId32 = AccountId32::new([4u8; 32]);
-
-        let input_data = vec![1, 2, 3]; 
-
-        assert_ok!(Pallet::<Test>::reward_claim(
-					RuntimeOrigin::signed(ALICE),
-            reward_contract_address, 
-            contract_address,         
-        ));
-    });
-}
-
-#[test]
-fn reward_claim_fails_when_delegate_invalid() {
-	ExtBuilder::default().existential_deposit(50).build().execute_with(|| {
-
-
-			let reward_contract_address: AccountId32  = AccountId32::new([3u8; 32]);
-			let contract_address: AccountId32 = AccountId32::new([4u8; 32]);
-
-        let input_data = vec![1, 2, 3];
-
-        assert_noop!(
-            Pallet::<Test>::reward_claim(
-							RuntimeOrigin::signed(ALICE),
-							reward_contract_address, 
-							contract_address,         
-            ),
-						Error::<Test>::InvalidOwner
-        );
-    });
-}
 

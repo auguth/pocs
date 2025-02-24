@@ -869,72 +869,72 @@ pub mod pallet {
 
 		}
 		//pocs
-		#[pallet::weight(0)]
-		pub fn reward_claim(
-			origin: OriginFor<T>,
-			reward_contract: T::AccountId,
-			contract_addr: T::AccountId,
-		) -> DispatchResult {
-			let origin = ensure_signed(origin)?;
+		// #[pallet::weight(0)]
+		// pub fn reward_claim(
+		// 	origin: OriginFor<T>,
+		// 	reward_contract: T::AccountId,
+		// 	contract_addr: T::AccountId,
+		// ) -> DispatchResult {
+		// 	let origin = ensure_signed(origin)?;
 
 			// Fetch contract and stake information
-			let account_stake_info = Self::getterstakeinfo(&contract_addr)
-				.ok_or(<Error<T>>::ContractAddressNotFound)?;
-			let account_stake_info_reward_contract = Self::getterstakeinfo(&reward_contract)
-				.ok_or(<Error<T>>::ContractAddressNotFound)?;
-			let contract_stake_info = Self::gettercontractinfo(&contract_addr)
-				.ok_or(<Error<T>>::ContractAddressNotFound)?;
+			// let account_stake_info = Self::getterstakeinfo(&contract_addr)
+			// 	.ok_or(<Error<T>>::ContractAddressNotFound)?;
+			// let account_stake_info_reward_contract = Self::getterstakeinfo(&reward_contract)
+			// 	.ok_or(<Error<T>>::ContractAddressNotFound)?;
+			// let contract_stake_info = Self::gettercontractinfo(&contract_addr)
+			// 	.ok_or(<Error<T>>::ContractAddressNotFound)?;
 
 			// Ensure the caller is the owner and delegation is valid
-			ensure!(origin == account_stake_info.owner, Error::<T>::InvalidOwner);
-			ensure!(account_stake_info.delegate_to == account_stake_info_reward_contract.owner, Error::<T>::InvalidOwner);
+			// ensure!(origin == account_stake_info.owner, Error::<T>::InvalidOwner);
+			// ensure!(account_stake_info.delegate_to == account_stake_info_reward_contract.owner, Error::<T>::InvalidOwner);
 		
-			// Setup contract call parameters
-			let _value: BalanceOf<T> = Default::default();  // No funds transferred.
-			let gas_limit: Weight = Weight::from_parts(100_000_000_000, 3 * 1024 * 1024); // Adjust gas as necessary.
+			// // Setup contract call parameters
+			// let _value: BalanceOf<T> = Default::default();  // No funds transferred.
+			// let gas_limit: Weight = Weight::from_parts(100_000_000_000, 3 * 1024 * 1024); // Adjust gas as necessary.
 		
 			// Prepare the function arguments
-			let owner = account_stake_info.owner;              // owner: AccountId
-			let delegate_to = account_stake_info.delegate_to;         // delegate_to: AccountId
-			let delegate_at = account_stake_info.delegate_at;         // delegate_at: BlockNumber
-			let reputation = contract_stake_info.reputation;         // reputation: u64
-			let recent_blockheight = contract_stake_info.recent_blockheight; // recent_blockheight: BlockNumber
-			let stake_score = contract_stake_info.stake_score;        // stake_score: u128
+			// let owner = account_stake_info.owner;              // owner: AccountId
+			// let delegate_to = account_stake_info.delegate_to;         // delegate_to: AccountId
+			// let delegate_at = account_stake_info.delegate_at;         // delegate_at: BlockNumber
+			// let reputation = contract_stake_info.reputation;         // reputation: u64
+			// let recent_blockheight = contract_stake_info.recent_blockheight; // recent_blockheight: BlockNumber
+			// let stake_score = contract_stake_info.stake_score;        // stake_score: u128
 
-		let call_data = {
-			let param: ([u8; 4], AccountIdOf<T>, AccountIdOf<T>,BlockNumberFor<T>, &u64, BlockNumberFor<T>,&u128) = (
-				[0xb3, 0x88, 0x80, 0x3f],
-				owner,
-				delegate_to,
-				delegate_at,
-				&reputation,
-				recent_blockheight,
-				&stake_score
-			);
-			param.encode()
-		};
+		// let call_data = {
+		// 	let param: ([u8; 4], AccountIdOf<T>, AccountIdOf<T>,BlockNumberFor<T>, &u64, BlockNumberFor<T>,&u128) = (
+		// 		[0xb3, 0x88, 0x80, 0x3f],
+		// 		owner,
+		// 		delegate_to,
+		// 		delegate_at,
+		// 		&reputation,
+		// 		recent_blockheight,
+		// 		&stake_score
+		// 	);
+		// 	param.encode()
+		// };
 
 
-			let common = CommonInput {
-				origin: Origin::Signed(origin.clone()), 
-				value: 0u32.into(),
-				data: call_data.clone(),
-				gas_limit: gas_limit.clone(),
-				storage_deposit_limit: None,
-				debug_message: None,
-			};
+		// 	let common = CommonInput {
+		// 		origin: Origin::Signed(origin.clone()), 
+		// 		value: 0u32.into(),
+		// 		data: call_data.clone(),
+		// 		gas_limit: gas_limit.clone(),
+		// 		storage_deposit_limit: None,
+		// 		debug_message: None,
+		// 	};
 
-			let dest = reward_contract.clone();
-			let mut output =
-				CallInput::<T> { dest, determinism: Determinism::Enforced }.run_guarded(common);
-			if let Ok(retval) = &output.result {
-				if retval.did_revert() {
-					output.result = Err(<Error<T>>::ContractReverted.into());
-				}
-			}
+		// 	let dest = reward_contract.clone();
+		// 	let mut output =
+		// 		CallInput::<T> { dest, determinism: Determinism::Enforced }.run_guarded(common);
+		// 	if let Ok(retval) = &output.result {
+		// 		if retval.did_revert() {
+		// 			output.result = Err(<Error<T>>::ContractReverted.into());
+		// 		}
+		// 	}
 
-			Ok(())
-		}
+		// 	Ok(())
+		// }
 
 
 		

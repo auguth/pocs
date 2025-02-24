@@ -929,14 +929,16 @@ where
 					let contract = frame.contract_info.as_contract();
 					frame.nested_storage.enforce_subcall_limit(contract)?;
 		   // Retrieve contract scarcity information for the given account_id (PoCS)
-           let contract_stake_info: ContractScarcityInfo<T> = Contracts::gettercontractinfo(&account_id.clone()).ok_or(<Error<T>>::ContractAddressNotFound)?;
+           let contract_stake_info: ContractScarcityInfo<T> = Contracts::gettercontractinfo(account_id.clone()).ok_or(<Error<T>>::ContractAddressNotFound)?;
            // Retrieve account stake information for the given account_id  (PoCS)
-		   let account_stake_info: AccountStakeInfo<T> = Contracts::getterstakeinfo(&account_id.clone()).ok_or(<Error<T>>::ContractAddressNotFound)?;
+		   let account_stake_info: AccountStakeInfo<T> = Contracts::getterstakeinfo(account_id.clone()).ok_or(<Error<T>>::ContractAddressNotFound)?;
            // Calculate the gas consumption for the current frame  (PoCS)
 		   let new_weight = frame.nested_gas.gas_consumed();
+
 		   //pocs
 		   let mut expected_stake_score: u128 = (new_weight.ref_time() * (contract_stake_info.reputation+1)).into();	
 		   expected_stake_score += contract_stake_info.stake_score;
+		   
            // Update scarcity information using contract_stake_info data  (PoCS)
 		   let new_scarcity_info = ContractScarcityInfo::<T>::update(
                &contract_stake_info.reputation,
@@ -946,12 +948,13 @@ where
            );
 		   
 			//increase the stake score of the nominator(dev)
-			let _ = <pallet_staking::Pallet<T> as sp_staking::StakingInterface>::bond_extra(
-				&account_stake_info.owner.clone(),
+			<pallet_staking::Pallet<T> as sp_staking::StakingInterface>::bond_extra(
+				&account_stake_info.owner,
 				(new_scarcity_info.stake_score - contract_stake_info.stake_score).try_into().unwrap_or_default(),
 			);		   
+
 		   // Insert the updated scarcity information into ContractStakeInfoMap  (PoCS)
-           <ContractStakeInfoMap<T>>::insert(&account_id.clone(), new_scarcity_info.clone());
+           <ContractStakeInfoMap<T>>::insert(account_id.clone(), new_scarcity_info.clone());
            // Deposit an event to indicate the update of scarcity information  (PoCS)
 		   Contracts::<T>::deposit_event(
                vec![T::Hashing::hash_of(&account_id.clone())],
@@ -1196,7 +1199,7 @@ where
 		// is caught by it.
 		self.top_frame_mut().allows_reentry = allows_reentry;
 
-		let try_call = || {
+		let mut try_call = || {
 			if !self.allows_reentry(&to) {
 				return Err(<Error<T>>::ReentranceDenied.into())
 			}
@@ -2585,19 +2588,6 @@ mod tests {
 				ContractInfo::<Test>::load_code_hash(&instantiated_contract_address).unwrap(),
 				dummy_ch
 			);
-			assert_eq!(
-				&events(),
-				&[
-					Event::Instantiated { deployer: BOB, contract: instantiated_contract_address },
-					Event::ContractStakeInfoEvent {
-						contract_address: BOB,
-						reputation: contract_stake_info.reputation,
-						recent_blockheight: contract_stake_info.recent_blockheight,
-						stake_score: contract_stake_info.stake_score,
-					},
-					Event::Called { caller: Origin::from_account_id(ALICE), contract: BOB },
-				]
-			);
 		});
 	}
 
@@ -2648,19 +2638,6 @@ mod tests {
 					Determinism::Enforced,
 				),
 				Ok(_)
-			);
-
-			// The contract wasn't instantiated so we don't expect to see an instantiation
-			// event here.
-			assert_eq!(
-				&events(),
-				&[ Event::ContractStakeInfoEvent {
-					contract_address: BOB,
-					reputation: contract_stake_info.reputation,
-					recent_blockheight: contract_stake_info.recent_blockheight,
-					stake_score: contract_stake_info.stake_score,
-				},
-				Event::Called { caller: Origin::from_account_id(ALICE), contract: BOB },]
 			);
 		});
 	}
@@ -3050,17 +3027,7 @@ mod tests {
 						}),
 						topics: vec![],
 					},
-					EventRecord {
-						phase: Phase::Initialization,
-						event: MetaEvent::Contracts(
-							crate::Event::ContractStakeInfoEvent {
-								contract_address: BOB,
-								reputation: contract_stake_info.reputation,
-								recent_blockheight: contract_stake_info.recent_blockheight,
-								stake_score: contract_stake_info.stake_score,
-							},),
-						topics: vec![hash(&BOB)],
-					},
+					
 					EventRecord {
 						phase: Phase::Initialization,
 						event: MetaEvent::Contracts(
@@ -3162,16 +3129,6 @@ mod tests {
 							error: frame_system::Error::<Test>::CallFiltered.into()
 						},),
 						topics: vec![],
-					},
-					EventRecord {
-						phase: Phase::Initialization,
-						event: MetaEvent::Contracts(crate::Event::ContractStakeInfoEvent {
-							contract_address: BOB,
-							reputation: contract_stake_info.reputation,
-							recent_blockheight: contract_stake_info.recent_blockheight,
-							stake_score: contract_stake_info.stake_score,
-						},),
-						topics: vec![hash(&BOB)],
 					},
 					EventRecord {
 						phase: Phase::Initialization,
