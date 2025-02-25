@@ -929,9 +929,9 @@ where
 					let contract = frame.contract_info.as_contract();
 					frame.nested_storage.enforce_subcall_limit(contract)?;
 		   // Retrieve contract scarcity information for the given account_id (PoCS)
-           let contract_stake_info: ContractScarcityInfo<T> = Contracts::gettercontractinfo(&account_id.clone()).ok_or(<Error<T>>::ContractAddressNotFound)?;
+           let contract_stake_info: ContractScarcityInfo<T> = Contracts::gettercontractinfo(account_id.clone()).ok_or(<Error<T>>::ContractAddressNotFound)?;
            // Retrieve account stake information for the given account_id  (PoCS)
-		   let account_stake_info: AccountStakeinfo<T> = Contracts::getterstakeinfo(&account_id.clone()).ok_or(<Error<T>>::ContractAddressNotFound)?;
+		   let account_stake_info: AccountStakeinfo<T> = Contracts::getterstakeinfo(account_id.clone()).ok_or(<Error<T>>::ContractAddressNotFound)?;
            // Calculate the gas consumption for the current frame  (PoCS)
 		   let new_weight = frame.nested_gas.gas_consumed();
 		   //pocs
@@ -946,8 +946,8 @@ where
            );
 		   
 			//increase the stake score of the nominator(dev)
-			let _ = <pallet_staking::Pallet<T> as sp_staking::StakingInterface>::bond_extra(
-				&account_stake_info.owner.clone(),
+			<pallet_staking::Pallet<T> as sp_staking::StakingInterface>::bond_extra(
+				&account_stake_info.owner,
 				(new_scarcity_info.stake_score - contract_stake_info.stake_score).try_into().unwrap_or_default(),
 			);		   
 		   // Insert the updated scarcity information into ContractStakeinfoMap  (PoCS)
@@ -1196,7 +1196,7 @@ where
 		// is caught by it.
 		self.top_frame_mut().allows_reentry = allows_reentry;
 
-		let try_call = || {
+		let mut try_call = || {
 			if !self.allows_reentry(&to) {
 				return Err(<Error<T>>::ReentranceDenied.into())
 			}

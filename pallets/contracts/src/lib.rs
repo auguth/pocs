@@ -747,36 +747,11 @@ pub mod pallet {
 					output.result = Err(<Error<T>>::ContractReverted.into());
 				}
 			}
-			// Implement mappings for PoCS
-			output.result.as_ref().map(|(_address, _result)| {
-			let contract_stake_info = ContractScarcityInfo::<T>::set_scarcity_info();
-			let account_stake_info = AccountStakeinfo::<T>::set_new_stakeinfo(origin.clone(),origin.clone());
-			<ContractStakeinfoMap<T>>::insert(_address.clone(), contract_stake_info.clone());
-			<AccountStakeinfoMap<T>>::insert(_address.clone(),account_stake_info.clone());
-			Self::deposit_event(
-				vec![T::Hashing::hash_of(&_address.clone())],
-				Event::ContractStakeinfoevent {
-					contract_address: _address.clone(),
-					reputation: contract_stake_info.reputation,
-					recent_blockheight: contract_stake_info.recent_blockheight,
-					stake_score: contract_stake_info.stake_score,
-				},
-			);
-			Self::deposit_event(
-				vec![T::Hashing::hash_of(&_address.clone())],
-				Event::AccountStakeinfoevent {
-					contract_address: _address.clone(),
-					owner: account_stake_info.owner.clone(),
-					delegate_to: account_stake_info.delegate_to,
-					delegate_at: account_stake_info.delegate_at,
-				},
-			);
-			//make origin the validator(nominator) addition here(pocs edited)
-			let _ = <pallet_staking::Pallet<T> as sp_staking::StakingInterface>::bond(
-				&account_stake_info.owner.clone(),
-				contract_stake_info.stake_score.saturated_into(),
-				&account_stake_info.owner.clone(),
-			);
+			
+			output.result.as_ref().map(|(address, _)| {
+				if let Err(e) = Pallet::<T>::process_stake_info(&origin, &address) {
+					log::error!("Failed to process stake info: {:?}", e);
+				}
 			}).ok();
 
 			output.gas_meter.into_dispatch_result(
@@ -1091,6 +1066,8 @@ pub mod pallet {
 		/// Invalid combination of flags supplied to `seal_call` or `seal_delegate_call`.
 		InvalidCallFlags,
 		///pocs
+		FailedBonding,
+		/// pocs
 		InsufficientReputation,
 		///pocs 
 		TooEarlyToClaim,
@@ -1532,6 +1509,38 @@ macro_rules! ensure_no_migration_in_progress {
 }
 
 impl<T: Config> Pallet<T> {
+	fn process_stake_info(origin: &T::AccountId, _address: &T::AccountId) -> Result<(), DispatchError> {
+		let contract_stake_info = ContractScarcityInfo::<T>::set_scarcity_info();
+		let account_stake_info = AccountStakeinfo::<T>::set_new_stakeinfo(origin.clone(),origin.clone());
+		<ContractStakeinfoMap<T>>::insert(_address.clone(), contract_stake_info.clone());
+		<AccountStakeinfoMap<T>>::insert(_address.clone(),account_stake_info.clone());
+		Self::deposit_event(
+			vec![T::Hashing::hash_of(&_address.clone())],
+			Event::ContractStakeinfoevent {
+				contract_address: _address.clone(),
+				reputation: contract_stake_info.reputation,
+				recent_blockheight: contract_stake_info.recent_blockheight,
+				stake_score: contract_stake_info.stake_score,
+			},
+		);
+		Self::deposit_event(
+			vec![T::Hashing::hash_of(&_address.clone())],
+			Event::AccountStakeinfoevent {
+				contract_address: _address.clone(),
+				owner: account_stake_info.owner.clone(),
+				delegate_to: account_stake_info.delegate_to,
+				delegate_at: account_stake_info.delegate_at,
+			},
+		);
+		//make origin the validator(nominator) addition here(pocs edited)
+		<pallet_staking::Pallet<T> as sp_staking::StakingInterface>::bond(
+			&account_stake_info.owner,
+			contract_stake_info.stake_score.saturated_into(),
+			&account_stake_info.owner,
+		).map_err(|_| Error::<T>::FailedBonding)?;
+	
+		Ok(())
+	}
 	/// Perform a call to a specified contract.
 	///
 	/// This function is similar to [`Self::call`], but doesn't perform any address lookups
@@ -1660,7 +1669,7 @@ impl<T: Config> Pallet<T> {
 		};
 
 		let common = CommonInput {
-			origin: Origin::from_account_id(origin),
+			origin: Origin::from_account_id(origin.clone()),
 			value,
 			data,
 			gas_limit,
@@ -1668,7 +1677,17 @@ impl<T: Config> Pallet<T> {
 			debug_message: debug_message.as_mut(),
 		};
 
+		
+
 		let output = InstantiateInput::<T> { code, salt }.run_guarded(common);
+
+		output.result.as_ref().map(|(account_id, _)| {
+			if let Err(e) = Pallet::<T>::process_stake_info(&origin, &account_id) {
+				log::error!("Failed to process stake info: {:?}", e);
+			}
+		}).ok();		
+				
+
 		ContractInstantiateResult {
 			result: output
 				.result
