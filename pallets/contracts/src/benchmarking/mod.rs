@@ -33,7 +33,7 @@ use self::{
 };
 use crate::{
 	exec::{AccountIdOf, Key},
-	gasstakeinfo::{AccountStakeinfo,ContractScarcityInfo}, //(PoCS)
+	pocs::{AccountStakeinfo,ContractScarcityInfo},
 	migration::{v10, v11, v12, v9, MigrationStep},
 	wasm::CallFlags,
 	Pallet as Contracts, *,ContractStakeinfoMap,AccountStakeinfoMap,
@@ -331,10 +331,7 @@ benchmarks! {
 		let origin = RawOrigin::Signed(instance.caller.clone());
 		let callee = instance.addr;
 		let dest = T::Lookup::lookup(callee.clone()).ok();
-		let contract_stake_info = ContractScarcityInfo::<T>::set_scarcity_info();
-		let account_stake_info = AccountStakeinfo::<T>::set_new_stakeinfo(instance.caller.clone(),dest.clone().expect("output"));
-		<ContractStakeinfoMap<T>>::insert(dest.clone().expect("output"), contract_stake_info.clone());
-		<AccountStakeinfoMap<T>>::insert(dest.clone().expect("output"),account_stake_info.clone());
+
 	}: call(origin, callee.clone(), value, Weight::MAX, None, vec![])
 
 	// This constructs a contract that is maximal expensive to instrument.
@@ -450,10 +447,7 @@ benchmarks! {
 		let before = T::ContractCurrency::free_balance(&instance.account_id);
 		let before_deposit = T::ContractCurrency::free_balance(&deposit_account);
 		let dest = T::Lookup::lookup(instance.addr.clone()).ok();
-		let contract_stake_info = ContractScarcityInfo::<T>::set_scarcity_info();
-		let account_stake_info = AccountStakeinfo::<T>::set_new_stakeinfo(instance.caller.clone(),dest.clone().expect("output"));
-		<ContractStakeinfoMap<T>>::insert(dest.clone().expect("output"), contract_stake_info.clone());
-		<AccountStakeinfoMap<T>>::insert(dest.clone().expect("output"),account_stake_info.clone());
+
 	}: _(origin, callee, value, Weight::MAX, None, data)
 	verify {
 		let deposit = T::ContractCurrency::free_balance(&deposit_account);
@@ -528,10 +522,7 @@ benchmarks! {
 		), vec![])?;
 		let origin = RawOrigin::Signed(instance.caller.clone());
 		let dest = T::Lookup::lookup(instance.addr.clone()).ok();
-		let contract_stake_info = ContractScarcityInfo::<T>::set_scarcity_info();
-		let account_stake_info = AccountStakeinfo::<T>::set_new_stakeinfo(instance.caller.clone(),dest.clone().expect("output"));
-		<ContractStakeinfoMap<T>>::insert(dest.clone().expect("output"), contract_stake_info.clone());
-		<AccountStakeinfoMap<T>>::insert(dest.clone().expect("output"),account_stake_info.clone());
+
 	}: call(origin, instance.addr.clone(), 0u32.into(), Weight::MAX, None, vec![])
 
 	#[pov_mode = Measured]
@@ -571,10 +562,7 @@ benchmarks! {
 		}
 		let origin = RawOrigin::Signed(instance.caller.clone());
 		let dest = T::Lookup::lookup(instance.addr.clone()).ok();
-		let contract_stake_info = ContractScarcityInfo::<T>::set_scarcity_info();
-		let account_stake_info = AccountStakeinfo::<T>::set_new_stakeinfo(instance.caller.clone(),dest.clone().expect("output"));
-		<ContractStakeinfoMap<T>>::insert(dest.clone().expect("output"), contract_stake_info.clone());
-		<AccountStakeinfoMap<T>>::insert(dest.clone().expect("output"),account_stake_info.clone());
+
 	}: call(origin, instance.addr, 0u32.into(), Weight::MAX, None, vec![])
 
 	#[pov_mode = Measured]
@@ -622,10 +610,7 @@ benchmarks! {
 		}
 		let origin = RawOrigin::Signed(instance.caller.clone());
 		let dest = T::Lookup::lookup(instance.addr.clone()).ok();
-		let contract_stake_info = ContractScarcityInfo::<T>::set_scarcity_info();
-		let account_stake_info = AccountStakeinfo::<T>::set_new_stakeinfo(instance.caller.clone(),dest.clone().expect("output"));
-		<ContractStakeinfoMap<T>>::insert(dest.clone().expect("output"), contract_stake_info.clone());
-		<AccountStakeinfoMap<T>>::insert(dest.clone().expect("output"),account_stake_info.clone());
+
 	}: call(origin, instance.addr.clone(), 0u32.into(), Weight::MAX, None, vec![])
 
 	#[pov_mode = Measured]
@@ -636,10 +621,7 @@ benchmarks! {
 		), vec![])?;
 		let origin = RawOrigin::Signed(instance.caller.clone());
 		let dest = T::Lookup::lookup(instance.addr.clone()).ok();
-		let contract_stake_info = ContractScarcityInfo::<T>::set_scarcity_info();
-		let account_stake_info = AccountStakeinfo::<T>::set_new_stakeinfo(instance.caller.clone(),dest.clone().expect("output"));
-		<ContractStakeinfoMap<T>>::insert(dest.clone().expect("output"), contract_stake_info.clone());
-		<AccountStakeinfoMap<T>>::insert(dest.clone().expect("output"),account_stake_info.clone());
+
 	}: call(origin, instance.addr.clone(), 0u32.into(), Weight::MAX, None, vec![])
 
 	#[pov_mode = Measured]
@@ -662,10 +644,7 @@ benchmarks! {
 		let instance = Contract::<T>::new(code, vec![])?;
 		let origin = RawOrigin::Signed(instance.caller.clone());
 		let dest = T::Lookup::lookup(instance.addr.clone()).ok();
-		let contract_stake_info = ContractScarcityInfo::<T>::set_scarcity_info();
-		let account_stake_info = AccountStakeinfo::<T>::set_new_stakeinfo(instance.caller.clone(),dest.clone().expect("output"));
-		<ContractStakeinfoMap<T>>::insert(dest.clone().expect("output"), contract_stake_info.clone());
-		<AccountStakeinfoMap<T>>::insert(dest.clone().expect("output"),account_stake_info.clone());
+
 	}: call(origin, instance.addr.clone(), 0u32.into(), Weight::MAX, None, vec![])
 
 	#[pov_mode = Measured]
@@ -689,10 +668,7 @@ benchmarks! {
 		let instance = Contract::<T>::new(code, vec![])?;
 		let origin = RawOrigin::Root;
 		let dest = T::Lookup::lookup(instance.addr.clone()).ok();
-		let contract_stake_info = ContractScarcityInfo::<T>::set_scarcity_info();
-		let account_stake_info = AccountStakeinfo::<T>::set_new_stakeinfo(instance.caller.clone(),dest.clone().expect("output"));
-		<ContractStakeinfoMap<T>>::insert(dest.clone().expect("output"), contract_stake_info.clone());
-		<AccountStakeinfoMap<T>>::insert(dest.clone().expect("output"),account_stake_info.clone());
+
 	}: call(origin, instance.addr.clone(), 0u32.into(), Weight::MAX, None, vec![])
 
 	#[pov_mode = Measured]
@@ -703,10 +679,7 @@ benchmarks! {
 		), vec![])?;
 		let origin = RawOrigin::Signed(instance.caller.clone());
 		let dest = T::Lookup::lookup(instance.addr.clone()).ok();
-		let contract_stake_info = ContractScarcityInfo::<T>::set_scarcity_info();
-		let account_stake_info = AccountStakeinfo::<T>::set_new_stakeinfo(instance.caller.clone(),dest.clone().expect("output"));
-		<ContractStakeinfoMap<T>>::insert(dest.clone().expect("output"), contract_stake_info.clone());
-		<AccountStakeinfoMap<T>>::insert(dest.clone().expect("output"),account_stake_info.clone());
+
 	}: call(origin, instance.addr.clone(), 0u32.into(), Weight::MAX, None, vec![])
 
 	#[pov_mode = Measured]
@@ -717,10 +690,7 @@ benchmarks! {
 		), vec![])?;
 		let origin = RawOrigin::Signed(instance.caller.clone());
 		let dest = T::Lookup::lookup(instance.addr.clone()).ok();
-		let contract_stake_info = ContractScarcityInfo::<T>::set_scarcity_info();
-		let account_stake_info = AccountStakeinfo::<T>::set_new_stakeinfo(instance.caller.clone(),dest.clone().expect("output"));
-		<ContractStakeinfoMap<T>>::insert(dest.clone().expect("output"), contract_stake_info.clone());
-		<AccountStakeinfoMap<T>>::insert(dest.clone().expect("output"),account_stake_info.clone());
+
 	}: call(origin, instance.addr.clone(), 0u32.into(), Weight::MAX, None, vec![])
 
 	#[pov_mode = Measured]
@@ -731,10 +701,7 @@ benchmarks! {
 		), vec![])?;
 		let origin = RawOrigin::Signed(instance.caller.clone());
 		let dest = T::Lookup::lookup(instance.addr.clone()).ok();
-		let contract_stake_info = ContractScarcityInfo::<T>::set_scarcity_info();
-		let account_stake_info = AccountStakeinfo::<T>::set_new_stakeinfo(instance.caller.clone(),dest.clone().expect("output"));
-		<ContractStakeinfoMap<T>>::insert(dest.clone().expect("output"), contract_stake_info.clone());
-		<AccountStakeinfoMap<T>>::insert(dest.clone().expect("output"),account_stake_info.clone());
+
 	}: call(origin, instance.addr.clone(), 0u32.into(), Weight::MAX, None, vec![])
 
 	#[pov_mode = Measured]
@@ -745,10 +712,7 @@ benchmarks! {
 		), vec![])?;
 		let origin = RawOrigin::Signed(instance.caller.clone());
 		let dest = T::Lookup::lookup(instance.addr.clone()).ok();
-		let contract_stake_info = ContractScarcityInfo::<T>::set_scarcity_info();
-		let account_stake_info = AccountStakeinfo::<T>::set_new_stakeinfo(instance.caller.clone(),dest.clone().expect("output"));
-		<ContractStakeinfoMap<T>>::insert(dest.clone().expect("output"), contract_stake_info.clone());
-		<AccountStakeinfoMap<T>>::insert(dest.clone().expect("output"),account_stake_info.clone());
+
 	}: call(origin, instance.addr.clone(), 0u32.into(), Weight::MAX, None, vec![])
 
 	#[pov_mode = Measured]
@@ -759,10 +723,7 @@ benchmarks! {
 		), vec![])?;
 		let origin = RawOrigin::Signed(instance.caller.clone());
 		let dest = T::Lookup::lookup(instance.addr.clone()).ok();
-		let contract_stake_info = ContractScarcityInfo::<T>::set_scarcity_info();
-		let account_stake_info = AccountStakeinfo::<T>::set_new_stakeinfo(instance.caller.clone(),dest.clone().expect("output"));
-		<ContractStakeinfoMap<T>>::insert(dest.clone().expect("output"), contract_stake_info.clone());
-		<AccountStakeinfoMap<T>>::insert(dest.clone().expect("output"),account_stake_info.clone());
+
 	}: call(origin, instance.addr.clone(), 0u32.into(), Weight::MAX, None, vec![])
 
 	#[pov_mode = Measured]
@@ -773,10 +734,7 @@ benchmarks! {
 		), vec![])?;
 		let origin = RawOrigin::Signed(instance.caller.clone());
 		let dest = T::Lookup::lookup(instance.addr.clone()).ok();
-		let contract_stake_info = ContractScarcityInfo::<T>::set_scarcity_info();
-		let account_stake_info = AccountStakeinfo::<T>::set_new_stakeinfo(instance.caller.clone(),dest.clone().expect("output"));
-		<ContractStakeinfoMap<T>>::insert(dest.clone().expect("output"), contract_stake_info.clone());
-		<AccountStakeinfoMap<T>>::insert(dest.clone().expect("output"),account_stake_info.clone());
+
 	}: call(origin, instance.addr.clone(), 0u32.into(), Weight::MAX, None, vec![])
 
 	#[pov_mode = Measured]
@@ -787,10 +745,7 @@ benchmarks! {
 		), vec![])?;
 		let origin = RawOrigin::Signed(instance.caller.clone());
 		let dest = T::Lookup::lookup(instance.addr.clone()).ok();
-		let contract_stake_info = ContractScarcityInfo::<T>::set_scarcity_info();
-		let account_stake_info = AccountStakeinfo::<T>::set_new_stakeinfo(instance.caller.clone(),dest.clone().expect("output"));
-		<ContractStakeinfoMap<T>>::insert(dest.clone().expect("output"), contract_stake_info.clone());
-		<AccountStakeinfoMap<T>>::insert(dest.clone().expect("output"),account_stake_info.clone());
+
 	}: call(origin, instance.addr.clone(), 0u32.into(), Weight::MAX, None, vec![])
 
 	#[pov_mode = Measured]
@@ -821,10 +776,7 @@ benchmarks! {
 		let instance = Contract::<T>::new(code, vec![])?;
 		let origin = RawOrigin::Signed(instance.caller.clone());
 		let dest = T::Lookup::lookup(instance.addr.clone()).ok();
-		let contract_stake_info = ContractScarcityInfo::<T>::set_scarcity_info();
-		let account_stake_info = AccountStakeinfo::<T>::set_new_stakeinfo(instance.caller.clone(),dest.clone().expect("output"));
-		<ContractStakeinfoMap<T>>::insert(dest.clone().expect("output"), contract_stake_info.clone());
-		<AccountStakeinfoMap<T>>::insert(dest.clone().expect("output"),account_stake_info.clone());
+
 	}: call(origin, instance.addr.clone(), 0u32.into(), Weight::MAX, None, vec![])
 
 	#[pov_mode = Measured]
@@ -854,10 +806,7 @@ benchmarks! {
 		let instance = Contract::<T>::new(code, vec![])?;
 		let origin = RawOrigin::Signed(instance.caller.clone());
 		let dest = T::Lookup::lookup(instance.addr.clone()).ok();
-		let contract_stake_info = ContractScarcityInfo::<T>::set_scarcity_info();
-		let account_stake_info = AccountStakeinfo::<T>::set_new_stakeinfo(instance.caller.clone(),dest.clone().expect("output"));
-		<ContractStakeinfoMap<T>>::insert(dest.clone().expect("output"), contract_stake_info.clone());
-		<AccountStakeinfoMap<T>>::insert(dest.clone().expect("output"),account_stake_info.clone());
+
 	}: call(origin, instance.addr.clone(), 0u32.into(), Weight::MAX, None, vec![])
 
 	#[pov_mode = Measured]
@@ -890,10 +839,7 @@ benchmarks! {
 		let data = vec![42u8; n.min(buffer_size) as usize];
 		let origin = RawOrigin::Signed(instance.caller.clone());
 		let dest = T::Lookup::lookup(instance.addr.clone()).ok();
-		let contract_stake_info = ContractScarcityInfo::<T>::set_scarcity_info();
-		let account_stake_info = AccountStakeinfo::<T>::set_new_stakeinfo(instance.caller.clone(),dest.clone().expect("output"));
-		<ContractStakeinfoMap<T>>::insert(dest.clone().expect("output"), contract_stake_info.clone());
-		<AccountStakeinfoMap<T>>::insert(dest.clone().expect("output"),account_stake_info.clone());
+
 	}: call(origin, instance.addr.clone(), 0u32.into(), Weight::MAX, None, data)
 
 	// We cannot call `seal_return` multiple times. Therefore our weight determination is not
@@ -921,10 +867,7 @@ benchmarks! {
 		let instance = Contract::<T>::new(code, vec![])?;
 		let origin = RawOrigin::Signed(instance.caller.clone());
 		let dest = T::Lookup::lookup(instance.addr.clone()).ok();
-		let contract_stake_info = ContractScarcityInfo::<T>::set_scarcity_info();
-		let account_stake_info = AccountStakeinfo::<T>::set_new_stakeinfo(instance.caller.clone(),dest.clone().expect("output"));
-		<ContractStakeinfoMap<T>>::insert(dest.clone().expect("output"), contract_stake_info.clone());
-		<AccountStakeinfoMap<T>>::insert(dest.clone().expect("output"),account_stake_info.clone());
+
 	}: call(origin, instance.addr.clone(), 0u32.into(), Weight::MAX, None, vec![])
 
 	#[pov_mode = Measured]
@@ -950,10 +893,7 @@ benchmarks! {
 		let instance = Contract::<T>::new(code, vec![])?;
 		let origin = RawOrigin::Signed(instance.caller.clone());
 		let dest = T::Lookup::lookup(instance.addr.clone()).ok();
-		let contract_stake_info = ContractScarcityInfo::<T>::set_scarcity_info();
-		let account_stake_info = AccountStakeinfo::<T>::set_new_stakeinfo(instance.caller.clone(),dest.clone().expect("output"));
-		<ContractStakeinfoMap<T>>::insert(dest.clone().expect("output"), contract_stake_info.clone());
-		<AccountStakeinfoMap<T>>::insert(dest.clone().expect("output"),account_stake_info.clone());
+
 	}: call(origin, instance.addr.clone(), 0u32.into(), Weight::MAX, None, vec![])
 
 	// The same argument as for `seal_return` is true here.
@@ -988,10 +928,7 @@ benchmarks! {
 		let origin = RawOrigin::Signed(instance.caller.clone());
 		let deposit_account = instance.info()?.deposit_account().clone();
 		let dest = T::Lookup::lookup(instance.addr.clone()).ok();
-		let contract_stake_info = ContractScarcityInfo::<T>::set_scarcity_info();
-		let account_stake_info = AccountStakeinfo::<T>::set_new_stakeinfo(instance.caller.clone(),dest.clone().expect("output"));
-		<ContractStakeinfoMap<T>>::insert(dest.clone().expect("output"), contract_stake_info.clone());
-		<AccountStakeinfoMap<T>>::insert(dest.clone().expect("output"),account_stake_info.clone());
+
 		assert_eq!(<T::ContractCurrency as Currency<_>>::total_balance(&beneficiary), 0u32.into());
 		assert_eq!(T::ContractCurrency::free_balance(&instance.account_id), Pallet::<T>::min_balance() * 2u32.into());
 		assert_ne!(T::ContractCurrency::free_balance(&deposit_account), 0u32.into());
@@ -1039,10 +976,7 @@ benchmarks! {
 		let instance = Contract::<T>::new(code, vec![])?;
 		let origin = RawOrigin::Signed(instance.caller.clone());
 		let dest = T::Lookup::lookup(instance.addr.clone()).ok();
-		let contract_stake_info = ContractScarcityInfo::<T>::set_scarcity_info();
-		let account_stake_info = AccountStakeinfo::<T>::set_new_stakeinfo(instance.caller.clone(),dest.clone().expect("output"));
-		<ContractStakeinfoMap<T>>::insert(dest.clone().expect("output"), contract_stake_info.clone());
-		<AccountStakeinfoMap<T>>::insert(dest.clone().expect("output"),account_stake_info.clone());
+
 	}: call(origin, instance.addr.clone(), 0u32.into(), Weight::MAX, None, vec![])
 
 	// Overhead of calling the function without any topic.
@@ -1070,10 +1004,7 @@ benchmarks! {
 		let instance = Contract::<T>::new(code, vec![])?;
 		let origin = RawOrigin::Signed(instance.caller.clone());
 		let dest = T::Lookup::lookup(instance.addr.clone()).ok();
-		let contract_stake_info = ContractScarcityInfo::<T>::set_scarcity_info();
-		let account_stake_info = AccountStakeinfo::<T>::set_new_stakeinfo(instance.caller.clone(),dest.clone().expect("output"));
-		<ContractStakeinfoMap<T>>::insert(dest.clone().expect("output"), contract_stake_info.clone());
-		<AccountStakeinfoMap<T>>::insert(dest.clone().expect("output"),account_stake_info.clone());
+
 	}: call(origin, instance.addr.clone(), 0u32.into(), Weight::MAX, None, vec![])
 
 	// Benchmark the overhead that topics generate.
@@ -1112,10 +1043,7 @@ benchmarks! {
 		let instance = Contract::<T>::new(code, vec![])?;
 		let origin = RawOrigin::Signed(instance.caller.clone());
 		let dest = T::Lookup::lookup(instance.addr.clone()).ok();
-		let contract_stake_info = ContractScarcityInfo::<T>::set_scarcity_info();
-		let account_stake_info = AccountStakeinfo::<T>::set_new_stakeinfo(instance.caller.clone(),dest.clone().expect("output"));
-		<ContractStakeinfoMap<T>>::insert(dest.clone().expect("output"), contract_stake_info.clone());
-		<AccountStakeinfoMap<T>>::insert(dest.clone().expect("output"),account_stake_info.clone());
+
 	}: call(origin, instance.addr.clone(), 0u32.into(), Weight::MAX, None, vec![])
 
 	// Benchmark debug_message call with zero input data.
@@ -1141,10 +1069,7 @@ benchmarks! {
 			.. Default::default()
 		});
 		let instance = Contract::<T>::new(code, vec![])?;
-		let contract_stake_info = ContractScarcityInfo::<T>::set_scarcity_info();
-		let account_stake_info = AccountStakeinfo::<T>::set_new_stakeinfo(instance.caller.clone(),instance.account_id.clone());
-		<ContractStakeinfoMap<T>>::insert(instance.account_id.clone(), contract_stake_info.clone());
-		<AccountStakeinfoMap<T>>::insert(instance.account_id.clone(),account_stake_info.clone());
+
 	}: {
 		<Contracts<T>>::bare_call(
 			instance.caller.clone(),
@@ -1195,10 +1120,7 @@ benchmarks! {
 			..Default::default()
 		});
 		let instance = Contract::<T>::new(code, vec![])?;
-		let contract_stake_info = ContractScarcityInfo::<T>::set_scarcity_info();
-		let account_stake_info = AccountStakeinfo::<T>::set_new_stakeinfo(instance.caller.clone(),instance.account_id.clone());
-		<ContractStakeinfoMap<T>>::insert(instance.account_id.clone(), contract_stake_info.clone());
-		<AccountStakeinfoMap<T>>::insert(instance.account_id.clone(),account_stake_info.clone());
+
 	}: {
 		<Contracts<T>>::bare_call(
 			instance.caller,
@@ -1272,10 +1194,7 @@ benchmarks! {
 		}
 		let origin = RawOrigin::Signed(instance.caller.clone());
 		let dest = T::Lookup::lookup(instance.addr.clone()).ok();
-		let contract_stake_info = ContractScarcityInfo::<T>::set_scarcity_info();
-		let account_stake_info = AccountStakeinfo::<T>::set_new_stakeinfo(instance.caller.clone(),dest.clone().expect("output"));
-		<ContractStakeinfoMap<T>>::insert(dest.clone().expect("output"), contract_stake_info.clone());
-		<AccountStakeinfoMap<T>>::insert(dest.clone().expect("output"),account_stake_info.clone());
+
 	}: call(origin, instance.addr.clone(), 0u32.into(), Weight::MAX, None, vec![])
 
 	#[skip_meta]
@@ -1320,10 +1239,7 @@ benchmarks! {
 		.map_err(|_| "Failed to write to storage during setup.")?;
 		let origin = RawOrigin::Signed(instance.caller.clone());
 		let dest = T::Lookup::lookup(instance.addr.clone()).ok();
-		let contract_stake_info = ContractScarcityInfo::<T>::set_scarcity_info();
-		let account_stake_info = AccountStakeinfo::<T>::set_new_stakeinfo(instance.caller.clone(),dest.clone().expect("output"));
-		<ContractStakeinfoMap<T>>::insert(dest.clone().expect("output"), contract_stake_info.clone());
-		<AccountStakeinfoMap<T>>::insert(dest.clone().expect("output"),account_stake_info.clone());
+
 	}: call(origin, instance.addr.clone(), 0u32.into(), Weight::MAX, None, vec![])
 
 	#[skip_meta]
@@ -1368,10 +1284,7 @@ benchmarks! {
 		.map_err(|_| "Failed to write to storage during setup.")?;
 		let origin = RawOrigin::Signed(instance.caller.clone());
 		let dest = T::Lookup::lookup(instance.addr.clone()).ok();
-		let contract_stake_info = ContractScarcityInfo::<T>::set_scarcity_info();
-		let account_stake_info = AccountStakeinfo::<T>::set_new_stakeinfo(instance.caller.clone(),dest.clone().expect("output"));
-		<ContractStakeinfoMap<T>>::insert(dest.clone().expect("output"), contract_stake_info.clone());
-		<AccountStakeinfoMap<T>>::insert(dest.clone().expect("output"),account_stake_info.clone());
+
 	}: call(origin, instance.addr.clone(), 0u32.into(), Weight::MAX, None, vec![])
 
 	// Similar to seal_set_storage. We store all the keys that we are about to
@@ -1424,10 +1337,7 @@ benchmarks! {
 		<ContractInfoOf<T>>::insert(&instance.account_id, info);
 		let origin = RawOrigin::Signed(instance.caller.clone());
 		let dest = T::Lookup::lookup(instance.addr.clone()).ok();
-		let contract_stake_info = ContractScarcityInfo::<T>::set_scarcity_info();
-		let account_stake_info = AccountStakeinfo::<T>::set_new_stakeinfo(instance.caller.clone(),dest.clone().expect("output"));
-		<ContractStakeinfoMap<T>>::insert(dest.clone().expect("output"), contract_stake_info.clone());
-		<AccountStakeinfoMap<T>>::insert(dest.clone().expect("output"),account_stake_info.clone());
+
 	}: call(origin, instance.addr.clone(), 0u32.into(), Weight::MAX, None, vec![])
 
 	#[skip_meta]
@@ -1470,10 +1380,7 @@ benchmarks! {
 		.map_err(|_| "Failed to write to storage during setup.")?;
 		let origin = RawOrigin::Signed(instance.caller.clone());
 		let dest = T::Lookup::lookup(instance.addr.clone()).ok();
-		let contract_stake_info = ContractScarcityInfo::<T>::set_scarcity_info();
-		let account_stake_info = AccountStakeinfo::<T>::set_new_stakeinfo(instance.caller.clone(),dest.clone().expect("output"));
-		<ContractStakeinfoMap<T>>::insert(dest.clone().expect("output"), contract_stake_info.clone());
-		<AccountStakeinfoMap<T>>::insert(dest.clone().expect("output"),account_stake_info.clone());
+
 	}: call(origin, instance.addr.clone(), 0u32.into(), Weight::MAX, None, vec![])
 
 	// We make sure that all storage accesses are to unique keys.
@@ -1530,10 +1437,7 @@ benchmarks! {
 		<ContractInfoOf<T>>::insert(&instance.account_id, info);
 		let origin = RawOrigin::Signed(instance.caller.clone());
 		let dest = T::Lookup::lookup(instance.addr.clone()).ok();
-		let contract_stake_info = ContractScarcityInfo::<T>::set_scarcity_info();
-		let account_stake_info = AccountStakeinfo::<T>::set_new_stakeinfo(instance.caller.clone(),dest.clone().expect("output"));
-		<ContractStakeinfoMap<T>>::insert(dest.clone().expect("output"), contract_stake_info.clone());
-		<AccountStakeinfoMap<T>>::insert(dest.clone().expect("output"),account_stake_info.clone());
+
 	}: call(origin, instance.addr.clone(), 0u32.into(), Weight::MAX, None, vec![])
 
 	#[skip_meta]
@@ -1583,10 +1487,7 @@ benchmarks! {
 		<ContractInfoOf<T>>::insert(&instance.account_id, info);
 		let origin = RawOrigin::Signed(instance.caller.clone());
 		let dest = T::Lookup::lookup(instance.addr.clone()).ok();
-		let contract_stake_info = ContractScarcityInfo::<T>::set_scarcity_info();
-		let account_stake_info = AccountStakeinfo::<T>::set_new_stakeinfo(instance.caller.clone(),dest.clone().expect("output"));
-		<ContractStakeinfoMap<T>>::insert(dest.clone().expect("output"), contract_stake_info.clone());
-		<AccountStakeinfoMap<T>>::insert(dest.clone().expect("output"),account_stake_info.clone());
+
 	}: call(origin, instance.addr.clone(), 0u32.into(), Weight::MAX, None, vec![])
 
 	// We make sure that all storage accesses are to unique keys.
@@ -1637,10 +1538,7 @@ benchmarks! {
 		<ContractInfoOf<T>>::insert(&instance.account_id, info);
 		let origin = RawOrigin::Signed(instance.caller.clone());
 		let dest = T::Lookup::lookup(instance.addr.clone()).ok();
-		let contract_stake_info = ContractScarcityInfo::<T>::set_scarcity_info();
-		let account_stake_info = AccountStakeinfo::<T>::set_new_stakeinfo(instance.caller.clone(),dest.clone().expect("output"));
-		<ContractStakeinfoMap<T>>::insert(dest.clone().expect("output"), contract_stake_info.clone());
-		<AccountStakeinfoMap<T>>::insert(dest.clone().expect("output"),account_stake_info.clone());
+
 	}: call(origin, instance.addr.clone(), 0u32.into(), Weight::MAX, None, vec![])
 
 	#[skip_meta]
@@ -1684,10 +1582,7 @@ benchmarks! {
 		<ContractInfoOf<T>>::insert(&instance.account_id, info);
 		let origin = RawOrigin::Signed(instance.caller.clone());
 		let dest = T::Lookup::lookup(instance.addr.clone()).ok();
-		let contract_stake_info = ContractScarcityInfo::<T>::set_scarcity_info();
-		let account_stake_info = AccountStakeinfo::<T>::set_new_stakeinfo(instance.caller.clone(),dest.clone().expect("output"));
-		<ContractStakeinfoMap<T>>::insert(dest.clone().expect("output"), contract_stake_info.clone());
-		<AccountStakeinfoMap<T>>::insert(dest.clone().expect("output"),account_stake_info.clone());
+
 	}: call(origin, instance.addr.clone(), 0u32.into(), Weight::MAX, None, vec![])
 
 	#[skip_meta]
@@ -1743,10 +1638,7 @@ benchmarks! {
 		<ContractInfoOf<T>>::insert(&instance.account_id, info);
 		let origin = RawOrigin::Signed(instance.caller.clone());
 		let dest = T::Lookup::lookup(instance.addr.clone()).ok();
-		let contract_stake_info = ContractScarcityInfo::<T>::set_scarcity_info();
-		let account_stake_info = AccountStakeinfo::<T>::set_new_stakeinfo(instance.caller.clone(),dest.clone().expect("output"));
-		<ContractStakeinfoMap<T>>::insert(dest.clone().expect("output"), contract_stake_info.clone());
-		<AccountStakeinfoMap<T>>::insert(dest.clone().expect("output"),account_stake_info.clone());
+
 	}: call(origin, instance.addr.clone(), 0u32.into(), Weight::MAX, None, vec![])
 
 	#[skip_meta]
@@ -1796,10 +1688,7 @@ benchmarks! {
 		<ContractInfoOf<T>>::insert(&instance.account_id, info);
 		let origin = RawOrigin::Signed(instance.caller.clone());
 		let dest = T::Lookup::lookup(instance.addr.clone()).ok();
-		let contract_stake_info = ContractScarcityInfo::<T>::set_scarcity_info();
-		let account_stake_info = AccountStakeinfo::<T>::set_new_stakeinfo(instance.caller.clone(),dest.clone().expect("output"));
-		<ContractStakeinfoMap<T>>::insert(dest.clone().expect("output"), contract_stake_info.clone());
-		<AccountStakeinfoMap<T>>::insert(dest.clone().expect("output"),account_stake_info.clone());
+
 	}: call(origin, instance.addr.clone(), 0u32.into(), Weight::MAX, None, vec![])
 
 	// We transfer to unique accounts.
@@ -1850,10 +1739,7 @@ benchmarks! {
 			assert_eq!(<T::ContractCurrency as Currency<_>>::total_balance(account), 0u32.into());
 		}
 		let dest = T::Lookup::lookup(instance.addr.clone()).ok();
-		let contract_stake_info = ContractScarcityInfo::<T>::set_scarcity_info();
-		let account_stake_info = AccountStakeinfo::<T>::set_new_stakeinfo(instance.caller.clone(),dest.clone().expect("output"));
-		<ContractStakeinfoMap<T>>::insert(dest.clone().expect("output"), contract_stake_info.clone());
-		<AccountStakeinfoMap<T>>::insert(dest.clone().expect("output"),account_stake_info.clone());
+
 	}: call(origin, instance.addr.clone(), 0u32.into(), Weight::MAX, None, vec![])
 	verify {
 		for account in &accounts {
@@ -1873,10 +1759,7 @@ benchmarks! {
 			.collect::<Result<Vec<_>, _>>()?;
 		let callee_len = callees.get(0).map(|i|	i.account_id.encode().len() ).unwrap_or(0);
 		callees.iter().for_each(|i|{
-			let contract_stake_info = ContractScarcityInfo::<T>::set_scarcity_info();
-			let account_stake_info = AccountStakeinfo::<T>::set_new_stakeinfo(i.account_id.clone(),i.account_id.clone());
-			<ContractStakeinfoMap<T>>::insert(i.account_id.clone(), contract_stake_info.clone());
-			<AccountStakeinfoMap<T>>::insert(i.account_id.clone(),account_stake_info.clone());
+
 		});
 		let callee_bytes = callees.iter().flat_map(|x| x.account_id.encode()).collect();
 		let value: BalanceOf<T> = 0u32.into();
@@ -1943,10 +1826,7 @@ benchmarks! {
 		let instance = Contract::<T>::new(code, vec![])?;
 		let origin = RawOrigin::Signed(instance.caller.clone());
 		let dest = T::Lookup::lookup(instance.addr.clone()).ok();
-		let contract_stake_info = ContractScarcityInfo::<T>::set_scarcity_info();
-		let account_stake_info = AccountStakeinfo::<T>::set_new_stakeinfo(instance.caller.clone(),dest.clone().expect("output"));
-		<ContractStakeinfoMap<T>>::insert(dest.clone().expect("output"), contract_stake_info.clone());
-		<AccountStakeinfoMap<T>>::insert(dest.clone().expect("output"),account_stake_info.clone());
+
 	}: call(origin, instance.addr.clone(), 0u32.into(), Weight::MAX, Some(BalanceOf::<T>::from(u32::MAX).into()), vec![])
 
 	// This is a slow call: We reduce the number of runs.
@@ -2003,10 +1883,7 @@ benchmarks! {
 		let origin = RawOrigin::Signed(instance.caller.clone());
 		let origin = RawOrigin::Signed(instance.caller.clone());
 		let dest = T::Lookup::lookup(callee.clone()).ok();
-		let contract_stake_info = ContractScarcityInfo::<T>::set_scarcity_info();
-		let account_stake_info = AccountStakeinfo::<T>::set_new_stakeinfo(instance.caller.clone(),dest.clone().expect("output"));
-		<ContractStakeinfoMap<T>>::insert(dest.clone().expect("output"), contract_stake_info.clone());
-		<AccountStakeinfoMap<T>>::insert(dest.clone().expect("output"),account_stake_info.clone());
+
 	}: call(origin, callee.clone(), 0u32.into(), Weight::MAX, None, vec![])
 
 	#[pov_mode = Measured]
@@ -2063,14 +1940,7 @@ benchmarks! {
 		let origin = RawOrigin::Signed(instance.caller.clone());
 		let bytes = vec![42; c as usize];
 		let dest = T::Lookup::lookup(instance.addr.clone()).ok();
-		let contract_stake_info = ContractScarcityInfo::<T>::set_scarcity_info();
-		let account_stake_info = AccountStakeinfo::<T>::set_new_stakeinfo(instance.caller.clone(),dest.clone().expect("output"));
-		<ContractStakeinfoMap<T>>::insert(dest.clone().expect("output"), contract_stake_info.clone());
-		<AccountStakeinfoMap<T>>::insert(dest.clone().expect("output"),account_stake_info.clone());
-		let contract_stake_info2 = ContractScarcityInfo::<T>::set_scarcity_info();
-		let account_stake_info2 = AccountStakeinfo::<T>::set_new_stakeinfo(instance.caller.clone(),callee.account_id.clone());
-		<ContractStakeinfoMap<T>>::insert(callee.account_id.clone(), contract_stake_info.clone());
-		<AccountStakeinfoMap<T>>::insert(callee.account_id.clone(),account_stake_info.clone());
+
 	}: call(origin, instance.addr.clone(), 0u32.into(), Weight::MAX, None, bytes)
 
 	// We assume that every instantiate sends at least the minimum balance.
@@ -2179,10 +2049,7 @@ benchmarks! {
 			}
 		}
 		let dest = T::Lookup::lookup(instance.addr.clone()).ok();
-		let contract_stake_info = ContractScarcityInfo::<T>::set_scarcity_info();
-		let account_stake_info = AccountStakeinfo::<T>::set_new_stakeinfo(instance.caller.clone(),dest.clone().expect("output"));
-		<ContractStakeinfoMap<T>>::insert(dest.clone().expect("output"), contract_stake_info.clone());
-		<AccountStakeinfoMap<T>>::insert(dest.clone().expect("output"),account_stake_info.clone());
+
 	}: call(origin, callee, 0u32.into(), Weight::MAX, None, vec![])
 	verify {
 		for addr in &addresses {
@@ -2261,10 +2128,7 @@ benchmarks! {
 		instance.set_balance(value + (Pallet::<T>::min_balance() * 2u32.into()));
 		let origin = RawOrigin::Signed(instance.caller.clone());
 		let dest = T::Lookup::lookup(instance.addr.clone()).ok();
-		let contract_stake_info = ContractScarcityInfo::<T>::set_scarcity_info();
-		let account_stake_info = AccountStakeinfo::<T>::set_new_stakeinfo(instance.caller.clone(),dest.clone().expect("output"));
-		<ContractStakeinfoMap<T>>::insert(dest.clone().expect("output"), contract_stake_info.clone());
-		<AccountStakeinfoMap<T>>::insert(dest.clone().expect("output"),account_stake_info.clone());
+
 	}: call(origin, instance.addr.clone(), 0u32.into(), Weight::MAX, None, vec![])
 
 	// Only the overhead of calling the function itself with minimal arguments.
@@ -2276,10 +2140,7 @@ benchmarks! {
 		), vec![])?;
 		let origin = RawOrigin::Signed(instance.caller.clone());
 		let dest = T::Lookup::lookup(instance.addr.clone()).ok();
-		let contract_stake_info = ContractScarcityInfo::<T>::set_scarcity_info();
-		let account_stake_info = AccountStakeinfo::<T>::set_new_stakeinfo(instance.caller.clone(),dest.clone().expect("output"));
-		<ContractStakeinfoMap<T>>::insert(dest.clone().expect("output"), contract_stake_info.clone());
-		<AccountStakeinfoMap<T>>::insert(dest.clone().expect("output"),account_stake_info.clone());
+
 	}: call(origin, instance.addr.clone(), 0u32.into(), Weight::MAX, None, vec![])
 
 	// `n`: Input to hash in bytes
@@ -2291,10 +2152,7 @@ benchmarks! {
 		), vec![])?;
 		let origin = RawOrigin::Signed(instance.caller.clone());
 		let dest = T::Lookup::lookup(instance.addr.clone()).ok();
-		let contract_stake_info = ContractScarcityInfo::<T>::set_scarcity_info();
-		let account_stake_info = AccountStakeinfo::<T>::set_new_stakeinfo(instance.caller.clone(),dest.clone().expect("output"));
-		<ContractStakeinfoMap<T>>::insert(dest.clone().expect("output"), contract_stake_info.clone());
-		<AccountStakeinfoMap<T>>::insert(dest.clone().expect("output"),account_stake_info.clone());
+
 	}: call(origin, instance.addr.clone(), 0u32.into(), Weight::MAX, None, vec![])
 
 	// Only the overhead of calling the function itself with minimal arguments.
@@ -2306,10 +2164,7 @@ benchmarks! {
 		), vec![])?;
 		let origin = RawOrigin::Signed(instance.caller.clone());
 		let dest = T::Lookup::lookup(instance.addr.clone()).ok();
-		let contract_stake_info = ContractScarcityInfo::<T>::set_scarcity_info();
-		let account_stake_info = AccountStakeinfo::<T>::set_new_stakeinfo(instance.caller.clone(),dest.clone().expect("output"));
-		<ContractStakeinfoMap<T>>::insert(dest.clone().expect("output"), contract_stake_info.clone());
-		<AccountStakeinfoMap<T>>::insert(dest.clone().expect("output"),account_stake_info.clone());
+
 	}: call(origin, instance.addr.clone(), 0u32.into(), Weight::MAX, None, vec![])
 
 	// `n`: Input to hash in bytes
@@ -2321,10 +2176,7 @@ benchmarks! {
 		), vec![])?;
 		let origin = RawOrigin::Signed(instance.caller.clone());
 		let dest = T::Lookup::lookup(instance.addr.clone()).ok();
-		let contract_stake_info = ContractScarcityInfo::<T>::set_scarcity_info();
-		let account_stake_info = AccountStakeinfo::<T>::set_new_stakeinfo(instance.caller.clone(),dest.clone().expect("output"));
-		<ContractStakeinfoMap<T>>::insert(dest.clone().expect("output"), contract_stake_info.clone());
-		<AccountStakeinfoMap<T>>::insert(dest.clone().expect("output"),account_stake_info.clone());
+
 	}: call(origin, instance.addr.clone(), 0u32.into(), Weight::MAX, None, vec![])
 
 	// Only the overhead of calling the function itself with minimal arguments.
@@ -2336,10 +2188,7 @@ benchmarks! {
 		), vec![])?;
 		let origin = RawOrigin::Signed(instance.caller.clone());
 		let dest = T::Lookup::lookup(instance.addr.clone()).ok();
-		let contract_stake_info = ContractScarcityInfo::<T>::set_scarcity_info();
-		let account_stake_info = AccountStakeinfo::<T>::set_new_stakeinfo(instance.caller.clone(),dest.clone().expect("output"));
-		<ContractStakeinfoMap<T>>::insert(dest.clone().expect("output"), contract_stake_info.clone());
-		<AccountStakeinfoMap<T>>::insert(dest.clone().expect("output"),account_stake_info.clone());
+
 	}: call(origin, instance.addr.clone(), 0u32.into(), Weight::MAX, None, vec![])
 
 	// `n`: Input to hash in bytes
@@ -2351,10 +2200,7 @@ benchmarks! {
 		), vec![])?;
 		let origin = RawOrigin::Signed(instance.caller.clone());
 		let dest = T::Lookup::lookup(instance.addr.clone()).ok();
-		let contract_stake_info = ContractScarcityInfo::<T>::set_scarcity_info();
-		let account_stake_info = AccountStakeinfo::<T>::set_new_stakeinfo(instance.caller.clone(),dest.clone().expect("output"));
-		<ContractStakeinfoMap<T>>::insert(dest.clone().expect("output"), contract_stake_info.clone());
-		<AccountStakeinfoMap<T>>::insert(dest.clone().expect("output"),account_stake_info.clone());
+
 	}: call(origin, instance.addr.clone(), 0u32.into(), Weight::MAX, None, vec![])
 
 	// Only the overhead of calling the function itself with minimal arguments.
@@ -2366,10 +2212,7 @@ benchmarks! {
 		), vec![])?;
 		let origin = RawOrigin::Signed(instance.caller.clone());
 		let dest = T::Lookup::lookup(instance.addr.clone()).ok();
-		let contract_stake_info = ContractScarcityInfo::<T>::set_scarcity_info();
-		let account_stake_info = AccountStakeinfo::<T>::set_new_stakeinfo(instance.caller.clone(),dest.clone().expect("output"));
-		<ContractStakeinfoMap<T>>::insert(dest.clone().expect("output"), contract_stake_info.clone());
-		<AccountStakeinfoMap<T>>::insert(dest.clone().expect("output"),account_stake_info.clone());
+
 	}: call(origin, instance.addr.clone(), 0u32.into(), Weight::MAX, None, vec![])
 
 	// `n`: Input to hash in bytes
@@ -2381,10 +2224,7 @@ benchmarks! {
 		), vec![])?;
 		let origin = RawOrigin::Signed(instance.caller.clone());
 		let dest = T::Lookup::lookup(instance.addr.clone()).ok();
-		let contract_stake_info = ContractScarcityInfo::<T>::set_scarcity_info();
-		let account_stake_info = AccountStakeinfo::<T>::set_new_stakeinfo(instance.caller.clone(),dest.clone().expect("output"));
-		<ContractStakeinfoMap<T>>::insert(dest.clone().expect("output"), contract_stake_info.clone());
-		<AccountStakeinfoMap<T>>::insert(dest.clone().expect("output"),account_stake_info.clone());
+
 	}: call(origin, instance.addr.clone(), 0u32.into(), Weight::MAX, None, vec![])
 
 	// `n`: Message input length to verify in bytes.
@@ -2438,10 +2278,7 @@ benchmarks! {
 		let instance = Contract::<T>::new(code, vec![])?;
 		let origin = RawOrigin::Signed(instance.caller.clone());
 		let dest = T::Lookup::lookup(instance.addr.clone()).ok();
-		let contract_stake_info = ContractScarcityInfo::<T>::set_scarcity_info();
-		let account_stake_info = AccountStakeinfo::<T>::set_new_stakeinfo(instance.caller.clone(),dest.clone().expect("output"));
-		<ContractStakeinfoMap<T>>::insert(dest.clone().expect("output"), contract_stake_info.clone());
-		<AccountStakeinfoMap<T>>::insert(dest.clone().expect("output"),account_stake_info.clone());
+
 	}: call(origin, instance.addr.clone(), 0u32.into(), Weight::MAX, None, vec![])
 
 	// Only calling the function itself with valid arguments.
@@ -2496,10 +2333,7 @@ benchmarks! {
 		let instance = Contract::<T>::new(code, vec![])?;
 		let origin = RawOrigin::Signed(instance.caller.clone());
 		let dest = T::Lookup::lookup(instance.addr.clone()).ok();
-		let contract_stake_info = ContractScarcityInfo::<T>::set_scarcity_info();
-		let account_stake_info = AccountStakeinfo::<T>::set_new_stakeinfo(instance.caller.clone(),dest.clone().expect("output"));
-		<ContractStakeinfoMap<T>>::insert(dest.clone().expect("output"), contract_stake_info.clone());
-		<AccountStakeinfoMap<T>>::insert(dest.clone().expect("output"),account_stake_info.clone());
+
 	}: call(origin, instance.addr.clone(), 0u32.into(), Weight::MAX, None, vec![])
 
 	// Only calling the function itself with valid arguments.
@@ -2551,10 +2385,7 @@ benchmarks! {
 		let instance = Contract::<T>::new(code, vec![])?;
 		let origin = RawOrigin::Signed(instance.caller.clone());
 		let dest = T::Lookup::lookup(instance.addr.clone()).ok();
-		let contract_stake_info = ContractScarcityInfo::<T>::set_scarcity_info();
-		let account_stake_info = AccountStakeinfo::<T>::set_new_stakeinfo(instance.caller.clone(),dest.clone().expect("output"));
-		<ContractStakeinfoMap<T>>::insert(dest.clone().expect("output"), contract_stake_info.clone());
-		<AccountStakeinfoMap<T>>::insert(dest.clone().expect("output"),account_stake_info.clone());
+
 	}: call(origin, instance.addr.clone(), 0u32.into(), Weight::MAX, None, vec![])
 
 	// Only calling the function itself for the list of
@@ -2595,10 +2426,7 @@ benchmarks! {
 		let instance = Contract::<T>::new(code, vec![])?;
 		let origin = RawOrigin::Signed(instance.caller.clone());
 		let dest = T::Lookup::lookup(instance.addr.clone()).ok();
-		let contract_stake_info = ContractScarcityInfo::<T>::set_scarcity_info();
-		let account_stake_info = AccountStakeinfo::<T>::set_new_stakeinfo(instance.caller.clone(),dest.clone().expect("output"));
-		<ContractStakeinfoMap<T>>::insert(dest.clone().expect("output"), contract_stake_info.clone());
-		<AccountStakeinfoMap<T>>::insert(dest.clone().expect("output"),account_stake_info.clone());
+
 	}: call(origin, instance.addr.clone(), 0u32.into(), Weight::MAX, None, vec![])
 
 	#[pov_mode = Measured]
@@ -2641,10 +2469,7 @@ benchmarks! {
 		let instance = Contract::<T>::new(code, vec![])?;
 		let origin = RawOrigin::Signed(instance.caller.clone());
 		let dest = T::Lookup::lookup(instance.addr.clone()).ok();
-		let contract_stake_info = ContractScarcityInfo::<T>::set_scarcity_info();
-		let account_stake_info = AccountStakeinfo::<T>::set_new_stakeinfo(instance.caller.clone(),dest.clone().expect("output"));
-		<ContractStakeinfoMap<T>>::insert(dest.clone().expect("output"), contract_stake_info.clone());
-		<AccountStakeinfoMap<T>>::insert(dest.clone().expect("output"),account_stake_info.clone());
+
 	}: call(origin, instance.addr.clone(), 0u32.into(), Weight::MAX, None, vec![])
 
 	#[pov_mode = Measured]
@@ -2667,10 +2492,7 @@ benchmarks! {
 		let instance = Contract::<T>::new(code, vec![])?;
 		let origin = RawOrigin::Signed(instance.caller.clone());
 		let dest = T::Lookup::lookup(instance.addr.clone()).ok();
-		let contract_stake_info = ContractScarcityInfo::<T>::set_scarcity_info();
-		let account_stake_info = AccountStakeinfo::<T>::set_new_stakeinfo(instance.caller.clone(),dest.clone().expect("output"));
-		<ContractStakeinfoMap<T>>::insert(dest.clone().expect("output"), contract_stake_info.clone());
-		<AccountStakeinfoMap<T>>::insert(dest.clone().expect("output"),account_stake_info.clone());
+
 	}: call(origin, instance.addr.clone(), 0u32.into(), Weight::MAX, None, vec![])
 
 	#[pov_mode = Measured]
@@ -2706,10 +2528,7 @@ benchmarks! {
 		let instance = Contract::<T>::new(code, vec![])?;
 		let origin = RawOrigin::Signed(instance.caller.clone());
 		let dest = T::Lookup::lookup(instance.addr.clone()).ok();
-		let contract_stake_info = ContractScarcityInfo::<T>::set_scarcity_info();
-		let account_stake_info = AccountStakeinfo::<T>::set_new_stakeinfo(instance.caller.clone(),dest.clone().expect("output"));
-		<ContractStakeinfoMap<T>>::insert(dest.clone().expect("output"), contract_stake_info.clone());
-		<AccountStakeinfoMap<T>>::insert(dest.clone().expect("output"),account_stake_info.clone());
+
 	}: call(origin, instance.addr.clone(), 0u32.into(), Weight::MAX, None, vec![])
 
 	#[pov_mode = Measured]
@@ -2732,10 +2551,7 @@ benchmarks! {
 		let instance = Contract::<T>::new(code, vec![])?;
 		let origin = RawOrigin::Signed(instance.caller.clone());
 		let dest = T::Lookup::lookup(instance.addr.clone()).ok();
-		let contract_stake_info = ContractScarcityInfo::<T>::set_scarcity_info();
-		let account_stake_info = AccountStakeinfo::<T>::set_new_stakeinfo(instance.caller.clone(),dest.clone().expect("output"));
-		<ContractStakeinfoMap<T>>::insert(dest.clone().expect("output"), contract_stake_info.clone());
-		<AccountStakeinfoMap<T>>::insert(dest.clone().expect("output"),account_stake_info.clone());
+
 	}: call(origin, instance.addr.clone(), 0u32.into(), Weight::MAX, None, vec![])
 
 	// We make the assumption that pushing a constant and dropping a value takes roughly
@@ -2799,10 +2615,7 @@ benchmarks! {
 			);
 			transfer.encode()
 		};
-		let contract_stake_info = ContractScarcityInfo::<T>::set_scarcity_info();
-		let account_stake_info = AccountStakeinfo::<T>::set_new_stakeinfo(instance.caller.clone(),instance.account_id.clone());
-		<ContractStakeinfoMap<T>>::insert(instance.account_id.clone(), contract_stake_info.clone());
-		<AccountStakeinfoMap<T>>::insert(instance.account_id.clone(),account_stake_info.clone());
+
 	}: {
 		<Contracts<T>>::bare_call(
 			instance.caller,
@@ -2848,10 +2661,7 @@ benchmarks! {
 			);
 			transfer.encode()
 		};
-		let contract_stake_info = ContractScarcityInfo::<T>::set_scarcity_info();
-		let account_stake_info = AccountStakeinfo::<T>::set_new_stakeinfo(instance.caller.clone(),instance.account_id.clone());
-		<ContractStakeinfoMap<T>>::insert(instance.account_id.clone(), contract_stake_info.clone());
-		<AccountStakeinfoMap<T>>::insert(instance.account_id.clone(),account_stake_info.clone());
+
 	}: {
 		<Contracts<T>>::bare_call(
 			instance.caller,
