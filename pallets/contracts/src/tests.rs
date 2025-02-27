@@ -15,7 +15,7 @@ mod pallet_dummy;
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
-// This file has been modified by Auguth Research Foundation 
+// This file has been modified by Auguth Research Foundation
 // for Proof of Contract Stake Protocol (PoCS).
 
 use self::test_utils::{ensure_stored, expected_deposit, hash};
@@ -32,7 +32,7 @@ use crate::{
 	weights::ContractWeightInfo,
 	BalanceOf, Code, CollectEvents, Config, ContractInfo, ContractInfoOf, DebugInfo,
 	DefaultAddressGenerator, DeletionQueueCounter, Error, MigrationInProgress, NoopMigration,
-	Origin, Pallet, PristineCode, Schedule
+	Origin, Pallet, PristineCode, Schedule, stake::StakeInfo
 };
 use assert_matches::assert_matches;
 use codec::Encode;
@@ -677,7 +677,7 @@ fn calling_plain_account_fails() {
 	ExtBuilder::default().build().execute_with(|| {
 		let _ = Balances::deposit_creating(&ALICE, 100_000_000);
 		let base_cost = <<Test as Config>::ContractWeightInfo as ContractWeightInfo>::call();
-		
+
 		assert_eq!(
 			Contracts::call(RuntimeOrigin::signed(ALICE), BOB, 0, GAS_LIMIT, None, Vec::new()),
 			Err(DispatchErrorWithPostInfo {
@@ -806,85 +806,99 @@ fn instantiate_and_call_and_deposit_event() {
 		let contract = get_contract(&addr);
 		let deposit_account = contract.deposit_account().deref();
 
+		if let Some(stake_info) = Contracts::get_stake_info(&addr){
+			let stake_level = stake_info.stake_level();
 
-		assert_eq!(
-			System::events(),
-			vec![
-				EventRecord {
-					phase: Phase::Initialization,
-					event: RuntimeEvent::System(frame_system::Event::NewAccount {
-						account: deposit_account.clone(),
-					}),
-					topics: vec![],
-				},
-				EventRecord {
-					phase: Phase::Initialization,
-					event: RuntimeEvent::Balances(pallet_balances::Event::Endowed {
-						account: deposit_account.clone(),
-						free_balance: 131,
-					}),
-					topics: vec![],
-				},
-				EventRecord {
-					phase: Phase::Initialization,
-					event: RuntimeEvent::Balances(pallet_balances::Event::Transfer {
-						from: ALICE,
-						to: deposit_account.clone(),
-						amount: 131,
-					}),
-					topics: vec![],
-				},
-				EventRecord {
-					phase: Phase::Initialization,
-					event: RuntimeEvent::System(frame_system::Event::NewAccount {
-						account: addr.clone()
-					}),
-					topics: vec![],
-				},
-				EventRecord {
-					phase: Phase::Initialization,
-					event: RuntimeEvent::Balances(pallet_balances::Event::Endowed {
-						account: addr.clone(),
-						free_balance: min_balance,
-					}),
-					topics: vec![],
-				},
-				EventRecord {
-					phase: Phase::Initialization,
-					event: RuntimeEvent::Balances(pallet_balances::Event::Transfer {
-						from: ALICE,
-						to: addr.clone(),
-						amount: min_balance,
-					}),
-					topics: vec![],
-				},
-				EventRecord {
-					phase: Phase::Initialization,
-					event: RuntimeEvent::Balances(pallet_balances::Event::Transfer {
-						from: ALICE,
-						to: addr.clone(),
-						amount: value,
-					}),
-					topics: vec![],
-				},
-				EventRecord {
-					phase: Phase::Initialization,
-					event: RuntimeEvent::Contracts(crate::Event::ContractEmitted {
-						contract: addr.clone(),
-						data: vec![1, 2, 3, 4]
-					}),
-					topics: vec![],
-				},
-				EventRecord {
-					phase: Phase::Initialization,
-					event: RuntimeEvent::Contracts(crate::Event::Instantiated {
-						deployer: ALICE,
-						contract: addr.clone()
-					}),
-					topics: vec![hash(&ALICE), hash(&addr)],
-				},
-			]
-		);
+			assert_eq!(
+				System::events(),
+				vec![
+					EventRecord {
+						phase: Phase::Initialization,
+						event: RuntimeEvent::System(frame_system::Event::NewAccount {
+							account: deposit_account.clone(),
+						}),
+						topics: vec![],
+					},
+					EventRecord {
+						phase: Phase::Initialization,
+						event: RuntimeEvent::Balances(pallet_balances::Event::Endowed {
+							account: deposit_account.clone(),
+							free_balance: 131,
+						}),
+						topics: vec![],
+					},
+					EventRecord {
+						phase: Phase::Initialization,
+						event: RuntimeEvent::Balances(pallet_balances::Event::Transfer {
+							from: ALICE,
+							to: deposit_account.clone(),
+							amount: 131,
+						}),
+						topics: vec![],
+					},
+					EventRecord {
+						phase: Phase::Initialization,
+						event: RuntimeEvent::System(frame_system::Event::NewAccount {
+							account: addr.clone()
+						}),
+						topics: vec![],
+					},
+					EventRecord {
+						phase: Phase::Initialization,
+						event: RuntimeEvent::Balances(pallet_balances::Event::Endowed {
+							account: addr.clone(),
+							free_balance: min_balance,
+						}),
+						topics: vec![],
+					},
+					EventRecord {
+						phase: Phase::Initialization,
+						event: RuntimeEvent::Balances(pallet_balances::Event::Transfer {
+							from: ALICE,
+							to: addr.clone(),
+							amount: min_balance,
+						}),
+						topics: vec![],
+					},
+					EventRecord {
+						phase: Phase::Initialization,
+						event: RuntimeEvent::Balances(pallet_balances::Event::Transfer {
+							from: ALICE,
+							to: addr.clone(),
+							amount: value,
+						}),
+						topics: vec![],
+					},
+					EventRecord {
+						phase: Phase::Initialization,
+						event: RuntimeEvent::Contracts(crate::Event::ContractEmitted {
+							contract: addr.clone(),
+							data: vec![1, 2, 3, 4]
+						}),
+						topics: vec![],
+					},
+					EventRecord {
+						phase: Phase::Initialization,
+						event: RuntimeEvent::Contracts(crate::Event::Instantiated {
+							deployer: ALICE,
+							contract: addr.clone()
+						}),
+						topics: vec![hash(&ALICE), hash(&addr)],
+					},
+					EventRecord {
+						phase: Phase::Initialization,
+						event: RuntimeEvent::Contracts(crate::Event::StakeScore{
+							contract: addr.clone(),
+							stake_score: 0,
+							stake_level: 1,
+						}),
+						topics: vec![hash(&addr)],
+					},
+				]
+			);
+		} else {
+			panic!("Failed to Fetch Contract StakeInfo")
+		}
 	});
 }
 
@@ -1275,7 +1289,7 @@ fn deploy_and_call_other_contract() {
 		// Drop previous events
 		initialize_block(2);
 
-		 
+
 		// Call BOB contract, which attempts to instantiate and call the callee contract and
 		// makes various assertions on the results from those calls.
 		assert_ok!(Contracts::call(
@@ -1290,104 +1304,120 @@ fn deploy_and_call_other_contract() {
 		let callee = get_contract(&callee_addr);
 		let deposit_account = callee.deposit_account().deref();
 
-		assert_eq!(
-			System::events(),
-			vec![
-				EventRecord {
-					phase: Phase::Initialization,
-					event: RuntimeEvent::System(frame_system::Event::NewAccount {
-						account: deposit_account.clone(),
-					}),
-					topics: vec![],
-				},
-				EventRecord {
-					phase: Phase::Initialization,
-					event: RuntimeEvent::Balances(pallet_balances::Event::Endowed {
-						account: deposit_account.clone(),
-						free_balance: 131,
-					}),
-					topics: vec![],
-				},
-				EventRecord {
-					phase: Phase::Initialization,
-					event: RuntimeEvent::Balances(pallet_balances::Event::Transfer {
-						from: ALICE,
-						to: deposit_account.clone(),
-						amount: 131,
-					}),
-					topics: vec![],
-				},
-				EventRecord {
-					phase: Phase::Initialization,
-					event: RuntimeEvent::System(frame_system::Event::NewAccount {
-						account: callee_addr.clone()
-					}),
-					topics: vec![],
-				},
-				EventRecord {
-					phase: Phase::Initialization,
-					event: RuntimeEvent::Balances(pallet_balances::Event::Endowed {
-						account: callee_addr.clone(),
-						free_balance: min_balance,
-					}),
-					topics: vec![],
-				},
-				EventRecord {
-					phase: Phase::Initialization,
-					event: RuntimeEvent::Balances(pallet_balances::Event::Transfer {
-						from: ALICE,
-						to: callee_addr.clone(),
-						amount: min_balance,
-					}),
-					topics: vec![],
-				},
-				EventRecord {
-					phase: Phase::Initialization,
-					event: RuntimeEvent::Balances(pallet_balances::Event::Transfer {
-						from: caller_addr.clone(),
-						to: callee_addr.clone(),
-						amount: 32768 // hardcoded in wasm
-					}),
-					topics: vec![],
-				},
-				EventRecord {
-					phase: Phase::Initialization,
-					event: RuntimeEvent::Contracts(crate::Event::Instantiated {
-						deployer: caller_addr.clone(),
-						contract: callee_addr.clone(),
-					}),
-					topics: vec![hash(&caller_addr), hash(&callee_addr)],
-				},
-				EventRecord {
-					phase: Phase::Initialization,
-					event: RuntimeEvent::Balances(pallet_balances::Event::Transfer {
-						from: caller_addr.clone(),
-						to: callee_addr.clone(),
-						amount: 32768,
-					}),
-					topics: vec![],
-				},
-				EventRecord {
-					phase: Phase::Initialization,
-					event: RuntimeEvent::Contracts(crate::Event::Called {
-						caller: Origin::from_account_id(caller_addr.clone()),
-						contract: callee_addr.clone(),
-					}),
-					topics: vec![
-						hash(&Origin::<Test>::from_account_id(caller_addr.clone())),
-						hash(&callee_addr)
-					],
-				},
-				EventRecord {
-					phase: Phase::Initialization,
-					event: RuntimeEvent::Contracts(crate::Event::Called {
-						caller: Origin::from_account_id(ALICE),
-						contract: caller_addr.clone(),
-					}),
-					topics: vec![hash(&Origin::<Test>::from_account_id(ALICE)), hash(&caller_addr)],
-				},
-			]
-		);
+		if let Some(stake_info) = Contracts::get_stake_info(&callee_addr){
+			let stake_level = stake_info.stake_level();
+
+			assert_eq!(
+				System::events(),
+				vec![
+					EventRecord {
+						phase: Phase::Initialization,
+						event: RuntimeEvent::System(frame_system::Event::NewAccount {
+							account: deposit_account.clone(),
+						}),
+						topics: vec![],
+					},
+					EventRecord {
+						phase: Phase::Initialization,
+						event: RuntimeEvent::Balances(pallet_balances::Event::Endowed {
+							account: deposit_account.clone(),
+							free_balance: 131,
+						}),
+						topics: vec![],
+					},
+					EventRecord {
+						phase: Phase::Initialization,
+						event: RuntimeEvent::Balances(pallet_balances::Event::Transfer {
+							from: ALICE,
+							to: deposit_account.clone(),
+							amount: 131,
+						}),
+						topics: vec![],
+					},
+					EventRecord {
+						phase: Phase::Initialization,
+						event: RuntimeEvent::System(frame_system::Event::NewAccount {
+							account: callee_addr.clone()
+						}),
+						topics: vec![],
+					},
+					EventRecord {
+						phase: Phase::Initialization,
+						event: RuntimeEvent::Balances(pallet_balances::Event::Endowed {
+							account: callee_addr.clone(),
+							free_balance: min_balance,
+						}),
+						topics: vec![],
+					},
+					EventRecord {
+						phase: Phase::Initialization,
+						event: RuntimeEvent::Balances(pallet_balances::Event::Transfer {
+							from: ALICE,
+							to: callee_addr.clone(),
+							amount: min_balance,
+						}),
+						topics: vec![],
+					},
+					EventRecord {
+						phase: Phase::Initialization,
+						event: RuntimeEvent::Balances(pallet_balances::Event::Transfer {
+							from: caller_addr.clone(),
+							to: callee_addr.clone(),
+							amount: 32768 // hardcoded in wasm
+						}),
+						topics: vec![],
+					},
+					EventRecord {
+						phase: Phase::Initialization,
+						event: RuntimeEvent::Contracts(crate::Event::Instantiated {
+							deployer: caller_addr.clone(),
+							contract: callee_addr.clone(),
+						}),
+						topics: vec![hash(&caller_addr), hash(&callee_addr)],
+					},
+					EventRecord{
+						phase: Phase::Initialization,
+						event: RuntimeEvent::Contracts(crate::Event::StakeScore{
+							contract: callee_addr.clone(),
+							stake_score: 0,
+							stake_level: stake_level,
+
+						}),
+						topics: vec![hash(&callee_addr)]
+					},
+					EventRecord {
+						phase: Phase::Initialization,
+						event: RuntimeEvent::Balances(pallet_balances::Event::Transfer {
+							from: caller_addr.clone(),
+							to: callee_addr.clone(),
+							amount: 32768,
+						}),
+						topics: vec![],
+					},
+					EventRecord {
+						phase: Phase::Initialization,
+						event: RuntimeEvent::Contracts(crate::Event::Called {
+							caller: Origin::from_account_id(caller_addr.clone()),
+							contract: callee_addr.clone(),
+						}),
+						topics: vec![
+							hash(&Origin::<Test>::from_account_id(caller_addr.clone())),
+							hash(&callee_addr)
+						],
+					},
+					EventRecord {
+						phase: Phase::Initialization,
+						event: RuntimeEvent::Contracts(crate::Event::Called {
+							caller: Origin::from_account_id(ALICE),
+							contract: caller_addr.clone(),
+						}),
+						topics: vec![hash(&Origin::<Test>::from_account_id(ALICE)), hash(&caller_addr)],
+					},
+				]
+			);
+		} else {
+			panic!("Failed to Fetch Contract StakeInfo")
+		}
 	});
 }
 
@@ -3867,81 +3897,94 @@ fn instantiate_with_zero_balance_works() {
 		// Make sure the account exists even though no free balance was send
 		assert_eq!(<Test as Config>::ContractCurrency::free_balance(&addr), min_balance);
 		assert_eq!(<Test as Config>::ContractCurrency::total_balance(&addr), min_balance,);
-
-		assert_eq!(
-			System::events(),
-			vec![
-				EventRecord {
-					phase: Phase::Initialization,
-					event: RuntimeEvent::Balances(pallet_balances::Event::Reserved {
-						who: ALICE,
-						amount: deposit_expected,
-					}),
-					topics: vec![],
-				},
-				EventRecord {
-					phase: Phase::Initialization,
-					event: RuntimeEvent::Contracts(crate::Event::CodeStored { code_hash }),
-					topics: vec![code_hash],
-				},
-				EventRecord {
-					phase: Phase::Initialization,
-					event: RuntimeEvent::System(frame_system::Event::NewAccount {
-						account: deposit_account.clone(),
-					}),
-					topics: vec![],
-				},
-				EventRecord {
-					phase: Phase::Initialization,
-					event: RuntimeEvent::Balances(pallet_balances::Event::Endowed {
-						account: deposit_account.clone(),
-						free_balance: min_balance,
-					}),
-					topics: vec![],
-				},
-				EventRecord {
-					phase: Phase::Initialization,
-					event: RuntimeEvent::Balances(pallet_balances::Event::Transfer {
-						from: ALICE,
-						to: deposit_account.clone(),
-						amount: min_balance,
-					}),
-					topics: vec![],
-				},
-				EventRecord {
-					phase: Phase::Initialization,
-					event: RuntimeEvent::System(frame_system::Event::NewAccount {
-						account: addr.clone(),
-					}),
-					topics: vec![],
-				},
-				EventRecord {
-					phase: Phase::Initialization,
-					event: RuntimeEvent::Balances(pallet_balances::Event::Endowed {
-						account: addr.clone(),
-						free_balance: min_balance,
-					}),
-					topics: vec![],
-				},
-				EventRecord {
-					phase: Phase::Initialization,
-					event: RuntimeEvent::Balances(pallet_balances::Event::Transfer {
-						from: ALICE,
-						to: addr.clone(),
-						amount: min_balance,
-					}),
-					topics: vec![],
-				},
-				EventRecord {
-					phase: Phase::Initialization,
-					event: RuntimeEvent::Contracts(crate::Event::Instantiated {
-						deployer: ALICE,
-						contract: addr.clone(),
-					}),
-					topics: vec![hash(&ALICE), hash(&addr)],
-				},
-			]
-		);
+		if let Some(stake_info) = Contracts::get_stake_info(&addr){
+			let stake_level = stake_info.stake_level();
+			assert_eq!(
+				System::events(),
+				vec![
+					EventRecord {
+						phase: Phase::Initialization,
+						event: RuntimeEvent::Balances(pallet_balances::Event::Reserved {
+							who: ALICE,
+							amount: deposit_expected,
+						}),
+						topics: vec![],
+					},
+					EventRecord {
+						phase: Phase::Initialization,
+						event: RuntimeEvent::Contracts(crate::Event::CodeStored { code_hash }),
+						topics: vec![code_hash],
+					},
+					EventRecord {
+						phase: Phase::Initialization,
+						event: RuntimeEvent::System(frame_system::Event::NewAccount {
+							account: deposit_account.clone(),
+						}),
+						topics: vec![],
+					},
+					EventRecord {
+						phase: Phase::Initialization,
+						event: RuntimeEvent::Balances(pallet_balances::Event::Endowed {
+							account: deposit_account.clone(),
+							free_balance: min_balance,
+						}),
+						topics: vec![],
+					},
+					EventRecord {
+						phase: Phase::Initialization,
+						event: RuntimeEvent::Balances(pallet_balances::Event::Transfer {
+							from: ALICE,
+							to: deposit_account.clone(),
+							amount: min_balance,
+						}),
+						topics: vec![],
+					},
+					EventRecord {
+						phase: Phase::Initialization,
+						event: RuntimeEvent::System(frame_system::Event::NewAccount {
+							account: addr.clone(),
+						}),
+						topics: vec![],
+					},
+					EventRecord {
+						phase: Phase::Initialization,
+						event: RuntimeEvent::Balances(pallet_balances::Event::Endowed {
+							account: addr.clone(),
+							free_balance: min_balance,
+						}),
+						topics: vec![],
+					},
+					EventRecord {
+						phase: Phase::Initialization,
+						event: RuntimeEvent::Balances(pallet_balances::Event::Transfer {
+							from: ALICE,
+							to: addr.clone(),
+							amount: min_balance,
+						}),
+						topics: vec![],
+					},
+					EventRecord {
+						phase: Phase::Initialization,
+						event: RuntimeEvent::Contracts(crate::Event::Instantiated {
+							deployer: ALICE,
+							contract: addr.clone(),
+						}),
+						topics: vec![hash(&ALICE), hash(&addr)],
+					},
+					EventRecord {
+						phase: Phase::Initialization,
+						event: RuntimeEvent::Contracts(crate::Event::StakeScore{
+							contract: addr.clone(),
+							stake_score: 0,
+							stake_level: stake_level,
+						}),
+						topics: vec![hash(&addr)],
+					},
+				]
+			);
+		} else {
+			panic!("Failed to Fetch Contract StakeInfo")
+		}
 	});
 }
 
@@ -3980,90 +4023,103 @@ fn instantiate_with_below_existential_deposit_works() {
 		// Make sure the account exists even though not enough free balance was send
 		assert_eq!(<Test as Config>::ContractCurrency::free_balance(&addr), min_balance + 50);
 		assert_eq!(<Test as Config>::ContractCurrency::total_balance(&addr), min_balance + 50);
-
-		assert_eq!(
-			System::events(),
-			vec![
-				EventRecord {
-					phase: Phase::Initialization,
-					event: RuntimeEvent::Balances(pallet_balances::Event::Reserved {
-						who: ALICE,
-						amount: deposit_expected,
-					}),
-					topics: vec![],
-				},
-				EventRecord {
-					phase: Phase::Initialization,
-					event: RuntimeEvent::Contracts(crate::Event::CodeStored { code_hash }),
-					topics: vec![code_hash],
-				},
-				EventRecord {
-					phase: Phase::Initialization,
-					event: RuntimeEvent::System(frame_system::Event::NewAccount {
-						account: deposit_account.clone(),
-					}),
-					topics: vec![],
-				},
-				EventRecord {
-					phase: Phase::Initialization,
-					event: RuntimeEvent::Balances(pallet_balances::Event::Endowed {
-						account: deposit_account.clone(),
-						free_balance: min_balance,
-					}),
-					topics: vec![],
-				},
-				EventRecord {
-					phase: Phase::Initialization,
-					event: RuntimeEvent::Balances(pallet_balances::Event::Transfer {
-						from: ALICE,
-						to: deposit_account.clone(),
-						amount: min_balance,
-					}),
-					topics: vec![],
-				},
-				EventRecord {
-					phase: Phase::Initialization,
-					event: RuntimeEvent::System(frame_system::Event::NewAccount {
-						account: addr.clone()
-					}),
-					topics: vec![],
-				},
-				EventRecord {
-					phase: Phase::Initialization,
-					event: RuntimeEvent::Balances(pallet_balances::Event::Endowed {
-						account: addr.clone(),
-						free_balance: min_balance,
-					}),
-					topics: vec![],
-				},
-				EventRecord {
-					phase: Phase::Initialization,
-					event: RuntimeEvent::Balances(pallet_balances::Event::Transfer {
-						from: ALICE,
-						to: addr.clone(),
-						amount: min_balance,
-					}),
-					topics: vec![],
-				},
-				EventRecord {
-					phase: Phase::Initialization,
-					event: RuntimeEvent::Balances(pallet_balances::Event::Transfer {
-						from: ALICE,
-						to: addr.clone(),
-						amount: 50,
-					}),
-					topics: vec![],
-				},
-				EventRecord {
-					phase: Phase::Initialization,
-					event: RuntimeEvent::Contracts(crate::Event::Instantiated {
-						deployer: ALICE,
-						contract: addr.clone(),
-					}),
-					topics: vec![hash(&ALICE), hash(&addr)],
-				},
-			]
-		);
+		if let Some(stake_info) = Contracts::get_stake_info(&addr){
+			let stake_level = stake_info.stake_level();
+			assert_eq!(
+				System::events(),
+				vec![
+					EventRecord {
+						phase: Phase::Initialization,
+						event: RuntimeEvent::Balances(pallet_balances::Event::Reserved {
+							who: ALICE,
+							amount: deposit_expected,
+						}),
+						topics: vec![],
+					},
+					EventRecord {
+						phase: Phase::Initialization,
+						event: RuntimeEvent::Contracts(crate::Event::CodeStored { code_hash }),
+						topics: vec![code_hash],
+					},
+					EventRecord {
+						phase: Phase::Initialization,
+						event: RuntimeEvent::System(frame_system::Event::NewAccount {
+							account: deposit_account.clone(),
+						}),
+						topics: vec![],
+					},
+					EventRecord {
+						phase: Phase::Initialization,
+						event: RuntimeEvent::Balances(pallet_balances::Event::Endowed {
+							account: deposit_account.clone(),
+							free_balance: min_balance,
+						}),
+						topics: vec![],
+					},
+					EventRecord {
+						phase: Phase::Initialization,
+						event: RuntimeEvent::Balances(pallet_balances::Event::Transfer {
+							from: ALICE,
+							to: deposit_account.clone(),
+							amount: min_balance,
+						}),
+						topics: vec![],
+					},
+					EventRecord {
+						phase: Phase::Initialization,
+						event: RuntimeEvent::System(frame_system::Event::NewAccount {
+							account: addr.clone()
+						}),
+						topics: vec![],
+					},
+					EventRecord {
+						phase: Phase::Initialization,
+						event: RuntimeEvent::Balances(pallet_balances::Event::Endowed {
+							account: addr.clone(),
+							free_balance: min_balance,
+						}),
+						topics: vec![],
+					},
+					EventRecord {
+						phase: Phase::Initialization,
+						event: RuntimeEvent::Balances(pallet_balances::Event::Transfer {
+							from: ALICE,
+							to: addr.clone(),
+							amount: min_balance,
+						}),
+						topics: vec![],
+					},
+					EventRecord {
+						phase: Phase::Initialization,
+						event: RuntimeEvent::Balances(pallet_balances::Event::Transfer {
+							from: ALICE,
+							to: addr.clone(),
+							amount: 50,
+						}),
+						topics: vec![],
+					},
+					EventRecord {
+						phase: Phase::Initialization,
+						event: RuntimeEvent::Contracts(crate::Event::Instantiated {
+							deployer: ALICE,
+							contract: addr.clone(),
+						}),
+						topics: vec![hash(&ALICE), hash(&addr)],
+					},
+					EventRecord {
+						phase: Phase::Initialization,
+						event: RuntimeEvent::Contracts(crate::Event::StakeScore{
+							contract: addr.clone(),
+							stake_score : 0,
+							stake_level: stake_level,
+						}),
+						topics: vec![hash(&addr)],
+					},
+				]
+			);
+		} else {
+			panic!("Failed to Fetch Contract StakeInfo")
+		}
 	});
 }
 
@@ -5751,259 +5807,4 @@ fn root_cannot_instantiate() {
 			DispatchError::RootNotAllowed
 		);
 	});
-}
-
-// POCS Tests
-/* 
-#[test]
-fn pocs_contract_stake_event() {
-    let (wasm, _) = compile_module::<Test>("dummy").unwrap(); 
-    ExtBuilder::default().existential_deposit(50).build().execute_with(|| {
-        let _ = Balances::deposit_creating(&ALICE, 1_000_000);
-
-        // Instantiate the contract
-        assert_ok!( Contracts::instantiate_with_code(
-            RuntimeOrigin::signed(ALICE),
-            100_000, // Endowment
-            GAS_LIMIT,
-            None, // Salt
-            wasm,
-            vec![], // Input data
-            vec![], // Storage deposits
-        ));
-
-		let events = frame_system::Pallet::<Test>::events();
-		let contract_address = if let Some(record) = events.iter().find(|e| 
-			matches!(e.event, RuntimeEvent::Contracts(crate::Event::Instantiated { .. }))
-		) {
-			if let RuntimeEvent::Contracts(crate::Event::Instantiated { contract, .. }) = &record.event {
-				contract.clone()
-			} else {
-				panic!("Expected Instantiated event");
-			}
-		} else {
-			panic!("Expected Instantiated event to be emitted");
-		};
-
-		let contract_stake_info_event = events.iter().find_map(|record| {
-			if let RuntimeEvent::Contracts(crate::Event::ContractStakeinfoevent { contract_address, reputation, recent_blockheight,stake_score }) = &record.event {
-				Some((contract_address.clone(), reputation, recent_blockheight,stake_score))
-			} else {
-				None
-			}
-		}).expect("Expected ContractStakeinfoevent event to be emitted");
-		
-		assert_eq!(contract_stake_info_event.0, contract_address);
-		assert_eq!(*contract_stake_info_event.1, 1);
-		assert_eq!(*contract_stake_info_event.2, System::block_number());
-    });
-}
-
-#[test]
-fn pocs_account_stake_event() {
-    let (wasm, _) = compile_module::<Test>("dummy").unwrap(); 
-    ExtBuilder::default().existential_deposit(50).build().execute_with(|| {
-        let _ = Balances::deposit_creating(&ALICE, 1_000_000);
-
-		let contract_owner = ALICE;
-
-        // Instantiate the contract
-        assert_ok!( Contracts::instantiate_with_code(
-            RuntimeOrigin::signed(ALICE),
-            100_000, // Endowment
-            GAS_LIMIT,
-            None, // Salt
-            wasm,
-            vec![], // Input data
-            vec![], // Storage deposits
-        ));
-
-		let events = frame_system::Pallet::<Test>::events();
-		let contract_address = if let Some(record) = events.iter().find(|e| 
-			matches!(e.event, RuntimeEvent::Contracts(crate::Event::Instantiated { .. }))
-		) {
-			if let RuntimeEvent::Contracts(crate::Event::Instantiated { contract, .. }) = &record.event {
-				contract.clone()
-			} else {
-				panic!("Expected Instantiated event");
-			}
-		} else {
-			panic!("Expected Instantiated event to be emitted");
-		};
-
-		let account_stake_info_event = events.iter().find_map(|record| {
-			if let RuntimeEvent::Contracts(crate::Event::AccountStakeinfoevent { contract_address, owner, delegate_to, delegate_at }) = &record.event {
-				Some((contract_address.clone(), owner, delegate_to, delegate_at))
-			} else {
-				None
-			}
-		}).expect("Expected ContractStakeinfoevent event to be emitted");
-		
-		assert_eq!(account_stake_info_event.0, contract_address);
-		assert_eq!(*account_stake_info_event.1, contract_owner);
-		assert_eq!(*account_stake_info_event.2, contract_owner);
-		assert_eq!(*account_stake_info_event.3, System::block_number());
-    });
-}
-
-#[test]
-fn pocs_update_delegate_invalid_owner() {
-	let (wasm, _) = compile_module::<Test>("dummy").unwrap(); 
-    ExtBuilder::default().existential_deposit(50).build().execute_with(|| {
-        let _ = Balances::deposit_creating(&ALICE, 1_000_000);
-
-        // Instantiate the contract
-        assert_ok!( Contracts::instantiate_with_code(
-            RuntimeOrigin::signed(ALICE),
-            100_000, // Endowment
-            GAS_LIMIT,
-            None, // Salt
-            wasm,
-            vec![], // Input data
-            vec![], // Storage deposits
-        ));
-
-		let events = frame_system::Pallet::<Test>::events();
-		let contract_address = if let Some(record) = events.iter().find(|e| 
-			matches!(e.event, RuntimeEvent::Contracts(crate::Event::Instantiated { .. }))
-		) {
-			if let RuntimeEvent::Contracts(crate::Event::Instantiated { contract, .. }) = &record.event {
-				contract.clone()
-			} else {
-				panic!("Expected Instantiated event");
-			}
-		} else {
-			panic!("Expected Instantiated event to be emitted");
-		};
-
-		// Update delegate with invalid owner
-		assert_noop!(
-            Contracts::update_delegate(
-                RuntimeOrigin::signed(BOB),
-                contract_address.clone(),
-                CHARLIE, 
-            ),
-            Error::<Test>::InvalidOwner
-        );
-	});
-}
-
-#[test]
-fn pocs_update_delegate_valid_owner() {
-	let (wasm, _) = compile_module::<Test>("dummy").unwrap(); 
-    ExtBuilder::default().existential_deposit(50).build().execute_with(|| {
-        let _ = Balances::deposit_creating(&ALICE, 1_000_000);
-
-        // Instantiate the contract
-        assert_ok!( Contracts::instantiate_with_code(
-            RuntimeOrigin::signed(ALICE),
-            100_000, // Endowment
-            GAS_LIMIT,
-            None, // Salt
-            wasm,
-            vec![], // Input data
-            vec![], // Storage deposits
-        ));
-
-		let events = frame_system::Pallet::<Test>::events();
-		let contract_address = if let Some(record) = events.iter().find(|e| 
-			matches!(e.event, RuntimeEvent::Contracts(crate::Event::Instantiated { .. }))
-		) {
-			if let RuntimeEvent::Contracts(crate::Event::Instantiated { contract, .. }) = &record.event {
-				contract.clone()
-			} else {
-				panic!("Expected Instantiated event");
-			}
-		} else {
-			panic!("Expected Instantiated event to be emitted");
-		};
-		<ContractStakeinfoMap<Test>>::insert(&contract_address, ContractScarcityInfo::<Test> {
-			reputation: 10,
-			recent_blockheight: <frame_system::Pallet<Test>>::block_number(),
-			stake_score: 0,
-		});
-		// Update delegate with invalid owner
-		assert_ok!(
-            Contracts::update_delegate(
-                RuntimeOrigin::signed(ALICE),
-                contract_address.clone(),
-                CHARLIE, 
-            ),
-		);
-
-		let events = frame_system::Pallet::<Test>::events();
-		let contract_events: Vec<_> = events.iter().filter_map(|record| {
-			if let RuntimeEvent::Contracts(crate::Event::ContractStakeinfoevent { contract_address, reputation, recent_blockheight,stake_score }) = &record.event {
-				Some((contract_address.clone(), *reputation, *recent_blockheight,*stake_score))
-			} else {
-				None
-			}
-		}).collect();
-
-		assert!(contract_events.len() >= 2, "Expected at least two ContractStakeinfoevent events");
-		
-		let contract_stake_info_event = &contract_events[1];
-
-		let account_events: Vec<_> = events.iter().filter_map(|record| {
-			if let RuntimeEvent::Contracts(crate::Event::AccountStakeinfoevent { contract_address, owner, delegate_to, delegate_at }) = &record.event {
-				Some((contract_address.clone(), owner.clone(), delegate_to.clone(), delegate_at))
-			} else {
-				None
-			}
-		}).collect();
-		
-		assert!(account_events.len() >= 2, "Expected at least two AccountStakeinfoevent events");
-		
-		let account_stake_info_event = &account_events[1];
-
-		assert_eq!(contract_stake_info_event.0, contract_address);
-		assert_eq!(contract_stake_info_event.1, 10);
-		assert_eq!(contract_stake_info_event.2, System::block_number());
-
-		assert_eq!(account_stake_info_event.0, contract_address);
-		assert_eq!(account_stake_info_event.1, ALICE);
-		assert_eq!(account_stake_info_event.2, CHARLIE);
-		assert_eq!(*account_stake_info_event.3, System::block_number());
-	});
-
-}
-
-#[test]
-fn reward_claim_passes_when_delegate_valid() {
-	ExtBuilder::default().existential_deposit(50).build().execute_with(|| {
-
-		let reward_contract_address: AccountId32  = AccountId32::new([3u8; 32]);
-		let contract_address: AccountId32 = AccountId32::new([4u8; 32]);
-
-        let input_data = vec![1, 2, 3]; 
-
-        assert_ok!(Pallet::<Test>::reward_claim(
-					RuntimeOrigin::signed(ALICE),
-            reward_contract_address, 
-            contract_address,         
-        ));
-    });
-}
-
-#[test]
-fn reward_claim_fails_when_delegate_invalid() {
-	ExtBuilder::default().existential_deposit(50).build().execute_with(|| {
-
-
-		let reward_contract_address: AccountId32  = AccountId32::new([3u8; 32]);
-		let contract_address: AccountId32 = AccountId32::new([4u8; 32]);
-
-        let input_data = vec![1, 2, 3];
-
-        assert_noop!(
-            Pallet::<Test>::reward_claim(
-							RuntimeOrigin::signed(ALICE),
-							reward_contract_address, 
-							contract_address,         
-            ),
-						Error::<Test>::InvalidOwner
-        );
-    });
-}
-
-*/
+}           

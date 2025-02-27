@@ -17,3 +17,7 @@
 
 # VS code extras
 .vscode
+
+# Nvim extras
+
+nvim.appimage

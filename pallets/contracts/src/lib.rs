@@ -15,7 +15,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
-// This file has been modified by Auguth Research Foundation 
+// This file has been modified by Auguth Research Foundation
 // for Proof of Contract Stake Protocol (PoCS).
 
 //! # Contracts Pallet (PoCS Version)
@@ -32,7 +32,7 @@
 //! functionality. It can be used with other modules that implement accounts based on [`Currency`].
 //! These "smart-contract accounts" have the ability to instantiate smart-contracts and make calls
 //! to other contract and non-contract accounts.
-//! 
+//!
 //! The newly deployed contracts will include delegate and it's stake score information.
 //!
 //! The smart-contract code is stored once, and later retrievable via its hash.
@@ -105,7 +105,6 @@ mod stake;
 pub mod chain_extension;
 pub mod migration;
 pub mod weights;
-pub mod gasstakeinfo;
 
 #[cfg(test)]
 mod tests;
@@ -146,6 +145,7 @@ use sp_runtime::traits::{Convert, Hash, Saturating, StaticLookup, Zero};
 use sp_runtime::SaturatedConversion;
 use sp_std::{fmt::Debug, prelude::*};
 
+use stake::StakeRequest;
 pub use weights::ContractWeightInfo;
 
 pub use crate::{
@@ -667,7 +667,7 @@ pub mod pallet {
 					output.result = Err(<Error<T>>::ContractReverted.into());
 				}
 			}
-	
+
 			output.gas_meter.into_dispatch_result(output.result, T::ContractWeightInfo::call())
 
 
@@ -759,7 +759,7 @@ pub mod pallet {
 		///
 		/// This resets the stake score of the contracts by updating [`pallet::AccountStakeinfoMap`]
 		/// and [`pallet::ContractStakeinfoMap`] by `set_new_stakeinfo`
-		/// 
+		///
 		/// # Parameters
 		///
 		/// * `contract_address`: Address of the contract for which the delegate has to be changed.
@@ -768,7 +768,7 @@ pub mod pallet {
 		/// Updating the delegate is executed as follows:
 		///
 		/// - The owner of the contract address is verified from Origin
-		/// - The reputation criteria is ensured 
+		/// - The reputation criteria is ensured
 		/// - The [`pallet::AccountStakeinfoMap`] is updated to the newly delegated validator
 		/// - [`pallet::ContractStakeinfoMap`] is reset to `default` values.
 		/// - `default` values are reputation value = 1, stake_score = 0, recentblockheight = currentblockheight.
@@ -805,21 +805,21 @@ pub mod pallet {
 		// 				stake_score: new_contract_stake_info.stake_score,
 		// 			},
 		// 		);
-		// 		// Make Stake Zero 
+		// 		// Make Stake Zero
 		// 		let _ = Staking::<T>::new_unbond(
 		// 			ROrigin::Signed(origin.clone()).into(),
 		// 			new_contract_stake_info.stake_score.saturated_into(),
 		// 			account_stake_info.delegate_to,
 
 		// 		);
-		// 		// Reputation Criteria Constant (PoCS) 		
+		// 		// Reputation Criteria Constant (PoCS)
 		// 		ensure!(new_contract_stake_info.reputation >= 10, Error::<T>::InsufficientReputation);
 		// 		// The deployer as a validator/nominator nominates the required validator (PoCS)
 		// 		let _ = <pallet_staking::Pallet<T> as sp_staking::StakingInterface>::nominate(
 		// 			&new_account_stake_info.owner.clone(),
 		// 			vec![new_account_stake_info.delegate_to.clone()],
-		// 		);				
-		// 		Ok(())  
+		// 		);
+		// 		Ok(())
 		// }
 		// //pocs
 		// #[pallet::weight(0)]
@@ -841,11 +841,11 @@ pub mod pallet {
 		// 	// Ensure the caller is the owner and delegation is valid
 		// 	ensure!(origin == account_stake_info.owner, Error::<T>::InvalidOwner);
 		// 	ensure!(account_stake_info.delegate_to == account_stake_info_reward_contract.owner, Error::<T>::InvalidOwner);
-		
+
 		// 	// Setup contract call parameters
 		// 	let value: BalanceOf<T> = Default::default();  // No funds transferred.
 		// 	let gas_limit: Weight = Weight::from_parts(100_000_000_000, 3 * 1024 * 1024); // Adjust gas as necessary.
-		
+
 		// 	// Prepare the function arguments
 		// 	let owner = account_stake_info.owner;              // owner: AccountId
 		// 	let delegate_to = account_stake_info.delegate_to;         // delegate_to: AccountId
@@ -869,7 +869,7 @@ pub mod pallet {
 
 
 		// 	let common = CommonInput {
-		// 		origin: Origin::Signed(origin.clone()), 
+		// 		origin: Origin::Signed(origin.clone()),
 		// 		value: 0u32.into(),
 		// 		data: call_data.clone(),
 		// 		gas_limit: gas_limit.clone(),
@@ -888,7 +888,7 @@ pub mod pallet {
 
 		// 	Ok(())
 		// }
-		
+
 
 		/// Instantiates a contract from a previously deployed wasm binary.
 		///
@@ -1035,6 +1035,7 @@ pub mod pallet {
 		StakeScore {
 			contract: T::AccountId,
 			stake_score: u64,
+			stake_level: u16,
 		},
 
 		RewardClaimed{
@@ -1056,13 +1057,11 @@ pub mod pallet {
 		/// Invalid combination of flags supplied to `seal_call` or `seal_delegate_call`.
 		InvalidCallFlags,
 		/// PoCS
-		InsufficientReputation,
-		BondingFailed,
-		InstantiateAgain,
+		StakingFailed,
 		/// The executed contract exhausted its gas limit.
 		OutOfGas,
 		/// The output buffer supplied to a contract API call was too small.
-		OutputBufferTooSmall,	
+		OutputBufferTooSmall,
 		/// Performing the requested transfer failed. Probably because there isn't enough
 		/// free balance in the sender's account.
 		TransferFailed,
@@ -1071,8 +1070,6 @@ pub mod pallet {
 		MaxCallDepthReached,
 		/// Contract Address Owner Check Fails due to Invalid Owner (PoCS)
 		InvalidOwner,
-		/// No Contract Address Found (PoCS)
-		ContractAddressNotFound,
 		ContractCallFailed,
 		/// No contract was found at the specified address.
 		ContractNotFound,
@@ -1187,11 +1184,11 @@ pub mod pallet {
 
 	/// Storage map for mapping account IDs to [`gasstakeinfo::AccountStakeinfo`] objects (PoCS)
 	#[pallet::storage]
-	#[pallet::getter(fn delegate_info)]
+	#[pallet::getter(fn get_delegate_info)]
 	pub type DelegateInfoMap<T: Config> = StorageMap<_, Twox64Concat, T::AccountId, DelegateInfo<T>>;
 	// Added mapping of contract account IDs to [`gasstakeinfo::ContractScarcityInfo`] objects (PoCS)
 	#[pallet::storage]
-	#[pallet::getter(fn stake_info)]
+	#[pallet::getter(fn get_stake_info)]
 	pub type StakeInfoMap<T: Config> = StorageMap<_, Twox64Concat, T::AccountId, StakeInfo<T>>;
 	///
 	/// Child trie deletion is a heavy operation depending on the amount of storage items
@@ -1492,9 +1489,12 @@ macro_rules! ensure_no_migration_in_progress {
 	};
 }
 
+
+use crate::{DelegateInfoMap,StakeInfoMap};
+use crate::stake::{DelegateInfo,StakeInfo};
+
 impl<T: Config> Pallet<T> {
 
-	
 	/// Perform a call to a specified contract.
 	///
 	/// This function is similar to [`Self::call`], but doesn't perform any address lookups
@@ -1631,18 +1631,18 @@ impl<T: Config> Pallet<T> {
 			debug_message: debug_message.as_mut(),
 		};
 
-		let output = InstantiateInput::<T> { code, salt }.run_guarded(common);			
+		let output = InstantiateInput::<T> { code, salt }.run_guarded(common);
 
 		ContractInstantiateResult {
 			result: output
-				.result
+						.result
 				.map(|(account_id, result)| InstantiateReturnValue { result, account_id })
-				.map_err(|e| e.error),
-			gas_consumed: output.gas_meter.gas_consumed(),
-			gas_required: output.gas_meter.gas_required(),
-			storage_deposit: output
-				.storage_deposit
-				.saturating_add(&StorageDeposit::Charge(upload_deposit)),
+						.map_err(|e| e.error),
+					gas_consumed: output.gas_meter.gas_consumed(),
+					gas_required: output.gas_meter.gas_required(),
+					storage_deposit: output
+						.storage_deposit
+						.saturating_add(&StorageDeposit::Charge(upload_deposit)),
 			debug_message: debug_message.unwrap_or_default().to_vec(),
 			events: events(),
 		}

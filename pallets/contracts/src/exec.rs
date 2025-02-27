@@ -15,7 +15,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
-// This file has been modified by Auguth Research Foundation 
+// This file has been modified by Auguth Research Foundation
 // for Proof of Contract Stake Protocol (PoCS).
 
 use crate::{
@@ -47,6 +47,7 @@ use sp_core::{
 use sp_io::{crypto::secp256k1_ecdsa_recover_compressed, hashing::blake2_256};
 use sp_runtime::{traits::{Convert, Hash, Zero},SaturatedConversion};
 use sp_std::{marker::PhantomData, mem, prelude::*, vec::Vec};
+use pallet_contracts_primitives::ReturnFlags;
 
 pub type AccountIdOf<T> = <T as frame_system::Config>::AccountId;
 pub type MomentOf<T> = <<T as Config>::Time as Time>::Moment;
@@ -311,6 +312,7 @@ pub trait Ext: sealing::Sealed {
 
 	/// Returns a nonce that is incremented for every instantiated contract.
 	fn nonce(&mut self) -> u64;
+
 }
 
 /// Describes the different functions that can be exported by an [`Executable`].
@@ -531,49 +533,12 @@ impl<T: Config> CachedContract<T> {
 	}
 }
 
-use crate::{DelegateInfoMap,StakeInfoMap};
-use crate::stake::{DelegateInfo,StakeInfo};
+
+
+use crate::stake::StakeRequest;
+
 
 impl<T: Config> Frame<T> {
-
-	fn stake_upgrade(&self) -> Result<(),Error<T>>{
-		let contract_addr = self.account_id.clone();
-		if let Some(delegate_info) = Contracts::<T>::delegate_info(&contract_addr){
-			if let Some(mut stake_info) = Contracts::<T>::stake_info(&contract_addr){
-				let gas = self.nested_gas.gas_consumed().ref_time();
-				stake_info.update_mut(&gas);
-				<StakeInfoMap<T>>::insert(&contract_addr, stake_info);
-				Ok(())
-			} else {
-				log::error!("Attempting StakeInfo Recovery");
-				let recovery: StakeInfo<T> = StakeInfo::<T>::new();
-				<StakeInfoMap<T>>::insert(&contract_addr, recovery);
-				if let Some(mut stake_info) = Contracts::<T>::stake_info(&contract_addr){
-					let gas = self.nested_gas.gas_consumed().ref_time();
-					stake_info.update_mut(&gas);
-					<StakeInfoMap<T>>::insert(&contract_addr, stake_info);
-					Ok(())
-				}else{
-					log::error!("Contract not Initialized for Staking, Re-Instantiate");
-					return Err(Error::<T>::InstantiateAgain);
-				}
-			}
-		} else {
-			log::error!("Contract not Initialized for Staking, Re-Instantiate");
-			return Err(Error::<T>::InstantiateAgain);
-		}
-	}
-		// Make origin a nominator here
-		// Question: Why would 
-		// <pallet_staking::Pallet<T> as sp_staking::StakingInterface>::bond(
-		// 	&delegate_info.owner,
-		// 	stake_info.stake_score.saturated_into(),
-		// 	&delegate_info.owner,
-		// ).map_err(|_| Error::<T>::BondingFailed)?;
-
-	fn stake_destroy(contract_addr: &T::AccountId){
-
-	}
 
 	/// Return the `contract_info` of the current contract.
 	fn contract_info(&mut self) -> &mut ContractInfo<T> {
@@ -661,31 +626,7 @@ where
 	T: Config,
 	E: Executable<T>,
 {
-	fn stake_init(&self) {
-		let contract_addr = self.top_frame().account_id.clone();
-		let Some(origin) = self.origin.account_id().ok() else {
-			log::error!("Failed to retrieve origin account ID");
-			return; 
-		};
-		let delegate_info: DelegateInfo<T> = DelegateInfo::<T>::new(&origin);
-		let stake_info: StakeInfo<T> = StakeInfo::<T>::new();
-		<StakeInfoMap<T>>::insert(&origin, stake_info.clone());
-		<DelegateInfoMap<T>>::insert(&origin, delegate_info.clone());
-		Contracts::<T>::deposit_event(
-			vec![T::Hashing::hash_of(&contract_addr)],
-			Event::StakeScore {
-				contract: contract_addr.clone(),
-				stake_score: stake_info.stake_score.clone(),
-			},
-		);
-		Contracts::<T>::deposit_event(
-			vec![T::Hashing::hash_of(&contract_addr)],
-			Event::StakeDelegated {
-				contract: contract_addr.clone(),
-				delegate_to: origin.clone(),
-			},
-		);
-	}
+
 
 	/// Create and run a new call stack by calling into `dest`.
 	///
@@ -750,7 +691,7 @@ where
 				salt,
 				input_data: input_data.as_ref(),
 			},
-			Origin::from_account_id(origin.clone()),
+			Origin::from_account_id(origin),
 			gas_meter,
 			storage_meter,
 			schedule,
@@ -759,11 +700,9 @@ where
 			Determinism::Enforced,
 		)?;
 		let account_id = stack.top_frame().account_id.clone();
-		let result = stack.run(executable, input_data).map(|ret| (account_id, ret));
-		stack.stake_init();
-		return result
-	}
-	
+		stack.run(executable, input_data).map(|ret| (account_id, ret))
+}
+
 
 	/// Create a new call stack.
 	fn new(
@@ -965,42 +904,7 @@ where
 
 			let frame = self.top_frame();
 			let account_id = &frame.account_id.clone();
-
-			// // Retrieve contract scarcity information for the given account_id (PoCS)
-			// let contract_stake_info: ContractScarcityInfo<T> = Contracts::gettercontractinfo(account_id.clone()).ok_or(<Error<T>>::ContractAddressNotFound)?;
-			// // Retrieve account stake information for the given account_id  (PoCS)
-			// let account_stake_info: AccountStakeinfo<T> = Contracts::getterstakeinfo(account_id.clone()).ok_or(<Error<T>>::ContractAddressNotFound)?;
-			// // Calculate the gas consumption for the current frame  (PoCS)
-			// let new_weight = frame.nested_gas.gas_consumed();
-			// //pocs
-			// let mut expected_stake_score: u128 = (new_weight.ref_time() * (contract_stake_info.reputation+1)).into();	
-			// expected_stake_score += contract_stake_info.stake_score;
-			// // Update scarcity information using contract_stake_info data  (PoCS)
-			// let new_scarcity_info = ContractScarcityInfo::<T>::update_scarcity_info(
-			// 	contract_stake_info.reputation,
-			// 	contract_stake_info.recent_blockheight,
-			// 	contract_stake_info.stake_score,
-			// 	expected_stake_score,
-			// );
-			
-			// 	//increase the stake score of the nominator(dev)
-			// <pallet_staking::Pallet<T> as sp_staking::StakingInterface>::bond_extra(
-			// 		&account_stake_info.owner,
-			// 		(new_scarcity_info.stake_score - contract_stake_info.stake_score).try_into().unwrap_or_default(),
-			// ).map_err(|_| Error::<T>::FailedBonding)?;		   
-
-			// // Insert the updated scarcity information into ContractStakeinfoMap  (PoCS)
-			// <ContractStakeinfoMap<T>>::insert(&account_id.clone(), new_scarcity_info.clone());
-			// // Deposit an event to indicate the update of scarcity information  (PoCS)
-			// Contracts::<T>::deposit_event(
-			// 	vec![T::Hashing::hash_of(&account_id.clone())],
-			// 	Event::ContractStakeinfoevent {
-			// 		contract_address: account_id.clone(),
-			// 		reputation: new_scarcity_info.reputation,
-			// 		recent_blockheight: new_scarcity_info.recent_blockheight,
-			// 		stake_score: new_scarcity_info.stake_score,
-			// 	},
-			// );	
+			let gas = frame.nested_gas.gas_consumed().ref_time();
 
 			match (entry_point, delegated_code_hash) {
 				(ExportedFunction::Constructor, _) => {
@@ -1021,26 +925,40 @@ where
 					// Deposit an instantiation event.
 					Contracts::<T>::deposit_event(
 						vec![T::Hashing::hash_of(&caller), T::Hashing::hash_of(account_id)],
-						Event::Instantiated { deployer: caller, contract: account_id.clone() },
+						Event::Instantiated { deployer: caller.clone(), contract: account_id.clone() },
 					);
+
+					// Initiate StakeScore
+
+					StakeRequest::<T>::empty(&caller, &account_id);
+
 				},
 				(ExportedFunction::Call, Some(code_hash)) => {
 					Contracts::<T>::deposit_event(
 						vec![T::Hashing::hash_of(account_id), T::Hashing::hash_of(&code_hash)],
 						Event::DelegateCalled { contract: account_id.clone(), code_hash },
 					);
+
+					// Update StakeScore, detect delegate calls if any
+
+					<StakeRequest<T>>::new(&account_id, &gas);
 				},
 				(ExportedFunction::Call, None) => {
 					// If a special limit was set for the sub-call, we enforce it here.
 					// The sub-call will be rolled back in case the limit is exhausted.
 					let frame = self.top_frame_mut();
 					let contract = frame.contract_info.as_contract();
-					frame.nested_storage.enforce_subcall_limit(contract)?;			
+					frame.nested_storage.enforce_subcall_limit(contract)?;
 					let caller = self.caller();
 					Contracts::<T>::deposit_event(
 						vec![T::Hashing::hash_of(&caller), T::Hashing::hash_of(&account_id)],
 						Event::Called { caller: caller.clone(), contract: account_id.clone() },
 					);
+
+					// Update StakeScore
+
+					<StakeRequest<T>>::new(&account_id, &gas);
+
 				},
 			}
 
@@ -1604,14 +1522,11 @@ mod sealing {
 mod tests {
 	use super::*;
 	use crate::{
-		exec::ExportedFunction::*,
-		gas::GasMeter,
-		tests::{
+		exec::ExportedFunction::*, gas::GasMeter, pallet::StakeInfoMap, stake::StakeInfo, tests::{
 			test_utils::{get_balance, hash, place_contract, set_balance},
 			ExtBuilder, RuntimeCall, RuntimeEvent as MetaEvent, Test, TestFilter, ALICE, BOB,
 			CHARLIE, GAS_LIMIT,
-		},
-		Error,
+		}, Error
 	};
 	use assert_matches::assert_matches;
 	use codec::{Decode, Encode};
@@ -2545,16 +2460,33 @@ mod tests {
 				Ok((address, ref output)) if output.data == vec![80, 65, 83, 83] => address
 			);
 
-			// Check that the newly created account has the expected code hash and
-			// there are instantiation event.
-			assert_eq!(
-				ContractInfo::<Test>::load_code_hash(&instantiated_contract_address).unwrap(),
-				dummy_ch
-			);
-			assert_eq!(
-				&events(),
-				&[Event::Instantiated { deployer: ALICE, contract: instantiated_contract_address }]
-			);
+			if let Some(stake_info) = Contracts::<Test>::get_stake_info(&instantiated_contract_address){
+				let stake_level = stake_info.stake_level();
+
+				// Check that the newly created account has the expected code hash and
+				// there are instantiation event.
+				assert_eq!(
+					ContractInfo::<Test>::load_code_hash(&instantiated_contract_address).unwrap(),
+					dummy_ch
+				);
+				assert_eq!(
+					&events(),
+					&[
+						Event::Instantiated {
+							deployer: ALICE,
+							contract: instantiated_contract_address.clone()
+						},
+						Event::StakeScore {
+							contract: instantiated_contract_address.clone(),
+							stake_score: 0 ,
+							stake_level: stake_level,
+						},
+					]
+				);
+				}{
+					panic!("Failed to Fetch Contract StakeInfo")
+				}
+
 		});
 	}
 
@@ -2652,19 +2584,36 @@ mod tests {
 			let instantiated_contract_address =
 				instantiated_contract_address.borrow().as_ref().unwrap().clone();
 
-			// Check that the newly created account has the expected code hash and
-			// there are instantiation event.
-			assert_eq!(
-				ContractInfo::<Test>::load_code_hash(&instantiated_contract_address).unwrap(),
-				dummy_ch
-			);
-			assert_eq!(
-				&events(),
-				&[
-					Event::Instantiated { deployer: BOB, contract: instantiated_contract_address },
-					Event::Called { caller: Origin::from_account_id(ALICE), contract: BOB },
-				]
-			);
+			if let Some(stake_info) = Contracts::<Test>::get_stake_info(&instantiated_contract_address){
+					let stake_level = stake_info.stake_level();
+
+					// Check that the newly created account has the expected code hash and
+					// there are instantiation event.
+					assert_eq!(
+						ContractInfo::<Test>::load_code_hash(&instantiated_contract_address).unwrap(),
+						dummy_ch
+					);
+					assert_eq!(
+						&events(),
+						&[
+							Event::Instantiated {
+								deployer: BOB,
+								contract: instantiated_contract_address.clone()
+							},
+							Event::StakeScore {
+								contract: instantiated_contract_address.clone(),
+								stake_score: 0,
+								stake_level: stake_level,
+							},
+							Event::Called {
+								caller: Origin::from_account_id(ALICE),
+								contract: BOB
+							},
+						]
+					);
+				}{
+					panic!("Failed to Fetch Contract StakeInfo")
+				}
 		});
 	}
 

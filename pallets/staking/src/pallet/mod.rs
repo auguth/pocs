@@ -15,7 +15,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
-// This file has been modified by Auguth Research Foundation 
+// This file has been modified by Auguth Research Foundation
 // for Proof of Contract Stake Protocol (PoCS).
 
 //! Staking FRAME Pallet.
@@ -348,8 +348,8 @@ pub mod pallet {
 	#[pallet::storage]
 	pub type MaxValidatorsCount<T> = StorageValue<_, u32, OptionQuery>;
 	/// `ValidatorDelegate` is a storage map for PoCS protocol that keeps track of the number of delegates(nominators) associated with each validator,
-	/// to ensure the [`Pallet::validate`] validation criteria 
-	/// This map gets updated every time a nominator (contract deployer with reputation criteria met) nominates a validator. 
+	/// to ensure the [`Pallet::validate`] validation criteria
+	/// This map gets updated every time a nominator (contract deployer with reputation criteria met) nominates a validator.
 	#[pallet::storage]
 	#[pallet::getter(fn get_delegateinfo)]
 	pub type ValidatorDelegate<T: Config> = StorageMap<_, Twox64Concat, T::AccountId, u64>;
@@ -719,7 +719,7 @@ pub mod pallet {
 	pub enum Error<T> {
 		/// Not a controller account.
 		NotController,
-		/// Cannot find Validator Address in [`pallet::ValidatorDelegate`] Map (PoCS) 
+		/// Cannot find Validator Address in [`pallet::ValidatorDelegate`] Map (PoCS)
 		InvalidValidatorAddress,
 		/// Cannot meet Validation criteria (PoCS)
 		InsufficientDelegate,
@@ -837,7 +837,7 @@ pub mod pallet {
 		/// be the account that controls it.
 		///
 		/// DEPRECATED FOR POCS : `value` must be more than the `minimum_balance` specified by `T::Currency`.
-		/// 
+		///
 		/// The dispatch origin for this call must be _Signed_ by the stash account.
 		///
 		/// Emits `Bonded`.
@@ -861,18 +861,19 @@ pub mod pallet {
 			let controller_to_be_deprecated = stash.clone();
 
 			if <Bonded<T>>::contains_key(&stash) {
-				return Err(Error::<T>::AlreadyBonded.into())
+				return Err(Error::<T>::AlreadyBonded.into()        )
 			}
 
 			if <Ledger<T>>::contains_key(&controller_to_be_deprecated) {
 				return Err(Error::<T>::AlreadyPaired.into())
 			}
-			// DEPRECATED FOR POCS 
+			// DEPRECATED FOR POCS
 			// Reject a bond which is considered to be _dust_.
 			// if value < T::Currency::minimum_balance() {
 			// 	return Err(Error::<T>::InsufficientBond.into())
 			// }
 			// Validator Address added to [`pallet::ValidatorDelegate`] Map with zero delegates(number of nominators) initially (PoCS)
+
 			<ValidatorDelegate<T>>::insert(&stash, 0);
 			frame_system::Pallet::<T>::inc_consumers(&stash).map_err(|_| Error::<T>::BadState)?;
 
@@ -1063,9 +1064,9 @@ pub mod pallet {
 		#[pallet::weight(
             T::WeightInfo::withdraw_unbonded_kill(SPECULATIVE_NUM_SPANS).saturating_add(T::WeightInfo::unbond()))
         ]
-		
-		/// The [`Self::new_unbond`] function serves to purge the bond of a nominator during nomination updates. 
-		/// This function resembles [`Self::unbond`], excluding the [`Self::do_withdraw_unbonded`] feature, 
+
+		/// The [`Self::new_unbond`] function serves to purge the bond of a nominator during nomination updates.
+		/// This function resembles [`Self::unbond`], excluding the [`Self::do_withdraw_unbonded`] feature,
 		/// as stake score is not considered currency.
 		pub fn new_unbond(
 			origin: OriginFor<T>,
@@ -1099,7 +1100,7 @@ pub mod pallet {
 				else{
 					delegateincrement = 0;
 				}
-				
+
 				<ValidatorDelegate<T>>::insert(&delegateto.clone(), delegateincrement);
 
 				// Make sure that the user maintains enough active bond for their role.
@@ -1186,7 +1187,7 @@ pub mod pallet {
 			let delegateincrement: u64 = Self::get_delegateinfo(stash.clone()).ok_or(<Error<T>>::InvalidValidatorAddress)?;
 			// ensure their commission is correct.
 			ensure!(prefs.commission >= MinCommission::<T>::get(), Error::<T>::CommissionTooLow);
-			// Validation Criteria of Minimum 3 Delegates (Nominators) is Ensured (PoCS) 
+			// Validation Criteria of Minimum 3 Delegates (Nominators) is Ensured (PoCS)
 			ensure!(delegateincrement >= 3, Error::<T>::InsufficientDelegate);
 			// Only check limits if they are not already a validator.
 			if !Validators::<T>::contains_key(stash) {

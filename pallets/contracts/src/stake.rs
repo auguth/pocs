@@ -16,50 +16,46 @@
 
 //! This module contains PoCS (Proof of Contract Stake) Structures and Implementations
 //! 
-
+use crate::{
+	Config, Error,
+	Event, Pallet as Contracts,
+};
+use frame_system::{pallet_prelude::BlockNumberFor, };
+use pallet_contracts_primitives::ExecReturnValue;
+use crate::ExecError;
 use codec::{Decode, Encode, MaxEncodedLen};
 use scale_info::TypeInfo;
 use sp_runtime::{
-	RuntimeDebug,
+	RuntimeDebug,traits::Hash,
 };
 use sp_std::{prelude::*};
-use frame_system::{pallet_prelude::BlockNumberFor,};
 use crate::{DelegateInfoMap,StakeInfoMap};
 
-#[derive(Encode, Decode, Clone, PartialEq, Eq, RuntimeDebug, TypeInfo, MaxEncodedLen)]
-#[scale_info(skip_type_params(T))]
-pub struct DelegateInfo<T: frame_system::Config> {
-	pub owner : T::AccountId,
-	pub delegate_to: T::AccountId,
-	pub delegate_at: BlockNumberFor<T>,
-}
-
 
 #[derive(Encode, Decode, Clone, PartialEq, Eq, RuntimeDebug, TypeInfo, MaxEncodedLen)]
 #[scale_info(skip_type_params(T))]
-pub struct StakeInfo<T: frame_system::Config> {
-	pub reputation: u32,
-	pub blockheight: BlockNumberFor<T>,
-	pub stake_score: u64,
-    pub stake_level: u16,
+pub struct DelegateInfo<T: Config> {
+	owner : T::AccountId,
+	delegate_to: T::AccountId,
+	delegate_at: BlockNumberFor<T>,
 }
 
-impl<T: frame_system::Config> DelegateInfo<T> {
+impl<T: Config> DelegateInfo<T> {
 
-	pub fn new(owner: &T::AccountId,) -> Self {
+	fn new(owner: &T::AccountId,) -> Self {
 		Self {
 			owner: owner.clone(),
             delegate_to: owner.clone(),
-			delegate_at: <frame_system::Pallet<T>>::block_number()
+			delegate_at: frame_system::Pallet::<T>::block_number()
 		}
 	}
 
-    pub fn update_mut (&mut self, delegate: &T::AccountId) {
+    fn update_mut (&mut self, delegate: &T::AccountId) {
 		self.delegate_to = delegate.clone();
     	self.delegate_at = frame_system::Pallet::<T>::block_number();
 	}
      
-	pub fn update(&self, delegate: &T::AccountId) -> Self {
+	fn update(&self, delegate: &T::AccountId) -> Self {
 		Self{
 			owner: self.owner.clone(), 
 			delegate_to: delegate.clone(),
@@ -69,9 +65,27 @@ impl<T: frame_system::Config> DelegateInfo<T> {
 
 }
 
-impl<T: frame_system::Config> StakeInfo<T>{
+#[derive(Encode, Decode, Clone, PartialEq, Eq, RuntimeDebug, TypeInfo, MaxEncodedLen)]
+#[scale_info(skip_type_params(T))]
+pub struct StakeInfo<T: Config> {
+	reputation: u32,
+	blockheight: BlockNumberFor<T>,
+	stake_score: u64,
+    stake_level: u16,
 
-	pub fn new() -> Self {
+}
+impl<T: Config> StakeInfo<T>{
+
+    pub fn get(contract_addr: &T::AccountId) -> Result<StakeInfo<T>, Error<T>> {
+        let stake_info = Contracts::get_stake_info(contract_addr).ok_or(Error::<T>::ContractNotFound)?;
+        Ok(stake_info)
+    }
+
+    pub fn stake_level(&self) -> u16 {
+        self.stake_level
+    }
+
+	fn new() -> Self {
 		Self{
 			reputation: 1,
 			blockheight: <frame_system::Pallet<T>>::block_number(),
@@ -80,7 +94,7 @@ impl<T: frame_system::Config> StakeInfo<T>{
 		}
 	}
 
-	pub fn reset(&self)-> Self {
+	fn reset(&self)-> Self {
 		Self{
 			reputation: self.reputation,
 			blockheight: <frame_system::Pallet<T>>::block_number(),
@@ -89,13 +103,13 @@ impl<T: frame_system::Config> StakeInfo<T>{
 		}
 	}
 
-	pub fn reset_mut(&mut self) {
+	fn reset_mut(&mut self) {
 		self. blockheight = <frame_system::Pallet<T>>::block_number();
 		self.stake_score = 0;
         self.stake_level = 1;
 	}
 	
-	pub fn update_mut(&mut self, gas: &u64) {
+	fn update_mut(&mut self, gas: &u64) {
         let current_block_height = <frame_system::Pallet<T>>::block_number();
         if current_block_height > self.blockheight {
             let (interim,may_wrap) = gas.clone().overflowing_mul(self.reputation as u64);
@@ -126,7 +140,7 @@ impl<T: frame_system::Config> StakeInfo<T>{
             }
         }
 
-    pub fn update(&self, gas: &u64) -> Self {
+    fn update(&self, gas: &u64) -> Self {
         let current_block_height = <frame_system::Pallet<T>>::block_number();
         let current_reputation = self.reputation;
         if current_block_height > self.blockheight {
@@ -169,14 +183,105 @@ impl<T: frame_system::Config> StakeInfo<T>{
     }
         
 }
-		// //make origin the validator(nominator) addition here(pocs edited)
-		// let _ = <pallet_staking::Pallet<T> as sp_staking::StakingInterface>::bond(
-		// 	&account_stake_info.owner,
-		// 	contract_stake_info.stake_score.saturated_into(),
-		// 	&account_stake_info.owner,
-		// ).map_err(|_| Error::<T>::BondingFailed)?;
 
-// 		Ok(())
 
-// 	}
+#[derive(Encode, Decode, Clone, PartialEq, Eq, RuntimeDebug, TypeInfo, MaxEncodedLen)]
+#[scale_info(skip_type_params(T))]
+pub struct StakeRequest<T: Config> {
+	contract: T::AccountId,
+    owner: T::AccountId,
+    gas: u64
+}
 
+impl<T: Config> StakeRequest<T>{
+
+    pub fn empty(origin: &T::AccountId, contract_addr: &T::AccountId) {
+        let new = Self{
+            contract: contract_addr.clone(),
+            owner: origin.clone(),
+            gas: 0
+        };
+        Self::init(&new);
+    }
+
+    pub fn new(contract_addr: &T::AccountId, gas: &u64) -> Result<(),Error<T>>{
+        let mut maybe_stake_info = Contracts::get_stake_info(contract_addr);
+        match maybe_stake_info {
+            Some(stake_info) =>{
+                let new_stake_info = <StakeInfo<T>>::update(&stake_info, gas);
+                StakeInfoMap::<T>::insert(contract_addr, new_stake_info.clone());
+                Contracts::<T>::deposit_event(
+                    vec![T::Hashing::hash_of(contract_addr)],
+                    Event::StakeScore {
+                        contract: contract_addr.clone(),
+                        stake_score: new_stake_info.stake_score.clone(),
+                        stake_level: new_stake_info.stake_level,
+                    },
+		        );
+                return Ok(());
+            }
+            None => {
+                return Err(<Error<T>>::StakingFailed.into());
+            }
+        };
+    }
+
+    fn init(&self) {
+		let stake_info: StakeInfo<T> = StakeInfo::<T>::new();
+		StakeInfoMap::<T>::insert(&self.contract, stake_info.clone());
+		Contracts::<T>::deposit_event(
+			vec![T::Hashing::hash_of(&self.contract)],
+			Event::StakeScore {
+				contract: self.contract.clone(),
+				stake_score: stake_info.stake_score.clone(),
+                stake_level : stake_info.stake_level,
+			},
+		);
+	}
+
+}
+
+#[test]
+fn instantiation(){
+
+}
+
+#[test]
+fn instantiate_with_constructor(){
+
+}
+
+#[test]
+fn instantiate_and_call(){
+
+}
+
+#[test]
+fn call_and_instantiate(){
+
+}
+
+#[test]
+fn check_stake_without_instantiation(){
+
+}
+
+#[test]
+fn check_stake_after_instantiation(){
+
+}
+
+#[test]
+fn delegate_call(){
+
+}
+
+#[test]
+fn delegate_call_on_constructor(){
+
+}
+
+#[test]
+fn instantiate_with_delegate_call(){
+
+}
