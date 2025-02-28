@@ -928,9 +928,8 @@ where
 						Event::Instantiated { deployer: caller.clone(), contract: account_id.clone() },
 					);
 
-					// Initiate StakeScore
-
-					StakeRequest::<T>::empty(&caller, &account_id);
+					// Initiate Stake
+					StakeRequest::<T>::stake(&caller, &account_id, &gas);
 
 				},
 				(ExportedFunction::Call, Some(code_hash)) => {
@@ -939,9 +938,10 @@ where
 						Event::DelegateCalled { contract: account_id.clone(), code_hash },
 					);
 
-					// Update StakeScore, detect delegate calls if any
+					// Update Stake, detect delegate calls if any
 
-					<StakeRequest<T>>::new(&account_id, &gas);
+					let caller = self.caller().account_id()?.clone();
+					<StakeRequest<T>>::stake(&caller, &account_id, &gas);
 				},
 				(ExportedFunction::Call, None) => {
 					// If a special limit was set for the sub-call, we enforce it here.
@@ -955,9 +955,10 @@ where
 						Event::Called { caller: caller.clone(), contract: account_id.clone() },
 					);
 
-					// Update StakeScore
-
-					<StakeRequest<T>>::new(&account_id, &gas);
+					// Update Stake
+					
+					let caller = self.caller().account_id()?.clone();
+					<StakeRequest<T>>::stake(&caller, &account_id, &gas);
 
 				},
 			}
@@ -1295,6 +1296,7 @@ where
 				beneficiary: beneficiary.clone(),
 			},
 		);
+		StakeRequest::<T>::delete(&frame.account_id);
 		Ok(())
 	}
 
@@ -2438,7 +2440,7 @@ mod tests {
 			let schedule = <Test as Config>::Schedule::get();
 			let min_balance = <Test as Config>::ContractCurrency::minimum_balance();
 			let mut gas_meter = GasMeter::<Test>::new(GAS_LIMIT);
-			let executable = MockExecutable::from_storage(dummy_ch, &mut gas_meter).unwrap();
+			let executable = MockExecutable::from_storage(dummy_ch.clone(), &mut gas_meter).unwrap();
 			set_balance(&ALICE, min_balance * 1000);
 			let contract_origin = Origin::from_account_id(ALICE);
 			let mut storage_meter =
@@ -2460,32 +2462,26 @@ mod tests {
 				Ok((address, ref output)) if output.data == vec![80, 65, 83, 83] => address
 			);
 
-			if let Some(stake_info) = Contracts::<Test>::get_stake_info(&instantiated_contract_address){
-				let stake_level = stake_info.stake_level();
-
-				// Check that the newly created account has the expected code hash and
-				// there are instantiation event.
-				assert_eq!(
-					ContractInfo::<Test>::load_code_hash(&instantiated_contract_address).unwrap(),
-					dummy_ch
-				);
-				assert_eq!(
-					&events(),
-					&[
-						Event::Instantiated {
-							deployer: ALICE,
-							contract: instantiated_contract_address.clone()
-						},
-						Event::StakeScore {
-							contract: instantiated_contract_address.clone(),
-							stake_score: 0 ,
-							stake_level: stake_level,
-						},
-					]
-				);
-				}{
-					panic!("Failed to Fetch Contract StakeInfo")
-				}
+			// Check that the newly created account has the expected code hash and
+			// there are instantiation event.
+			assert_eq!(
+				ContractInfo::<Test>::load_code_hash(&instantiated_contract_address).unwrap(),
+				dummy_ch
+			);
+			assert_eq!(
+				&events(),
+				&[
+					Event::Instantiated {
+						deployer: ALICE,
+						contract: instantiated_contract_address.clone()
+					},
+					Event:: Staked {
+						contract: instantiated_contract_address,
+						stake_score: 0, 
+						stake_level: 1
+					}
+				]
+			);
 
 		});
 	}
@@ -2584,36 +2580,33 @@ mod tests {
 			let instantiated_contract_address =
 				instantiated_contract_address.borrow().as_ref().unwrap().clone();
 
-			if let Some(stake_info) = Contracts::<Test>::get_stake_info(&instantiated_contract_address){
-					let stake_level = stake_info.stake_level();
-
-					// Check that the newly created account has the expected code hash and
-					// there are instantiation event.
-					assert_eq!(
-						ContractInfo::<Test>::load_code_hash(&instantiated_contract_address).unwrap(),
-						dummy_ch
-					);
-					assert_eq!(
-						&events(),
-						&[
-							Event::Instantiated {
-								deployer: BOB,
-								contract: instantiated_contract_address.clone()
-							},
-							Event::StakeScore {
-								contract: instantiated_contract_address.clone(),
-								stake_score: 0,
-								stake_level: stake_level,
-							},
-							Event::Called {
-								caller: Origin::from_account_id(ALICE),
-								contract: BOB
-							},
-						]
-					);
-				}{
-					panic!("Failed to Fetch Contract StakeInfo")
-				}
+			assert_eq!(
+				ContractInfo::<Test>::load_code_hash(&instantiated_contract_address).unwrap(),
+				dummy_ch
+			);
+			assert_eq!(
+				&events(),
+				&[
+					Event::Instantiated {
+						deployer: BOB,
+						contract: instantiated_contract_address.clone()
+					},
+					Event::Staked{
+						contract: instantiated_contract_address.clone(),
+						stake_score: 0,
+						stake_level: 1,
+					},
+					Event::Called {
+						caller: Origin::from_account_id(ALICE),
+						contract: BOB
+					},
+					Event::Staked{
+						contract: BOB,
+						stake_score: 0,
+						stake_level: 1
+					}
+				]
+			);
 		});
 	}
 
@@ -2670,7 +2663,10 @@ mod tests {
 			// event here.
 			assert_eq!(
 				&events(),
-				&[Event::Called { caller: Origin::from_account_id(ALICE), contract: BOB },]
+				&[
+					Event::Called { caller: Origin::from_account_id(ALICE), contract: BOB },
+					Event::Staked{contract: BOB, stake_score:0 , stake_level: 1},
+				]
 			);
 		});
 	}
@@ -3072,6 +3068,16 @@ mod tests {
 						}),
 						topics: vec![hash(&Origin::<Test>::from_account_id(ALICE)), hash(&BOB)],
 					},
+					EventRecord {
+						phase: Phase::Initialization,
+						event: MetaEvent::Contracts(
+							crate::Event::Staked{
+							contract: BOB,
+							stake_score: 0,
+							stake_level: 1,
+						}),
+						topics: vec![hash(&BOB)],
+					},
 				]
 			);
 		});
@@ -3124,7 +3130,7 @@ mod tests {
 			place_contract(&BOB, code_hash);
 			let contract_origin = Origin::from_account_id(ALICE);
 			let mut storage_meter =
-				storage::meter::Meter::new(&contract_origin, Some(0), 0).unwrap();
+			storage::meter::Meter::new(&contract_origin, Some(0), 0).unwrap();
 			System::reset_events();
 
 			MockStack::run_call(
@@ -3141,6 +3147,7 @@ mod tests {
 			.unwrap();
 
 			let remark_hash = <Test as frame_system::Config>::Hashing::hash(b"Hello");
+
 			assert_eq!(
 				System::events(),
 				vec![
@@ -3172,6 +3179,15 @@ mod tests {
 							contract: BOB,
 						}),
 						topics: vec![hash(&Origin::<Test>::from_account_id(ALICE)), hash(&BOB)],
+					},
+					EventRecord {
+						phase: Phase::Initialization,
+						event: MetaEvent::Contracts(crate::Event::Staked{
+							contract: BOB,
+							stake_score: 0,
+							stake_level: 1,
+						}),
+						topics: vec![hash(&BOB)],
 					},
 				]
 			);

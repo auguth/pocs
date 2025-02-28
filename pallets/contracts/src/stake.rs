@@ -17,12 +17,9 @@
 //! This module contains PoCS (Proof of Contract Stake) Structures and Implementations
 //! 
 use crate::{
-	Config, Error,
-	Event, Pallet as Contracts,
+	Config, Error, Event, Pallet as Contracts
 };
 use frame_system::{pallet_prelude::BlockNumberFor, };
-use pallet_contracts_primitives::ExecReturnValue;
-use crate::ExecError;
 use codec::{Decode, Encode, MaxEncodedLen};
 use scale_info::TypeInfo;
 use sp_runtime::{
@@ -50,11 +47,6 @@ impl<T: Config> DelegateInfo<T> {
 		}
 	}
 
-    fn update_mut (&mut self, delegate: &T::AccountId) {
-		self.delegate_to = delegate.clone();
-    	self.delegate_at = frame_system::Pallet::<T>::block_number();
-	}
-     
 	fn update(&self, delegate: &T::AccountId) -> Self {
 		Self{
 			owner: self.owner.clone(), 
@@ -102,43 +94,6 @@ impl<T: Config> StakeInfo<T>{
             stake_level: 1,
 		}
 	}
-
-	fn reset_mut(&mut self) {
-		self. blockheight = <frame_system::Pallet<T>>::block_number();
-		self.stake_score = 0;
-        self.stake_level = 1;
-	}
-	
-	fn update_mut(&mut self, gas: &u64) {
-        let current_block_height = <frame_system::Pallet<T>>::block_number();
-        if current_block_height > self.blockheight {
-            let (interim,may_wrap) = gas.clone().overflowing_mul(self.reputation as u64);
-            let (result,is_wrap) = interim.overflowing_add(self.stake_score);
-            if may_wrap || is_wrap {
-                self.reputation += 1;
-                self.blockheight = current_block_height;
-                self.stake_score = result;
-                self.stake_level += 1;
-            }else {
-                self.reputation += 1;
-                self.blockheight = current_block_height;
-                self.stake_score = result;
-            }
-        } else {
-            let (result,may_wrap) = gas.clone().overflowing_add(self.stake_score);
-            if may_wrap {
-                self.reputation += 1;
-                self.blockheight = current_block_height;
-                self.stake_score = result;
-                self.stake_level += 1;
-                
-            }else {
-                self.reputation += 1;
-                self.blockheight = current_block_height;
-                self.stake_score = result;
-                }
-            }
-        }
 
     fn update(&self, gas: &u64) -> Self {
         let current_block_height = <frame_system::Pallet<T>>::block_number();
@@ -189,99 +144,74 @@ impl<T: Config> StakeInfo<T>{
 #[scale_info(skip_type_params(T))]
 pub struct StakeRequest<T: Config> {
 	contract: T::AccountId,
-    owner: T::AccountId,
+    caller: T::AccountId,
     gas: u64
 }
 
 impl<T: Config> StakeRequest<T>{
 
-    pub fn empty(origin: &T::AccountId, contract_addr: &T::AccountId) {
-        let new = Self{
-            contract: contract_addr.clone(),
-            owner: origin.clone(),
-            gas: 0
-        };
-        Self::init(&new);
+    pub fn stake(origin: &T::AccountId, contract_addr: &T::AccountId, gas: &u64){
+        if StakeInfoMap::<T>::contains_key(contract_addr){
+            Self::new(contract_addr, gas);
+        } else {
+                Self::empty(origin, contract_addr);
+        }
     }
 
-    pub fn new(contract_addr: &T::AccountId, gas: &u64) -> Result<(),Error<T>>{
-        let mut maybe_stake_info = Contracts::get_stake_info(contract_addr);
-        match maybe_stake_info {
-            Some(stake_info) =>{
+    fn empty(origin: &T::AccountId, contract_addr: &T::AccountId) {
+        let request_info = Self{
+            contract: contract_addr.clone(),
+            caller: origin.clone(),
+            gas: 0
+        };
+        let delegate_info = <DelegateInfo<T>>::new(origin);
+        Self::init(&request_info , &delegate_info);
+    }
+
+    fn new(contract_addr: &T::AccountId, gas: &u64){
+        if let Some(stake_info) = Contracts::get_stake_info(contract_addr){
                 let new_stake_info = <StakeInfo<T>>::update(&stake_info, gas);
                 StakeInfoMap::<T>::insert(contract_addr, new_stake_info.clone());
                 Contracts::<T>::deposit_event(
                     vec![T::Hashing::hash_of(contract_addr)],
-                    Event::StakeScore {
+                    Event::Staked {
                         contract: contract_addr.clone(),
                         stake_score: new_stake_info.stake_score.clone(),
                         stake_level: new_stake_info.stake_level,
                     },
 		        );
-                return Ok(());
             }
-            None => {
-                return Err(<Error<T>>::StakingFailed.into());
-            }
-        };
-    }
+        }
+    
 
-    fn init(&self) {
+    fn init(&self, delegate: &DelegateInfo<T>) {
 		let stake_info: StakeInfo<T> = StakeInfo::<T>::new();
 		StakeInfoMap::<T>::insert(&self.contract, stake_info.clone());
+        DelegateInfoMap::<T>::insert(&self.contract, delegate.clone());
 		Contracts::<T>::deposit_event(
 			vec![T::Hashing::hash_of(&self.contract)],
-			Event::StakeScore {
+			Event::Staked {
 				contract: self.contract.clone(),
 				stake_score: stake_info.stake_score.clone(),
                 stake_level : stake_info.stake_level,
 			},
 		);
+        Contracts::<T>::deposit_event(
+			vec![T::Hashing::hash_of(&delegate.delegate_to)],
+			Event::Delegated {
+                contract: self.contract.clone(),
+                owner: delegate.owner.clone(),
+                delegate_to: delegate.owner.clone(),
+			},
+		);
 	}
 
-}
-
-#[test]
-fn instantiation(){
-
-}
-
-#[test]
-fn instantiate_with_constructor(){
+    pub fn delete(contract_addr: &T::AccountId){
+        if StakeInfoMap::<T>::contains_key(&contract_addr) {
+            StakeInfoMap::<T>::remove(&contract_addr);
+        } 
+       
+    }
 
 }
 
-#[test]
-fn instantiate_and_call(){
-
-}
-
-#[test]
-fn call_and_instantiate(){
-
-}
-
-#[test]
-fn check_stake_without_instantiation(){
-
-}
-
-#[test]
-fn check_stake_after_instantiation(){
-
-}
-
-#[test]
-fn delegate_call(){
-
-}
-
-#[test]
-fn delegate_call_on_constructor(){
-
-}
-
-#[test]
-fn instantiate_with_delegate_call(){
-
-}

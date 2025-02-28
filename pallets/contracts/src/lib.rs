@@ -145,7 +145,6 @@ use sp_runtime::traits::{Convert, Hash, Saturating, StaticLookup, Zero};
 use sp_runtime::SaturatedConversion;
 use sp_std::{fmt::Debug, prelude::*};
 
-use stake::StakeRequest;
 pub use weights::ContractWeightInfo;
 
 pub use crate::{
@@ -1032,7 +1031,7 @@ pub mod pallet {
 			code_hash: CodeHash<T>,
 		},
 		/// Outputs the current contract address's stake score information (PoCS)
-		StakeScore {
+		Staked {
 			contract: T::AccountId,
 			stake_score: u64,
 			stake_level: u16,
@@ -1043,8 +1042,9 @@ pub mod pallet {
 			rewarder: T::AccountId,
 		},
 		/// Outputs the current contract address's account delegation information (PoCS)
-		StakeDelegated {
+		Delegated {
 			contract: T::AccountId,
+			owner: T::AccountId,
 			delegate_to: T::AccountId,
 		},
 
@@ -1491,7 +1491,6 @@ macro_rules! ensure_no_migration_in_progress {
 
 
 use crate::{DelegateInfoMap,StakeInfoMap};
-use crate::stake::{DelegateInfo,StakeInfo};
 
 impl<T: Config> Pallet<T> {
 
