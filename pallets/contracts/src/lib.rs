@@ -755,142 +755,7 @@ use stake::DelegateRequest;
 			)
 		}
 
-		/// Updates the validator address and only allows nomination when the reputation criteria is met, resets all the stake score
-		/// for the referred contract (PoCS)
-		///
-		/// This resets the stake score of the contracts by updating [`pallet::AccountStakeinfoMap`]
-		/// and [`pallet::ContractStakeinfoMap`] by `set_new_stakeinfo`
-		///
-		/// # Parameters
-		///
-		/// * `contract_address`: Address of the contract for which the delegate has to be changed.
-		///	* `delegate_to` : Address of the newly delegated validator
-		///
-		/// Updating the delegate is executed as follows:
-		///
-		/// - The owner of the contract address is verified from Origin
-		/// - The reputation criteria is ensured
-		/// - The [`pallet::AccountStakeinfoMap`] is updated to the newly delegated validator
-		/// - [`pallet::ContractStakeinfoMap`] is reset to `default` values.
-		/// - `default` values are reputation value = 1, stake_score = 0, recentblockheight = currentblockheight.
-		// 	#[pallet::call_index(10)]
-		// 	#[pallet::weight(T::ContractWeightInfo::update_delegate())]
-		// 	pub fn update_delegate(
-		// 		origin: OriginFor<T>,
-		// 		contract_address: T::AccountId,
-		// 		delegate_to: T::AccountId,
-		// 	)-> DispatchResult {
-		// 		let origin = ensure_signed(origin)?;
-		// 		let account_stake_info: AccountStakeinfo<T> = Self::getterstakeinfo(&contract_address).ok_or(<Error<T>>::ContractAddressNotFound)?;
-		// 		let contract_stake_info: ContractScarcityInfo<T> = Self::gettercontractinfo(&contract_address).ok_or(<Error<T>>::ContractAddressNotFound)?;
-		// 		ensure!(origin == account_stake_info.owner, Error::<T>::InvalidOwner);
-		// 		let new_account_stake_info: AccountStakeinfo<T> = AccountStakeinfo::set_new_stakeinfo(account_stake_info.owner,delegate_to);
-		// 		let new_contract_stake_info: ContractScarcityInfo<T> = ContractScarcityInfo::reset_scarcity_info(contract_stake_info.reputation);
-		// 		<ContractStakeinfoMap<T>>::insert(&contract_address.clone(), new_contract_stake_info.clone());
-		// 		<AccountStakeinfoMap<T>>::insert(&contract_address.clone(),new_account_stake_info.clone());
-		// 		Self::deposit_event(
-		// 			vec![T::Hashing::hash_of(&contract_address.clone())],
-		// 			Event::AccountStakeinfoevent {
-		// 				contract_address: contract_address.clone(),
-		// 				owner: new_account_stake_info.owner.clone(),
-		// 				delegate_to: new_account_stake_info.delegate_to.clone(),
-		// 				delegate_at: new_account_stake_info.delegate_at,
-		// 			},
-		// 		);
-		// 		Self::deposit_event(
-		// 			vec![T::Hashing::hash_of(&contract_address.clone())],
-		// 			Event::ContractStakeinfoevent {
-		// 				contract_address: contract_address.clone(),
-		// 				reputation: new_contract_stake_info.reputation,
-		// 				recent_blockheight: new_contract_stake_info.recent_blockheight,
-		// 				stake_score: new_contract_stake_info.stake_score,
-		// 			},
-		// 		);
-		// 		// Make Stake Zero
-		// 		let _ = Staking::<T>::new_unbond(
-		// 			ROrigin::Signed(origin.clone()).into(),
-		// 			new_contract_stake_info.stake_score.saturated_into(),
-		// 			account_stake_info.delegate_to,
-
-		// 		);
-		// 		// Reputation Criteria Constant (PoCS)
-		// 		ensure!(new_contract_stake_info.reputation >= 10, Error::<T>::InsufficientReputation);
-		// 		// The deployer as a validator/nominator nominates the required validator (PoCS)
-		// 		let _ = <pallet_staking::Pallet<T> as sp_staking::StakingInterface>::nominate(
-		// 			&new_account_stake_info.owner.clone(),
-		// 			vec![new_account_stake_info.delegate_to.clone()],
-		// 		);
-		// 		Ok(())
-		// }
-		// //pocs
-		// #[pallet::weight(0)]
-		// pub fn reward_claim(
-		// 	origin: OriginFor<T>,
-		// 	reward_contract: T::AccountId,
-		// 	contract_addr: T::AccountId,
-		// ) -> DispatchResult {
-		// 	let origin = ensure_signed(origin)?;
-
-		// 	// Fetch contract and stake information
-		// 	let account_stake_info = Self::getterstakeinfo(&contract_addr)
-		// 		.ok_or(<Error<T>>::ContractAddressNotFound)?;
-		// 	let account_stake_info_reward_contract = Self::getterstakeinfo(&reward_contract)
-		// 		.ok_or(<Error<T>>::ContractAddressNotFound)?;
-		// 	let contract_stake_info = Self::gettercontractinfo(&contract_addr)
-		// 		.ok_or(<Error<T>>::ContractAddressNotFound)?;
-
-		// 	// Ensure the caller is the owner and delegation is valid
-		// 	ensure!(origin == account_stake_info.owner, Error::<T>::InvalidOwner);
-		// 	ensure!(account_stake_info.delegate_to == account_stake_info_reward_contract.owner, Error::<T>::InvalidOwner);
-
-		// 	// Setup contract call parameters
-		// 	let value: BalanceOf<T> = Default::default();  // No funds transferred.
-		// 	let gas_limit: Weight = Weight::from_parts(100_000_000_000, 3 * 1024 * 1024); // Adjust gas as necessary.
-
-		// 	// Prepare the function arguments
-		// 	let owner = account_stake_info.owner;              // owner: AccountId
-		// 	let delegate_to = account_stake_info.delegate_to;         // delegate_to: AccountId
-		// 	let delegate_at = account_stake_info.delegate_at;         // delegate_at: BlockNumber
-		// 	let reputation = contract_stake_info.reputation;         // reputation: u64
-		// 	let recent_blockheight = contract_stake_info.recent_blockheight; // recent_blockheight: BlockNumber
-		// 	let stake_score = contract_stake_info.stake_score;        // stake_score: u128
-
-		// let call_data = {
-		// 	let param: ([u8; 4], AccountIdOf<T>, AccountIdOf<T>,BlockNumberFor<T>, &u64, BlockNumberFor<T>,&u128) = (
-		// 		[0xb3, 0x88, 0x80, 0x3f],
-		// 		owner,
-		// 		delegate_to,
-		// 		delegate_at,
-		// 		&reputation,
-		// 		recent_blockheight,
-		// 		&stake_score
-		// 	);
-		// 	param.encode()
-		// };
-
-
-		// 	let common = CommonInput {
-		// 		origin: Origin::Signed(origin.clone()),
-		// 		value: 0u32.into(),
-		// 		data: call_data.clone(),
-		// 		gas_limit: gas_limit.clone(),
-		// 		storage_deposit_limit: None,
-		// 		debug_message: None,
-		// 	};
-
-		// 	let dest = reward_contract.clone();
-		// 	let mut output =
-		// 		CallInput::<T> { dest, determinism: Determinism::Enforced }.run_guarded(common);
-		// 	if let Ok(retval) = &output.result {
-		// 		if retval.did_revert() {
-		// 			output.result = Err(<Error<T>>::ContractReverted.into());
-		// 		}
-		// 	}
-
-		// 	Ok(())
-		// }
-
-
+		
 		/// Instantiates a contract from a previously deployed wasm binary.
 		///
 		/// This function is identical to [`Self::instantiate_with_code`] but without the
@@ -967,14 +832,22 @@ use stake::DelegateRequest;
 			contract_address: T::AccountId,
 			delegate_to: T::AccountId,
 		)-> DispatchResult {
-			let origin = ensure_signed(origin)?;
-			if let Err(delegate_result) = <DelegateRequest<T>>::delegate(&origin,&contract_address,&delegate_to){
-				return Err(delegate_result.into())
+			let ok_origin = ensure_signed(origin.clone())?;
+			let delegate_result = <DelegateRequest<T>>::delegate(&ok_origin,&contract_address,&delegate_to);
+			match delegate_result {
+				Ok(to_unbond) => {
+					<DelegateRequest<T>>::un_bond(&origin,&to_unbond);
+					<DelegateRequest<T>>::nominate(&ok_origin,&delegate_to);
+					Ok(())
+				}
+				Err(error) => {
+					return Err(error.into())
+				}
 			}
-			Ok(())
-	}
+		}
 
 	}
+
 
 	#[pallet::event]
 	pub enum Event<T: Config> {
@@ -1079,6 +952,7 @@ use stake::DelegateRequest;
 		NoDelegateExists,
 		LowReputation,
 		AlreadyDelegated,
+		BondingFailed,
 		/// The executed contract exhausted its gas limit.
 		OutOfGas,
 		/// The output buffer supplied to a contract API call was too small.

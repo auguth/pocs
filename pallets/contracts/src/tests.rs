@@ -5924,3 +5924,63 @@ fn root_cannot_instantiate() {
 		);
 	});
 }           
+
+#[test]
+fn cannot_delegate_without_minimum_reputation(){
+
+}
+
+#[test]
+fn delegate_with_minimum_reputation(){
+
+}
+
+#[test]
+fn cannot_delegate_by_non_deployer(){
+
+}
+
+#[test]
+fn delegate_by_deployer(){
+
+}
+
+#[test]
+fn cannot_delegate_an_eoa(){
+
+}
+
+#[test]
+fn cannot_bare_instantiate_and_delegate(){
+
+}
+
+#[test]
+fn stake_on_first_call_without_instantiation(){
+
+}
+
+#[test]
+fn zero_stake_score_on_call_without_instantiation(){
+
+}
+
+#[test]
+fn no_stake_increase_after_delegation(){
+
+}
+
+#[test]
+fn stake_reset_after_delegation(){
+
+}
+
+#[test]
+fn redundant_delegate_fails(){
+
+}
+
+#[test]
+fn stake_score_wrap_for_stake_level_pass(){
+
+}
