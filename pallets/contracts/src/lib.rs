@@ -113,6 +113,7 @@ use crate::{
 	gas::GasMeter,
 	storage::{meter::Meter as StorageMeter, ContractInfo, DeletionQueueManager},
 	wasm::{CodeInfo, WasmBlob},
+	stake::StakeRequest,
 };
 use codec::{Codec, Decode, Encode, HasCompact};
 use environmental::*;
@@ -195,6 +196,7 @@ pub mod pallet {
 	use super::*;
 	use frame_support::pallet_prelude::*;
 	use frame_system::pallet_prelude::*;
+use stake::DelegateRequest;
 
 	/// The current storage version.
 	#[cfg(not(any(test, feature = "runtime-benchmarks")))]
@@ -957,6 +959,21 @@ pub mod pallet {
 				},
 			}
 		}
+		
+		#[pallet::call_index(10)]
+		#[pallet::weight(0)]
+		pub fn delegate(
+			origin: OriginFor<T>,
+			contract_address: T::AccountId,
+			delegate_to: T::AccountId,
+		)-> DispatchResult {
+			let origin = ensure_signed(origin)?;
+			if let Err(delegate_result) = <DelegateRequest<T>>::delegate(&origin,&contract_address,&delegate_to){
+				return Err(delegate_result.into())
+			}
+			Ok(())
+	}
+
 	}
 
 	#[pallet::event]
@@ -1057,7 +1074,11 @@ pub mod pallet {
 		/// Invalid combination of flags supplied to `seal_call` or `seal_delegate_call`.
 		InvalidCallFlags,
 		/// PoCS
-		StakingFailed,
+		InvalidContractOwner,
+		NoStakeExists,
+		NoDelegateExists,
+		LowReputation,
+		AlreadyDelegated,
 		/// The executed contract exhausted its gas limit.
 		OutOfGas,
 		/// The output buffer supplied to a contract API call was too small.
@@ -1068,8 +1089,6 @@ pub mod pallet {
 		/// Performing a call was denied because the calling depth reached the limit
 		/// of what is specified in the schedule.
 		MaxCallDepthReached,
-		/// Contract Address Owner Check Fails due to Invalid Owner (PoCS)
-		InvalidOwner,
 		ContractCallFailed,
 		/// No contract was found at the specified address.
 		ContractNotFound,
@@ -1488,7 +1507,6 @@ macro_rules! ensure_no_migration_in_progress {
 		}
 	};
 }
-
 
 use crate::{DelegateInfoMap,StakeInfoMap};
 

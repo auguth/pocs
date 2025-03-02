@@ -905,6 +905,7 @@ where
 			let frame = self.top_frame();
 			let account_id = &frame.account_id.clone();
 			let gas = frame.nested_gas.gas_consumed().ref_time();
+			let caller = self.caller().account_id()?.clone();
 
 			match (entry_point, delegated_code_hash) {
 				(ExportedFunction::Constructor, _) => {
@@ -920,29 +921,20 @@ where
 					let contract = frame.contract_info.as_contract();
 					frame.nested_storage.enforce_subcall_limit(contract)?;
 
-					let caller = self.caller().account_id()?.clone();
-
 					// Deposit an instantiation event.
 					Contracts::<T>::deposit_event(
 						vec![T::Hashing::hash_of(&caller), T::Hashing::hash_of(account_id)],
 						Event::Instantiated { deployer: caller.clone(), contract: account_id.clone() },
 					);
-
-					// Initiate Stake
-					StakeRequest::<T>::stake(&caller, &account_id, &gas);
-
 				},
+
 				(ExportedFunction::Call, Some(code_hash)) => {
 					Contracts::<T>::deposit_event(
 						vec![T::Hashing::hash_of(account_id), T::Hashing::hash_of(&code_hash)],
 						Event::DelegateCalled { contract: account_id.clone(), code_hash },
 					);
-
-					// Update Stake, detect delegate calls if any
-
-					let caller = self.caller().account_id()?.clone();
-					<StakeRequest<T>>::stake(&caller, &account_id, &gas);
 				},
+
 				(ExportedFunction::Call, None) => {
 					// If a special limit was set for the sub-call, we enforce it here.
 					// The sub-call will be rolled back in case the limit is exhausted.
@@ -954,13 +946,11 @@ where
 						vec![T::Hashing::hash_of(&caller), T::Hashing::hash_of(&account_id)],
 						Event::Called { caller: caller.clone(), contract: account_id.clone() },
 					);
-
-					// Update Stake
-					
-					let caller = self.caller().account_id()?.clone();
-					<StakeRequest<T>>::stake(&caller, &account_id, &gas);
-
 				},
+			}
+			// Initiate Stake
+			if let Err(stake_error) = StakeRequest::<T>::stake(&caller, &account_id, &gas){
+				return Err(stake_error.into())
 			}
 
 			Ok(output)
@@ -1296,7 +1286,9 @@ where
 				beneficiary: beneficiary.clone(),
 			},
 		);
-		StakeRequest::<T>::delete(&frame.account_id);
+		if let Err(stake_error) = StakeRequest::<T>::delete(&frame.account_id){
+			return Err(stake_error.into())
+		}
 		Ok(())
 	}
 
@@ -2476,10 +2468,10 @@ mod tests {
 						contract: instantiated_contract_address.clone()
 					},
 					Event:: Staked {
-						contract: instantiated_contract_address,
+						contract: instantiated_contract_address.clone(),
 						stake_score: 0, 
 						stake_level: 1
-					}
+					},
 				]
 			);
 
@@ -2604,7 +2596,7 @@ mod tests {
 						contract: BOB,
 						stake_score: 0,
 						stake_level: 1
-					}
+					},
 				]
 			);
 		});
