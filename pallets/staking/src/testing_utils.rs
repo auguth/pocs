@@ -158,7 +158,6 @@ pub fn create_validators_with_seed<T: Config>(
 			create_stash_controller::<T>(i + seed, balance_factor, RewardDestination::Staked)?;
 		let validator_prefs =
 			ValidatorPrefs { commission: Perbill::from_percent(50), ..Default::default() };
-		<ValidatorDelegate<T>>::insert(stash.clone(), 4);
 		Staking::<T>::validate(RawOrigin::Signed(controller).into(), validator_prefs)?;
 		let stash_lookup = T::Lookup::unlookup(stash);
 		validators.push(stash_lookup);
@@ -198,7 +197,6 @@ pub fn create_validators_with_nominators_for_era<T: Config>(
 		let balance_factor = if randomize_stake { rng.next_u32() % 255 + 10 } else { 100u32 };
 		let (v_stash, v_controller) =
 			create_stash_controller::<T>(i, balance_factor, RewardDestination::Staked)?;
-		<ValidatorDelegate<T>>::insert(v_stash.clone(), 4);
 		let validator_prefs =
 			ValidatorPrefs { commission: Perbill::from_percent(50), ..Default::default() };
 		Staking::<T>::validate(RawOrigin::Signed(v_controller.clone()).into(), validator_prefs)?;

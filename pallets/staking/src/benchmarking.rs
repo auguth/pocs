@@ -88,7 +88,6 @@ pub fn create_validator_with_nominators<T: Config>(
 
 	let validator_prefs =
 		ValidatorPrefs { commission: Perbill::from_percent(50), ..Default::default() };
-	<ValidatorDelegate<T>>::insert(v_stash.clone(), 4);
 	Staking::<T>::validate(RawOrigin::Signed(v_controller).into(), validator_prefs)?;
 	let stash_lookup = T::Lookup::unlookup(v_stash.clone());
 
@@ -106,7 +105,6 @@ pub fn create_validator_with_nominators<T: Config>(
 			create_unique_stash_controller::<T>(u32::MAX - i, 100, destination.clone(), true)?
 		};
 		if i < n {
-			<ValidatorDelegate<T>>::insert(n_controller.clone(), 4);
 			Staking::<T>::nominate(
 				RawOrigin::Signed(n_controller.clone()).into(),
 				vec![stash_lookup.clone()],
@@ -181,7 +179,6 @@ impl<T: Config> ListScenario<T> {
 			Default::default(),
 		)?;
         let user = create_funded_user::<T>("randome_validator",SEED,1);
-		<ValidatorDelegate<T>>::insert(user.clone(), 4);
 		Staking::<T>::nominate(
 			RawOrigin::Signed(origin_controller1.clone()).into(),
 			// NOTE: these don't really need to be validators.
@@ -348,7 +345,6 @@ benchmarks! {
 		)?;
 		// because it is chilled.
 		assert!(!T::VoterList::contains(&stash.clone()));
-		<ValidatorDelegate<T>>::insert(stash.clone(), 4);
 		let prefs = ValidatorPrefs::default();
 		whitelist_account!(controller);
 	}: _(RawOrigin::Signed(controller), prefs)
@@ -375,7 +371,6 @@ benchmarks! {
 			Default::default(),
 		)?;
 		let stash_lookup = T::Lookup::unlookup(stash.clone());
-		<ValidatorDelegate<T>>::insert(stash.clone(), 4);
 		let validator_prefs =
 		ValidatorPrefs { commission: Perbill::from_percent(50), ..Default::default() };
 		// they start validating.
@@ -398,7 +393,6 @@ benchmarks! {
 			// optimisations/pessimisations.
 			nominations.insert(i as usize % (nominations.len() + 1), stash_lookup.clone());
 			// then we nominate.
-			<ValidatorDelegate<T>>::insert(n_controller.clone(), 4);
 			Staking::<T>::nominate(RawOrigin::Signed(n_controller.clone()).into(), nominations)?;
 
 			nominator_stashes.push(n_stash);
@@ -440,7 +434,6 @@ benchmarks! {
 			origin_weight,
 			Default::default(),
 		).unwrap();
-		<ValidatorDelegate<T>>::insert(stash.clone(), 4);
 		assert!(!Nominators::<T>::contains_key(&stash.clone()));
 		assert!(!T::VoterList::contains(&stash.clone()));
 
@@ -918,7 +911,6 @@ benchmarks! {
 			create_stash_controller::<T>(1, 1, RewardDestination::Staked)?;
 		let validator_prefs =
 			ValidatorPrefs { commission: Perbill::from_percent(50), ..Default::default() };
-		<ValidatorDelegate<T>>::insert(stash.clone(), 4);
 		Staking::<T>::validate(RawOrigin::Signed(controller).into(), validator_prefs)?;
 
 		// Sanity check

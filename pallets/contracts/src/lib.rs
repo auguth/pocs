@@ -133,7 +133,7 @@ use frame_support::{
 	weights::Weight,
 	BoundedVec, RuntimeDebugNoBound,
 };
-use pallet_staking::{Pallet as Staking};
+use pallet_staking::{Pallet as Staking, ValidatorPrefs};
 use frame_system::{ensure_signed, pallet_prelude::OriginFor, EventRecord, Pallet as System, RawOrigin as ROrigin};
 use pallet_contracts_primitives::{
 	Code, CodeUploadResult, CodeUploadReturnValue, ContractAccessError, ContractExecResult,
@@ -829,26 +829,28 @@ use stake::DelegateRequest;
 		#[pallet::weight(0)]
 		pub fn delegate(
 			origin: OriginFor<T>,
-			contract_address: T::AccountId,
+			contract_addr: T::AccountId,
 			delegate_to: T::AccountId,
 		)-> DispatchResult {
-			let ok_origin = ensure_signed(origin.clone())?;
-			let delegate_result = <DelegateRequest<T>>::delegate(&ok_origin,&contract_address,&delegate_to);
+			let origin = ensure_signed(origin.clone())?;
+			let delegate_result = <DelegateRequest<T>>::delegate(&origin,&contract_addr,&delegate_to);
 			match delegate_result {
 				Ok(to_unbond) => {
-					<DelegateRequest<T>>::un_bond(&origin,&to_unbond);
-					<DelegateRequest<T>>::nominate(&ok_origin,&delegate_to);
-					Ok(())
+					if let Err(unbond_err) = <DelegateRequest<T>>::unbond(&origin,&to_unbond){
+						return Err(unbond_err.into())
+					}
+
 				}
-				Err(error) => {
-					return Err(error.into())
+				Err(delegate_error) => {
+					return Err(delegate_error.into())
 				}
 			}
+			Ok(())
 		}
 
+	
 	}
-
-
+	
 	#[pallet::event]
 	pub enum Event<T: Config> {
 		/// Contract deployed by address at the specified address.
@@ -952,7 +954,13 @@ use stake::DelegateRequest;
 		NoDelegateExists,
 		LowReputation,
 		AlreadyDelegated,
-		BondingFailed,
+		NewBondFailed,
+		BondExtraFailed,
+		BondRemoveFailed,
+		NominationFailed,
+		ValidationFailed,
+		InsufficientDelegates,
+		NoDelegatesFound,
 		/// The executed contract exhausted its gas limit.
 		OutOfGas,
 		/// The output buffer supplied to a contract API call was too small.
@@ -1075,15 +1083,17 @@ use stake::DelegateRequest;
 
 	use crate::stake::{DelegateInfo,StakeInfo};
 
-	/// Storage map for mapping account IDs to [`gasstakeinfo::AccountStakeinfo`] objects (PoCS)
+	/// PoCS
 	#[pallet::storage]
 	#[pallet::getter(fn get_delegate_info)]
 	pub type DelegateInfoMap<T: Config> = StorageMap<_, Twox64Concat, T::AccountId, DelegateInfo<T>>;
-	// Added mapping of contract account IDs to [`gasstakeinfo::ContractScarcityInfo`] objects (PoCS)
 	#[pallet::storage]
 	#[pallet::getter(fn get_stake_info)]
 	pub type StakeInfoMap<T: Config> = StorageMap<_, Twox64Concat, T::AccountId, StakeInfo<T>>;
-	///
+	#[pallet::storage]
+	#[pallet::getter(fn get_validator_info)]
+	pub type ValidatorInfoMap<T: Config> = StorageMap<_, Twox64Concat, T::AccountId, u32>;
+
 	/// Child trie deletion is a heavy operation depending on the amount of storage items
 	/// stored in said trie. Therefore this operation is performed lazily in `on_idle`.
 	#[pallet::storage]

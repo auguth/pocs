@@ -119,8 +119,6 @@ fn create_offender<T: Config>(n: u32, nominators: u32) -> Result<Offender<T>, &'
 		reward_destination.clone(),
 	)?;
 
-	<ValidatorDelegate<T>>::insert(stash.clone(), 4);
-
 	let validator_prefs =
 		ValidatorPrefs { commission: Perbill::from_percent(50), ..Default::default() };
 	Staking::<T>::validate(RawOrigin::Signed(stash.clone()).into(), validator_prefs)?;

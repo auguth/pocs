@@ -642,15 +642,12 @@ pub mod pallet {
 					balance,
 					RewardDestination::Staked,
 				));
-				<ValidatorDelegate<T>>::insert(stash.clone(), 4);
 				frame_support::assert_ok!(match status {
 					crate::StakerStatus::Validator => <Pallet<T>>::validate(
 						T::RuntimeOrigin::from(Some(stash.clone()).into()),
 						Default::default(),
 					),
 					crate::StakerStatus::Nominator(votes) => {
-						<ValidatorDelegate<T>>::insert(votes[0].clone(), 4);
-
 						<Pallet<T>>::nominate(
 						T::RuntimeOrigin::from(Some(stash.clone()).into()),
 						votes.iter().map(|l| T::Lookup::unlookup(l.clone())).collect(),
@@ -719,10 +716,6 @@ pub mod pallet {
 	pub enum Error<T> {
 		/// Not a controller account.
 		NotController,
-		/// Cannot find Validator Address in [`pallet::ValidatorDelegate`] Map (PoCS)
-		InvalidValidatorAddress,
-		/// Cannot meet Validation criteria (PoCS)
-		InsufficientDelegate,
 		/// Not a stash account.
 		NotStash,
 		/// Stash is already bonded.
@@ -846,10 +839,6 @@ pub mod pallet {
 		/// - O(1).
 		/// - Three extra DB entries.
 		///
-		/// NOTE: Two of the storage writes (`Self::bonded`, `Self::payee`) are _never_ cleaned
-		/// unless the `origin` falls below _existential deposit_ and gets removed as dust.
-		/// ## PoCS Additions:
-		/// - Initialize validator with zero delegates in the [`pallet::ValidatorDelegate`] Map during bond call.
 		#[pallet::call_index(0)]
 		#[pallet::weight(T::WeightInfo::bond())]
 		pub fn bond(
@@ -867,14 +856,12 @@ pub mod pallet {
 			if <Ledger<T>>::contains_key(&controller_to_be_deprecated) {
 				return Err(Error::<T>::AlreadyPaired.into())
 			}
-			// DEPRECATED FOR POCS
-			// Reject a bond which is considered to be _dust_.
+
+			// PoCS
 			// if value < T::Currency::minimum_balance() {
 			// 	return Err(Error::<T>::InsufficientBond.into())
 			// }
-			// Validator Address added to [`pallet::ValidatorDelegate`] Map with zero delegates(number of nominators) initially (PoCS)
 
-			<ValidatorDelegate<T>>::insert(&stash, 0);
 			frame_system::Pallet::<T>::inc_consumers(&stash).map_err(|_| Error::<T>::BadState)?;
 
 			// You're auto-bonded forever, here. We might improve this by only bonding when
@@ -935,6 +922,8 @@ pub mod pallet {
 				let extra = extra.min(max_additional);
 				ledger.total += extra;
 				ledger.active += extra;
+
+				// PoCS
 				// Last check: the new active amount of ledger must be more than ED.
 				// ensure!(
 				// 	ledger.active >= T::Currency::minimum_balance(),
@@ -1024,9 +1013,10 @@ pub mod pallet {
 					Zero::zero()
 				};
 
+				// PoCS
 				// Make sure that the user maintains enough active bond for their role.
 				// If a user runs into this error, they should chill first.
-				ensure!(ledger.active >= min_active_bond, Error::<T>::InsufficientBond);
+				// ensure!(ledger.active >= min_active_bond, Error::<T>::InsufficientBond);
 
 				// Note: in case there is no current era it is fine to bond one era more.
 				let era = Self::current_era().unwrap_or(0) + T::BondingDuration::get();
@@ -1060,81 +1050,7 @@ pub mod pallet {
 
 			Ok(actual_weight.into())
 		}
-		#[pallet::call_index(26)]
-		#[pallet::weight(
-            T::WeightInfo::withdraw_unbonded_kill(SPECULATIVE_NUM_SPANS).saturating_add(T::WeightInfo::unbond()))
-        ]
 
-		/// The [`Self::new_unbond`] function serves to purge the bond of a nominator during nomination updates.
-		/// This function resembles [`Self::unbond`], excluding the [`Self::do_withdraw_unbonded`] feature,
-		/// as stake score is not considered currency.
-		pub fn new_unbond(
-			origin: OriginFor<T>,
-			#[pallet::compact] value: BalanceOf<T>,
-			delegateto: T::AccountId,
-		) -> DispatchResultWithPostInfo {
-			let controller = ensure_signed(origin)?;
-
-			// we need to fetch the ledger again because it may have been mutated in the call
-			// to `Self::do_withdraw_unbonded` above.
-			let mut ledger = Self::ledger(&controller).ok_or(Error::<T>::NotController)?;
-			let mut value = value;
-
-			ensure!(
-				ledger.unlocking.len() < T::MaxUnlockingChunks::get() as usize,
-				Error::<T>::NoMoreChunks,
-			);
-
-				ledger.active -= value;
-
-				// Avoid there being a dust balance left in the staking system.
-				if ledger.active < T::Currency::minimum_balance() {
-					value += ledger.active;
-					ledger.active = Zero::zero();
-				}
-
-				let mut delegateincrement: u64 = Self::get_delegateinfo(&delegateto.clone()).ok_or(<Error<T>>::InvalidValidatorAddress)?;
-				if delegateincrement > 0 {
-					delegateincrement = delegateincrement-1;
-				}
-				else{
-					delegateincrement = 0;
-				}
-
-				<ValidatorDelegate<T>>::insert(&delegateto.clone(), delegateincrement);
-
-				// Make sure that the user maintains enough active bond for their role.
-				// If a user runs into this error, they should chill first.
-				// ensure!(ledger.active >= min_active_bond, Error::<T>::InsufficientBond);
-
-				// Note: in case there is no current era it is fine to bond one era more.
-				let era = Self::current_era().unwrap_or(0) + T::BondingDuration::get();
-				if let Some(chunk) = ledger.unlocking.last_mut().filter(|chunk| chunk.era == era) {
-					// To keep the chunk count down, we only keep one chunk per era. Since
-					// `unlocking` is a FiFo queue, if a chunk exists for `era` we know that it will
-					// be the last one.
-					chunk.value = chunk.value.defensive_saturating_add(value)
-				} else {
-					ledger
-						.unlocking
-						.try_push(UnlockChunk { value, era })
-						.map_err(|_| Error::<T>::NoMoreChunks)?;
-				};
-				// NOTE: ledger must be updated prior to calling `Self::weight_of`.
-				Self::update_ledger(&controller, &ledger);
-
-				// update this staker in the sorted list, if they exist in it.
-				if T::VoterList::contains(&ledger.stash) {
-					let _ = T::VoterList::on_update(&ledger.stash, Self::weight_of(&ledger.stash))
-						.defensive();
-				}
-
-				Self::deposit_event(Event::<T>::Unbonded { stash: ledger.stash, amount: value });
-
-			let actual_weight = Some(T::WeightInfo::unbond());
-
-			Ok(actual_weight.into())
-		}
 		/// Remove any unlocked chunks from the `unlocking` queue from our management.
 		///
 		/// This essentially frees up that balance to be used by the stash account to do whatever
@@ -1182,13 +1098,11 @@ pub mod pallet {
 
 			let ledger = Self::ledger(&controller).ok_or(Error::<T>::NotController)?;
 
+			// PoCS
 			// ensure!(ledger.active >= MinValidatorBond::<T>::get(), Error::<T>::InsufficientBond);
 			let stash = &ledger.stash;
-			let delegateincrement: u64 = Self::get_delegateinfo(stash.clone()).ok_or(<Error<T>>::InvalidValidatorAddress)?;
 			// ensure their commission is correct.
 			ensure!(prefs.commission >= MinCommission::<T>::get(), Error::<T>::CommissionTooLow);
-			// Validation Criteria of Minimum 3 Delegates (Nominators) is Ensured (PoCS)
-			ensure!(delegateincrement >= 3, Error::<T>::InsufficientDelegate);
 			// Only check limits if they are not already a validator.
 			if !Validators::<T>::contains_key(stash) {
 				// If this error is reached, we need to adjust the `MinValidatorBond` and start
@@ -1220,8 +1134,6 @@ pub mod pallet {
 		/// which is capped at CompactAssignments::LIMIT (T::MaxNominations).
 		/// - Both the reads and writes follow a similar pattern.
 		///
-		/// ## PoCS Additions
-		/// - Number of Delegates (Nominators) is increased for the specified validator in [`pallet::ValidatorDelegate`] Map
 		#[pallet::call_index(5)]
 		#[pallet::weight(T::WeightInfo::nominate(targets.len() as u32))]
 		pub fn nominate(
@@ -1231,6 +1143,7 @@ pub mod pallet {
 			let controller = ensure_signed(origin)?;
 
 			let ledger = Self::ledger(&controller).ok_or(Error::<T>::NotController)?;
+			// PoCS
 			// ensure!(ledger.active >= MinNominatorBond::<T>::get(), Error::<T>::InsufficientBond);
 			let stash = &ledger.stash;
 
@@ -1274,9 +1187,6 @@ pub mod pallet {
 				submitted_in: Self::current_era().unwrap_or(0),
 				suppressed: false,
 			};
-			// Number of Delegates (Nominators) is increased for the specified validator in [`pallet::ValidatorDelegate`] Map (PoCS)
-			let delegateincrement: u64 = Self::get_delegateinfo(&targets[0].clone()).ok_or(<Error<T>>::InvalidValidatorAddress)?;
-			<ValidatorDelegate<T>>::insert(&targets[0].clone(), delegateincrement+1);
 			Self::do_remove_validator(stash);
 			Self::do_add_nominator(stash, nominations);
 			Ok(())

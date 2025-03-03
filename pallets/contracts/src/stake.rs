@@ -17,19 +17,21 @@
 //! This module contains PoCS (Proof of Contract Stake) Structures and Implementations
 //! 
 use crate::{
-	Config, Error, Event, Pallet as Contracts, OriginFor
+	Config, Error, Event, OriginFor, Pallet as Contracts, ValidatorInfoMap
 };
+use frame_support::dispatch::DispatchErrorWithPostInfo;
 use frame_system::{pallet_prelude::BlockNumberFor, };
 use codec::{Decode, Encode, MaxEncodedLen};
 use scale_info::TypeInfo;
 use sp_runtime::{
-	RuntimeDebug,traits::Hash,
+	traits::Hash, DispatchError, RuntimeDebug
 };
 use sp_std::{prelude::*};
 use crate::{DelegateInfoMap,StakeInfoMap};
-use pallet_staking::{Pallet as Staking};
+use pallet_staking::{Pallet as Staking, ValidatorPrefs,Bonded};
 
-const MIN_REPUTATION: u32 = 10; 
+const MIN_REPUTATION: u32 = 2; 
+const MIN_DELEGATES: u32 = 2; 
 
 
 #[derive(Encode, Decode, Clone, PartialEq, Eq, RuntimeDebug, TypeInfo, MaxEncodedLen)]
@@ -42,11 +44,11 @@ pub struct DelegateInfo<T: Config> {
 
 impl<T: Config> DelegateInfo<T> {
 
-    fn get(contract_addr: &T::AccountId) -> Result<DelegateInfo<T>, Error<T>> {
+    fn get(contract_addr: &T::AccountId) -> Result<DelegateInfo<T>, DispatchError> {
         if let Some(delegate_info) = Contracts::<T>::get_delegate_info(contract_addr){
             return Ok(delegate_info)
         } else {
-            return Err(Error::<T>::NoDelegateExists)
+            return Err(Error::<T>::NoDelegateExists.into())
         }
     }
 
@@ -101,11 +103,11 @@ impl<T: Config> StakeInfo<T>{
         }
     }
 
-    pub fn get(contract_addr: &T::AccountId) -> Result<StakeInfo<T>,Error<T>> {
+    pub fn get(contract_addr: &T::AccountId) -> Result<StakeInfo<T>,DispatchError> {
         if let Some(stake_info) = Contracts::<T>::get_stake_info(contract_addr){
             return Ok(stake_info)
         } else {
-            return Err(Error::<T>::NoStakeExists)
+            return Err(Error::<T>::NoStakeExists.into())
         }
     }
 
@@ -182,17 +184,15 @@ pub struct StakeRequest<T: Config> {
 
 impl<T: Config> StakeRequest<T>{
 
-    pub fn stake(origin: &T::AccountId, contract_addr: &T::AccountId, gas: &u64) -> Result<(),Error<T>>{
+    pub fn stake(origin: &T::AccountId, contract_addr: &T::AccountId, gas: &u64) -> Result<(),DispatchError>{
         if StakeInfoMap::<T>::contains_key(contract_addr){
-            if let Err(error) = Self::new(origin, contract_addr, gas){
+            if let Err(error) = Self::new(contract_addr, gas){
                 return Err(error)
-            } else {
-                Ok(())
-            }
+            } 
         } else {
             Self::empty(origin, contract_addr);
-            Ok(())
         }
+        Ok(())
     }
 
     fn empty(origin: &T::AccountId, contract_addr: &T::AccountId) {
@@ -205,7 +205,7 @@ impl<T: Config> StakeRequest<T>{
         Self::init(&request_info , &delegate_info);
     }
 
-    fn new(owner: &T::AccountId, contract_addr: &T::AccountId, gas: &u64) -> Result<(),Error<T>>{
+    fn new(contract_addr: &T::AccountId, gas: &u64) -> Result<(),DispatchError>{
         let result = <StakeInfo<T>>::get(contract_addr);
         match result {
             Ok(stake_info) => {
@@ -222,7 +222,7 @@ impl<T: Config> StakeRequest<T>{
                 let delegate_info_result = <DelegateInfo<T>>::get(contract_addr);
                 match delegate_info_result {
                     Ok(delegate_info) => {
-                        if let Err(bond_error) =Self::delegate_bond(&stake_info, &new_stake_info, &delegate_info){
+                        if let Err(bond_error) =Self::decide_bond(&stake_info, &new_stake_info, &delegate_info){
                             return Err(bond_error)
                         }
                         Ok(())
@@ -239,27 +239,30 @@ impl<T: Config> StakeRequest<T>{
                 
     }
 
-    fn delegate_bond(stake_info:&StakeInfo<T>, new_stake_info:&StakeInfo<T> , delegate_info:&DelegateInfo<T>)-> Result<(),Error<T>>{
-        if stake_info.reputation >= MIN_REPUTATION {
-            if delegate_info.owner == delegate_info.delegate_to {
-                <StakeRequest<T>>::new_bond(&delegate_info.owner, &new_stake_info.stake_score)
-            } else {
-                let stake_score_difference = new_stake_info.stake_score - stake_info.stake_score;
-                if let Err(bond_error) = <StakeRequest<T>>::add_bond(&delegate_info.owner, &stake_score_difference){
-                    return Err(bond_error)
+    fn decide_bond(stake_info:&StakeInfo<T>, new_stake_info:&StakeInfo<T> , delegate_info:&DelegateInfo<T>)-> Result<(),DispatchError>{
+        if delegate_info.owner != delegate_info.delegate_to {
+            if stake_info.reputation >= MIN_REPUTATION {
+                if <Bonded<T>>::contains_key(&delegate_info.owner.clone()){
+                    let stake_score_difference = new_stake_info.stake_score - stake_info.stake_score;
+                    if let Err(bond_error) = <StakeRequest<T>>::add_bond(&delegate_info.owner, &stake_score_difference){
+                        return Err(bond_error)
+                    }
+                } else {
+                    if let Err(bond_error) = <StakeRequest<T>>::new_bond(&delegate_info, &new_stake_info){
+                        return Err(bond_error)
+                    }
                 }
             }
         }
         Ok(())
     }
 
-    fn add_bond(owner: &T::AccountId, stake_score: &u64) -> Result<(), Error<T>>{
+    fn add_bond(owner: &T::AccountId, stake_score: &u64) -> Result<(), DispatchError>{
         if let Err(bond_error) = <pallet_staking::Pallet<T> as sp_staking::StakingInterface>::bond_extra(
             owner,
             stake_score.clone().try_into().unwrap_or_default(),
         ){
-            // have to return why bond_extra failed from the DispatchError
-            return Err(Error::<T>::BondingFailed)
+            return Err(bond_error.into())
         }	
         Ok(())
     }
@@ -278,20 +281,26 @@ impl<T: Config> StakeRequest<T>{
 		);
 	}
 
-    fn new_bond(owner: &T::AccountId, stake_score: &u64){
-        <pallet_staking::Pallet<T> as sp_staking::StakingInterface>::bond(
-            owner,
-            stake_score.clone().into(),
-            owner,
-        );
-
+    fn new_bond(delegate_info: &DelegateInfo<T>, stake_info: &StakeInfo<T>) -> Result<(),DispatchError>{
+        if let Err(bond_error) = <pallet_staking::Pallet<T> as sp_staking::StakingInterface>::bond(
+            &delegate_info.owner,
+            stake_info.stake_score.clone().try_into().unwrap_or_default(),
+            &delegate_info.owner,
+        ){
+            return Err(bond_error.into())
+        }
+        if let Err(nominate_error) = <DelegateRequest<T>>::nominate(&delegate_info.owner,&delegate_info.delegate_to){
+            return Err(nominate_error.into())
+        }
+        Ok(())
     }
-    pub fn delete(contract_addr: &T::AccountId) -> Result<(),Error<T>>{
+
+    pub fn delete(contract_addr: &T::AccountId) -> Result<(),DispatchError>{
         if StakeInfoMap::<T>::contains_key(&contract_addr) {
             StakeInfoMap::<T>::remove(&contract_addr);
             Ok(())
         } else {
-            Err(Error::<T>::NoStakeExists)
+            Err(Error::<T>::NoStakeExists.into())
         }
     }
 
@@ -307,7 +316,7 @@ pub struct DelegateRequest<T: Config> {
 
 impl<T: Config> DelegateRequest<T>{
 
-    pub fn delegate(origin: &T::AccountId, contract_addr: &T::AccountId, delegate_to: &T::AccountId) -> Result<T::AccountId,Error<T>>{
+    pub fn delegate(origin: &T::AccountId, contract_addr: &T::AccountId, delegate_to: &T::AccountId) -> Result<T::AccountId,DispatchError>{
         if let Err(non_exists) = Self::contract_exists(contract_addr) {
             return Err(non_exists)    
         }
@@ -345,23 +354,23 @@ impl<T: Config> DelegateRequest<T>{
         }
     }
 
-    fn contract_exists(contract_addr: &T::AccountId) -> Result<(),Error<T>>{
+    fn contract_exists(contract_addr: &T::AccountId) -> Result<(),DispatchError>{
         if DelegateInfoMap::<T>::contains_key(contract_addr){
             Ok(())
         }else {
-            Err(Error::<T>::NoStakeExists)
+            Err(Error::<T>::NoStakeExists.into())
         }
 
     }
 
-    fn origin_check(origin: &T::AccountId, contract_addr: &T::AccountId) -> Result<DelegateInfo<T>, Error<T>> {
+    fn origin_check(origin: &T::AccountId, contract_addr: &T::AccountId) -> Result<DelegateInfo<T>, DispatchError> {
         let result = <DelegateInfo<T>>::get(contract_addr);
         match result {
             Ok(delegate_info) => {
                 if delegate_info.owner == *origin {
                     Ok(delegate_info)
                 } else {
-                    Err(Error::<T>::InvalidContractOwner)
+                    Err(Error::<T>::InvalidContractOwner.into())
                 }
             }
             Err(no_delegate) => {
@@ -371,14 +380,14 @@ impl<T: Config> DelegateRequest<T>{
         }
     }
 
-    fn min_reputation(contract_addr : &T::AccountId) -> Result<StakeInfo<T>,Error<T>>{
+    fn min_reputation(contract_addr : &T::AccountId) -> Result<StakeInfo<T>,DispatchError>{
         let result = <StakeInfo<T>>::get(contract_addr);
         match result {
             Ok(stake_info) => {
-                if stake_info.reputation >= MIN_REPUTATION {
+                if stake_info.reputation >= MIN_REPUTATION + 1 {
                     Ok(stake_info)
                 } else {
-                    Err(Error::<T>::LowReputation)
+                    Err(Error::<T>::LowReputation.into())
                 }
             }
             Err(no_stake) => {
@@ -392,20 +401,37 @@ impl<T: Config> DelegateRequest<T>{
         StakeInfoMap::<T>::insert(contract_addr, new_stake_info.clone());
     }
 
-    pub fn un_bond(owner: &OriginFor<T>, delegate_to: &T::AccountId){
-        let null_stake: u64 = 0;
-        Staking::<T>::new_unbond(
-            owner.clone(),
-            null_stake.into(),
-            delegate_to.clone(),
-        );
+    pub fn unbond(owner: &T::AccountId, delegate_to: &T::AccountId) -> Result<(), DispatchError>{
+        if <Bonded<T>>::contains_key(&owner.clone()){
+            let null_stake: u64 = 0;
+            if let Err(bond_error) = <pallet_staking::Pallet<T> as sp_staking::StakingInterface>::unbond(owner,null_stake.into()){
+                return Err(bond_error)
+            }
+            if let Some(num_delegates) = <ValidatorInfoMap<T>>::get(&delegate_to){
+                if num_delegates > 1 {
+                    <ValidatorInfoMap<T>>::insert(&delegate_to, num_delegates-1);
+                }else{
+                    <ValidatorInfoMap<T>>::remove(&delegate_to);
+                }
+            } 
+        }
+        Ok(())
     }
 
-    pub fn nominate(owner: &T::AccountId, new_delegate_to: &T::AccountId){
-        <pallet_staking::Pallet<T> as sp_staking::StakingInterface>::nominate(
+    fn nominate(owner: &T::AccountId, delegate_to: &T::AccountId) -> Result<(),DispatchError>{
+        if let Err(nominate_error) = <pallet_staking::Pallet<T> as sp_staking::StakingInterface>::nominate(
             owner,
-            vec![new_delegate_to.clone(),]
-        );
+            vec![delegate_to.clone(),]
+        ){
+            return Err(nominate_error)
+        }
+        if let Some(num_delegates) = <ValidatorInfoMap<T>>::get(&delegate_to){
+            <ValidatorInfoMap<T>>::insert(&delegate_to, num_delegates+1);
+        } else {
+            <ValidatorInfoMap<T>>::insert(&delegate_to, 1) 
+        }
+        Ok(())
     }
+
 
 }

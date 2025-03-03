@@ -151,7 +151,6 @@ impl<T: Config> ListScenario<T> {
 		sp_std::mem::forget(i);
 
 		let dummyadd: T::AccountId = account("account1",0,0);
-		<ValidatorDelegate<T>>::insert(dummyadd.clone(), 4);
 		// Create accounts with the origin weight
 		let (pool_creator1, pool_origin1) =
 			create_pool_account::<T>(USER_SEED + 1, origin_weight, Some(Perbill::from_percent(50)));
@@ -574,7 +573,6 @@ frame_benchmarking::benchmarks! {
 		let (depositor, pool_account) = create_pool_account::<T>(0, min_create_bond, None);
 
 		let dummyadd: T::AccountId = account("account1",0,0);
-		<ValidatorDelegate<T>>::insert(dummyadd.clone(), 4);
 
 		// Create some accounts to nominate. For the sake of benchmarking they don't need to be
 		// actual validators
@@ -682,7 +680,6 @@ frame_benchmarking::benchmarks! {
 		// Create a pool
 		let (depositor, pool_account) = create_pool_account::<T>(0, Pools::<T>::depositor_min_bond() * 2u32.into(), None);
 		let dummyadd: T::AccountId = account("account1",0,0);
-		<ValidatorDelegate<T>>::insert(dummyadd.clone(), 4);
 		// Nominate with the pool.
 		 let validators: Vec<_> = vec![dummyadd.clone()];
 		assert_ok!(T::Staking::nominate(&pool_account, validators));
