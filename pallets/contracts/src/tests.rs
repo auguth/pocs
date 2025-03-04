@@ -890,7 +890,6 @@ fn instantiate_and_call_and_deposit_event() {
 					event: RuntimeEvent::Contracts(crate::Event::Staked{
 						contract: addr.clone(),
 						stake_score: 0,
-						stake_level: 1,
 					}),
 					topics: vec![hash(&addr)],
 				},
@@ -1276,7 +1275,6 @@ fn deploy_and_call_other_contract() {
 		let caller_addr = instantiate_result.result.unwrap().account_id;
 		let init_stake_info = <StakeInfo<Test>>::mock_stake_info(&None);
 		let init_stake_score = <StakeInfo<Test>>::stake_score(&init_stake_info);
-		let init_stake_level = <StakeInfo<Test>>::stake_level(&init_stake_info);
 
 		let callee_addr = Contracts::contract_address(
 			&caller_addr,
@@ -1309,11 +1307,9 @@ fn deploy_and_call_other_contract() {
 
 		let callee_stake_info = <StakeInfo<Test>>::get(&callee_addr).unwrap();
 		let callee_stake_score = <StakeInfo<Test>>::stake_score(&callee_stake_info);
-		let callee_stake_level = <StakeInfo<Test>>::stake_level(&callee_stake_info);
 
 		let caller_stake_info = <StakeInfo<Test>>::get(&caller_addr).unwrap();
 		let caller_stake_score = <StakeInfo<Test>>::stake_score(&caller_stake_info);
-		let caller_stake_level = <StakeInfo<Test>>::stake_level(&caller_stake_info);
 
 		let callee = get_contract(&callee_addr);
 		let deposit_account = callee.deposit_account().deref();
@@ -1391,7 +1387,6 @@ fn deploy_and_call_other_contract() {
 					event: RuntimeEvent::Contracts(crate::Event::Staked{
 						contract: callee_addr.clone(),
 						stake_score: init_stake_score,
-						stake_level: init_stake_level,
 
 					}),
 					topics: vec![hash(&callee_addr)]
@@ -1421,7 +1416,6 @@ fn deploy_and_call_other_contract() {
 					event: RuntimeEvent::Contracts(crate::Event::Staked{
 						contract: callee_addr.clone(),
 						stake_score: callee_stake_score,
-						stake_level: callee_stake_level,
 
 					}),
 					topics: vec![hash(&callee_addr)]
@@ -1439,7 +1433,6 @@ fn deploy_and_call_other_contract() {
 					event: RuntimeEvent::Contracts(crate::Event::Staked{
 						contract: caller_addr.clone(),
 						stake_score: caller_stake_score,
-						stake_level: caller_stake_level,
 
 					}),
 					topics: vec![hash(&caller_addr)]
@@ -1775,7 +1768,6 @@ fn self_destruct_works() {
 					event: RuntimeEvent::Contracts(crate::Event::Staked {
 						contract: addr.clone(),
 						stake_score: 0,
-						stake_level: 1,
 					}),
 					topics: vec![hash(&addr)],
 				},
@@ -4021,7 +4013,6 @@ fn instantiate_with_zero_balance_works() {
 					event: RuntimeEvent::Contracts(crate::Event::Staked{
 						contract: addr.clone(),
 						stake_score: 0,
-						stake_level: 1,
 					}),
 					topics: vec![hash(&addr)],
 				},
@@ -4151,7 +4142,6 @@ fn instantiate_with_below_existential_deposit_works() {
 					event: RuntimeEvent::Contracts(crate::Event::Staked{
 						contract: addr.clone(),
 						stake_score : 0,
-						stake_level: 1,
 					}),
 					topics: vec![hash(&addr)],
 				},
@@ -4204,7 +4194,6 @@ fn storage_deposit_works() {
 
 		let first_call_stake_info = <StakeInfo<Test>>::get(&addr).unwrap();
 		let first_call_stake_score = <StakeInfo<Test>>::stake_score(&first_call_stake_info);
-		let first_call_stake_level = <StakeInfo<Test>>::stake_level(&first_call_stake_info);
 
 		// Add more storage (but also remove some)
 		assert_ok!(Contracts::call(
@@ -4221,7 +4210,6 @@ fn storage_deposit_works() {
 
 		let second_call_stake_info = <StakeInfo<Test>>::get(&addr).unwrap();
 		let second_call_stake_score = <StakeInfo<Test>>::stake_score(&second_call_stake_info);
-		let second_call_stake_level = <StakeInfo<Test>>::stake_level(&second_call_stake_info);
 
 		// Remove more storage (but also add some)
 		assert_ok!(Contracts::call(
@@ -4239,7 +4227,6 @@ fn storage_deposit_works() {
 
 		let third_call_stake_info = <StakeInfo<Test>>::get(&addr).unwrap();
 		let third_call_stake_score = <StakeInfo<Test>>::stake_score(&third_call_stake_info);
-		let third_call_stake_level = <StakeInfo<Test>>::stake_level(&third_call_stake_info);
 
 		let contract = get_contract(&addr);
 		let deposit_account = contract.deposit_account().deref();
@@ -4269,7 +4256,6 @@ fn storage_deposit_works() {
 					event: RuntimeEvent::Contracts(crate::Event::Staked{
 						contract: addr.clone(),
 						stake_score: first_call_stake_score,
-						stake_level: first_call_stake_level,
 
 					}),
 					topics: vec![hash(&addr)]
@@ -4296,7 +4282,6 @@ fn storage_deposit_works() {
 					event: RuntimeEvent::Contracts(crate::Event::Staked{
 						contract: addr.clone(),
 						stake_score: second_call_stake_score,
-						stake_level: second_call_stake_level,
 
 					}),
 					topics: vec![hash(&addr)]
@@ -4323,7 +4308,6 @@ fn storage_deposit_works() {
 					event: RuntimeEvent::Contracts(crate::Event::Staked{
 						contract: addr.clone(),
 						stake_score: third_call_stake_score,
-						stake_level: third_call_stake_level,
 
 					}),
 					topics: vec![hash(&addr)]
@@ -4795,7 +4779,6 @@ fn set_code_hash() {
 
 		let first_call_stake_info = <StakeInfo<Test>>::get(&contract_addr).unwrap();
 		let first_call_stake_score = <StakeInfo<Test>>::stake_score(&first_call_stake_info);
-		let first_call_stake_level = <StakeInfo<Test>>::stake_level(&first_call_stake_info);
 
 		// Second calls new contract code that returns 2
 		let result = Contracts::bare_call(
@@ -4815,7 +4798,6 @@ fn set_code_hash() {
 
 		let second_call_stake_info = <StakeInfo<Test>>::get(&contract_addr).unwrap();
 		let second_call_stake_score = <StakeInfo<Test>>::stake_score(&second_call_stake_info);
-		let second_call_stake_level = <StakeInfo<Test>>::stake_level(&second_call_stake_info);
 
 		// Checking for the last event only
 		assert_eq!(
@@ -4846,7 +4828,6 @@ fn set_code_hash() {
 					event: RuntimeEvent::Contracts(crate::Event::Staked{
 						contract: contract_addr.clone(),
 						stake_score: first_call_stake_score,
-						stake_level: first_call_stake_level,
 
 					}),
 					topics: vec![hash(&contract_addr)]
@@ -4867,7 +4848,6 @@ fn set_code_hash() {
 					event: RuntimeEvent::Contracts(crate::Event::Staked{
 						contract: contract_addr.clone(),
 						stake_score: second_call_stake_score,
-						stake_level: second_call_stake_level,
 
 					}),
 					topics: vec![hash(&contract_addr)]
@@ -5925,62 +5905,3 @@ fn root_cannot_instantiate() {
 	});
 }           
 
-#[test]
-fn cannot_delegate_without_minimum_reputation(){
-
-}
-
-#[test]
-fn delegate_with_minimum_reputation(){
-
-}
-
-#[test]
-fn cannot_delegate_by_non_deployer(){
-
-}
-
-#[test]
-fn delegate_by_deployer(){
-
-}
-
-#[test]
-fn cannot_delegate_an_eoa(){
-
-}
-
-#[test]
-fn cannot_bare_instantiate_and_delegate(){
-
-}
-
-#[test]
-fn stake_on_first_call_without_instantiation(){
-
-}
-
-#[test]
-fn zero_stake_score_on_call_without_instantiation(){
-
-}
-
-#[test]
-fn no_stake_increase_after_delegation(){
-
-}
-
-#[test]
-fn stake_reset_after_delegation(){
-
-}
-
-#[test]
-fn redundant_delegate_fails(){
-
-}
-
-#[test]
-fn stake_score_wrap_for_stake_level_pass(){
-
-}

@@ -194,9 +194,9 @@ const LOG_TARGET: &str = "runtime::contracts";
 #[frame_support::pallet]
 pub mod pallet {
 	use super::*;
-	use frame_support::pallet_prelude::*;
+	use frame_support::{dispatch::DispatchResult, pallet_prelude::*, storage::child::get};
 	use frame_system::pallet_prelude::*;
-use stake::DelegateRequest;
+use stake::{DelegateRequest, ValidateRequest};
 
 	/// The current storage version.
 	#[cfg(not(any(test, feature = "runtime-benchmarks")))]
@@ -833,21 +833,24 @@ use stake::DelegateRequest;
 			delegate_to: T::AccountId,
 		)-> DispatchResult {
 			let origin = ensure_signed(origin.clone())?;
-			let delegate_result = <DelegateRequest<T>>::delegate(&origin,&contract_addr,&delegate_to);
-			match delegate_result {
-				Ok(to_unbond) => {
-					if let Err(unbond_err) = <DelegateRequest<T>>::unbond(&origin,&to_unbond){
-						return Err(unbond_err.into())
-					}
-
-				}
-				Err(delegate_error) => {
-					return Err(delegate_error.into())
-				}
-			}
+			let to_unbond = <DelegateRequest<T>>::delegate(&origin,&contract_addr,&delegate_to)?;
+			<DelegateRequest<T>>::unbond(&origin,&to_unbond)?;
 			Ok(())
 		}
 
+		#[pallet::call_index(11)]
+		#[pallet::weight(0)]
+		pub fn validate(origin:OriginFor<T>, prefs: ValidatorPrefs) -> DispatchResult {
+			let validator = ensure_signed(origin.clone())?;
+			<ValidateRequest<T>>::validate(origin,prefs,&validator)?;
+			Ok(())
+		}
+
+		// #[pallet::call_index(12)]
+		// #[pallet::weight(0)]
+		// pub fn claim_reward(){
+
+		// }
 	
 	}
 	
@@ -922,23 +925,26 @@ use stake::DelegateRequest;
 			/// The code hash that was delegate called.
 			code_hash: CodeHash<T>,
 		},
-		/// Outputs the current contract address's stake score information (PoCS)
+
+		// PoCS
 		Staked {
 			contract: T::AccountId,
-			stake_score: u64,
-			stake_level: u16,
+			stake_score: u128,
 		},
-
 		RewardClaimed{
 			contract: T::AccountId,
 			rewarder: T::AccountId,
 		},
-		/// Outputs the current contract address's account delegation information (PoCS)
 		Delegated {
 			contract: T::AccountId,
 			owner: T::AccountId,
 			delegate_to: T::AccountId,
 		},
+		ValidateInfo {
+			validator: T::AccountId,
+			num_delegates: u32,
+			can_validate: bool
+		}
 
 	}
 

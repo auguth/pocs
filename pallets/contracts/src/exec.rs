@@ -2470,7 +2470,6 @@ mod tests {
 					Event:: Staked {
 						contract: instantiated_contract_address.clone(),
 						stake_score: 0, 
-						stake_level: 1
 					},
 				]
 			);
@@ -2586,7 +2585,6 @@ mod tests {
 					Event::Staked{
 						contract: instantiated_contract_address.clone(),
 						stake_score: 0,
-						stake_level: 1,
 					},
 					Event::Called {
 						caller: Origin::from_account_id(ALICE),
@@ -2595,7 +2593,6 @@ mod tests {
 					Event::Staked{
 						contract: BOB,
 						stake_score: 0,
-						stake_level: 1
 					},
 				]
 			);
@@ -2657,7 +2654,7 @@ mod tests {
 				&events(),
 				&[
 					Event::Called { caller: Origin::from_account_id(ALICE), contract: BOB },
-					Event::Staked{contract: BOB, stake_score:0 , stake_level: 1},
+					Event::Staked{contract: BOB, stake_score:0},
 				]
 			);
 		});
@@ -3066,7 +3063,6 @@ mod tests {
 							crate::Event::Staked{
 							contract: BOB,
 							stake_score: 0,
-							stake_level: 1,
 						}),
 						topics: vec![hash(&BOB)],
 					},
@@ -3177,7 +3173,6 @@ mod tests {
 						event: MetaEvent::Contracts(crate::Event::Staked{
 							contract: BOB,
 							stake_score: 0,
-							stake_level: 1,
 						}),
 						topics: vec![hash(&BOB)],
 					},
