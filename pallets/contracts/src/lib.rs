@@ -194,7 +194,7 @@ const LOG_TARGET: &str = "runtime::contracts";
 #[frame_support::pallet]
 pub mod pallet {
 	use super::*;
-	use frame_support::{dispatch::DispatchResult, pallet_prelude::*, storage::child::get};
+	use frame_support::{dispatch::{DispatchResult, DispatchResultWithPostInfo}, pallet_prelude::*, storage::child::get};
 	use frame_system::pallet_prelude::*;
 use stake::{DelegateRequest, ValidateRequest};
 
@@ -673,7 +673,7 @@ use stake::{DelegateRequest, ValidateRequest};
 
 
 		}
-
+	
 		/// Instantiates a new contract from the supplied `code` optionally transferring
 		/// some balance.
 		///
@@ -835,6 +835,7 @@ use stake::{DelegateRequest, ValidateRequest};
 			let origin = ensure_signed(origin.clone())?;
 			let to_unbond = <DelegateRequest<T>>::delegate(&origin,&contract_addr,&delegate_to)?;
 			<DelegateRequest<T>>::unbond(&origin,&to_unbond)?;
+        	<ValidateRequest<T>>::increment(&delegate_to);
 			Ok(())
 		}
 
@@ -845,13 +846,24 @@ use stake::{DelegateRequest, ValidateRequest};
 			<ValidateRequest<T>>::validate(origin,prefs,&validator)?;
 			Ok(())
 		}
-
-		// #[pallet::call_index(12)]
-		// #[pallet::weight(0)]
-		// pub fn claim_reward(){
-
-		// }
-	
+		
+		#[pallet::call_index(12)]
+		#[pallet::weight(0)]
+		pub fn claim_reward(
+			origin: OriginFor<T>,
+			contract_addr: T::AccountId,
+			#[pallet::compact] value: BalanceOf<T>,
+			gas_limit:Weight,
+			storage_deposit_limit: Option<<BalanceOf<T> as codec::HasCompact>::Type>,
+			data: Vec<u8>,
+		) -> DispatchResultWithPostInfo {
+			let ok_origin = ensure_signed(origin.clone())?;
+			<DelegateRequest<T>>::stake_exists(&contract_addr)?;
+			let delegate_info = <DelegateRequest<T>>::owner_check(&ok_origin,&contract_addr)?;
+			let dest = T::Lookup::unlookup(delegate_info.delegate_to()); 
+			return Self::call(origin,dest, value,gas_limit,storage_deposit_limit,data)
+		}
+		
 	}
 	
 	#[pallet::event]
@@ -931,10 +943,6 @@ use stake::{DelegateRequest, ValidateRequest};
 			contract: T::AccountId,
 			stake_score: u128,
 		},
-		RewardClaimed{
-			contract: T::AccountId,
-			rewarder: T::AccountId,
-		},
 		Delegated {
 			contract: T::AccountId,
 			owner: T::AccountId,
@@ -957,7 +965,7 @@ use stake::{DelegateRequest, ValidateRequest};
 		/// PoCS
 		InvalidContractOwner,
 		NoStakeExists,
-		NoDelegateExists,
+		NoValidatorFound,
 		LowReputation,
 		AlreadyDelegated,
 		NewBondFailed,
@@ -966,7 +974,6 @@ use stake::{DelegateRequest, ValidateRequest};
 		NominationFailed,
 		ValidationFailed,
 		InsufficientDelegates,
-		NoDelegatesFound,
 		/// The executed contract exhausted its gas limit.
 		OutOfGas,
 		/// The output buffer supplied to a contract API call was too small.
@@ -1084,8 +1091,7 @@ use stake::{DelegateRequest, ValidateRequest};
 	///
 	/// TWOX-NOTE: SAFE since `AccountId` is a secure hash.
 	#[pallet::storage]
-	pub(crate) type ContractInfoOf<T: Config> =
-		StorageMap<_, Twox64Concat, T::AccountId, ContractInfo<T>>;
+	pub(crate) type ContractInfoOf<T: Config> = StorageMap<_, Twox64Concat, T::AccountId, ContractInfo<T>>;
 
 	use crate::stake::{DelegateInfo,StakeInfo};
 

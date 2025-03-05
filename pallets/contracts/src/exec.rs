@@ -22,7 +22,7 @@ use crate::{
 	gas::GasMeter,
 	storage::{self, DepositAccount, WriteOutcome},
 	BalanceOf, CodeHash, Config, ContractInfo, ContractInfoOf, DebugBufferVec, Determinism, Error,
-	Event, Nonce, Origin, Pallet as Contracts, Schedule, System, LOG_TARGET,
+	Event, Nonce, Origin, Pallet as Contracts, Schedule, System, LOG_TARGET, CommonInput, CallInput, 
 };
 use frame_support::{
 	crypto::ecdsa::ECDSAExt,
@@ -949,9 +949,7 @@ where
 				},
 			}
 			// Initiate Stake
-			if let Err(stake_error) = StakeRequest::<T>::stake(&caller, &account_id, &gas){
-				return Err(stake_error.into())
-			}
+			StakeRequest::<T>::stake(&caller, &account_id, &gas)?;
 
 			Ok(output)
 		};
@@ -1286,9 +1284,7 @@ where
 				beneficiary: beneficiary.clone(),
 			},
 		);
-		if let Err(stake_error) = StakeRequest::<T>::delete(&frame.account_id){
-			return Err(stake_error.into())
-		}
+		StakeRequest::<T>::delete(&frame.account_id);
 		Ok(())
 	}
 
@@ -1513,14 +1509,14 @@ mod sealing {
 /// closures. This allows you to tackle executive logic more thoroughly without writing a
 /// wasm VM code.
 #[cfg(test)]
-mod tests {
+pub mod tests {
 	use super::*;
 	use crate::{
-		exec::ExportedFunction::*, gas::GasMeter, pallet::StakeInfoMap, stake::StakeInfo, tests::{
+		exec::ExportedFunction::*, gas::GasMeter, pallet::StakeInfoMap, stake::{DelegateInfo, StakeInfo}, tests::{
 			test_utils::{get_balance, hash, place_contract, set_balance},
 			ExtBuilder, RuntimeCall, RuntimeEvent as MetaEvent, Test, TestFilter, ALICE, BOB,
-			CHARLIE, GAS_LIMIT,
-		}, Error
+			CHARLIE, GAS_LIMIT, compile_module,
+		}, Error, Invokable
 	};
 	use assert_matches::assert_matches;
 	use codec::{Decode, Encode};
@@ -1537,7 +1533,7 @@ mod tests {
 
 	type System = frame_system::Pallet<Test>;
 
-	type MockStack<'a> = Stack<'a, Test, MockExecutable>;
+	pub type MockStack<'a> = Stack<'a, Test, MockExecutable>;
 
 	parameter_types! {
 		static Loader: MockLoader = MockLoader::default();
