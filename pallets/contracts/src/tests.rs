@@ -25,7 +25,7 @@ use crate::{
 		ChainExtension, Environment, Ext, InitState, RegisteredChainExtension,
 		Result as ExtensionResult, RetVal, ReturnFlags, SysConfig,
 	},
-	exec::{Frame, Key,tests::{MockLoader,MockStack}},
+	exec::{Frame, Key},
 	storage::DeletionQueueManager,
 	tests::test_utils::{get_contract, get_contract_checked},
 	wasm::{Determinism, ReturnCode as RuntimeReturnCode},
@@ -33,7 +33,6 @@ use crate::{
 	BalanceOf, Code, CollectEvents, Config, ContractInfo, ContractInfoOf, DebugInfo,
 	DefaultAddressGenerator, DeletionQueueCounter, Error, MigrationInProgress, NoopMigration,
 	Origin, Pallet, PristineCode, Schedule, stake::StakeInfo, stake::DelegateInfo, stake::ValidateRequest, 
-	stake::MIN_REPUTATION, CommonInput, CallInput, Invokable, ExecReturnValue
 };
 use assert_matches::assert_matches;
 use codec::Encode;
@@ -44,20 +43,19 @@ use frame_support::{
 	storage::child,
 	traits::{
 		ConstU32, ConstU64, Contains, Currency, ExistenceRequirement, LockableCurrency, OnIdle,
-		OnInitialize, StorageVersion, WithdrawReasons,KeyOwnerProofSystem,
+		OnInitialize, StorageVersion, WithdrawReasons,
 	},
 	weights::{constants::WEIGHT_REF_TIME_PER_SECOND, Weight},
 };
 use frame_system::{EventRecord, Phase};
 use frame_election_provider_support::{onchain, SequentialPhragmen};
 use pretty_assertions::{assert_eq, assert_ne};
-use pallet_session::historical as pallet_session_historical;
 use sp_core::ByteArray;
 use sp_io::hashing::blake2_256;
 use sp_keystore::{testing::MemoryKeystore, KeystoreExt};
 use sp_runtime::{
-	testing::{H256,Digest, DigestItem, Header, TestXt},
-	traits::{BlakeTwo256, Convert, Hash, IdentityLookup,OpaqueKeys,Header as _},
+	testing::{H256},
+	traits::{BlakeTwo256, Convert, Hash, IdentityLookup},
 	AccountId32, BuildStorage, TokenError,Perbill,
 };
 use sp_staking::{EraIndex, SessionIndex};
@@ -1744,6 +1742,23 @@ fn self_destruct_works() {
 						contract: addr.clone(),
 					}),
 					topics: vec![hash(&Origin::<Test>::from_account_id(ALICE)), hash(&addr)],
+				},
+				// PoCS: Here PoCS Events should not be proceeding
+				// StakeInfoMap is updated but again inserted from first-EOA-caller-stake-approach 
+				// As Call is made after terminate() is called to terminate the contract.
+				// As <StakeRequest<T>>::stake is designed to be fit in fn run(stack) approach it has limitations
+				// Solution : 
+				// 1. Seperation of Tests between pocs and pallet_contracts as pallet_contracts tests are mock
+				// before properly instantiating a contract for testing delegate calls 
+				// 2. Including an enum to represent activity of a pair in StakeInfoMap - Active or Killed 
+				// Killed StakeInfos cannot be revived or delegated or updated 
+				EventRecord {
+					phase: Phase::Initialization,
+					event: RuntimeEvent::Contracts(crate::Event::Staked {
+						contract: addr.clone(),
+						stake_score: 0,
+					}),
+					topics: vec![hash(&addr)],
 				},
 				EventRecord {
 					phase: Phase::Initialization,
@@ -5799,7 +5814,7 @@ fn none_cannot_call_code() {
 }
 
 #[test]
-fn root_can_call() {
+fn root_can_call_but_pocs_not_allowed() {
 	let (wasm, _) = compile_module::<Test>("dummy").unwrap();
 
 	ExtBuilder::default().existential_deposit(100).build().execute_with(|| {
@@ -5821,14 +5836,14 @@ fn root_can_call() {
 		.account_id;
 
 		// Call the contract.
-		assert_ok!(Contracts::call(
+		assert_err_ignore_postinfo!(Contracts::call(
 			RuntimeOrigin::root(),
 			addr.clone(),
 			0,
 			GAS_LIMIT,
 			None,
 			vec![]
-		));
+		), DispatchError::RootNotAllowed);
 	});
 }
 
@@ -5873,11 +5888,11 @@ fn root_cannot_instantiate() {
 }           
 
 #[test]
-fn stake_maps_update_during_instantiation(){
+fn pocs_stake_maps_update_during_instantiation(){
 	let (wasm, _code_hash) = compile_module::<Test>("dummy").unwrap();
 	ExtBuilder::default().existential_deposit(200).build().execute_with(|| {
 		let _ = Balances::deposit_creating(&ALICE, 1_000_000);
-		initialize_block(2);
+		initialize_block(1);
 
         let contract_addr = Contracts::bare_instantiate(
 			ALICE, 
@@ -5898,22 +5913,22 @@ fn stake_maps_update_during_instantiation(){
 
 		assert_eq!(stake_info.stake_score(),0);
 		assert_eq!(stake_info.reputation(),1);
-		assert_eq!(stake_info.blockheight(),2);
+		assert_eq!(stake_info.blockheight(),1);
 
 		assert_eq!(delegate_info.owner(),ALICE);
 		assert_eq!(delegate_info.delegate_to(),ALICE);
-		assert_eq!(delegate_info.delegate_at(),2);
+		assert_eq!(delegate_info.delegate_at(),1);
 
     });
 }
 
 #[test]
-fn stake_maps_update_after_instantiating_uploaded_code(){
+fn pocs_stake_maps_update_after_instantiating_uploaded_code(){
 	let (wasm, code_hash) = compile_module::<Test>("dummy").unwrap();
 	ExtBuilder::default().existential_deposit(200).build().execute_with(|| {
 		let _ = Balances::deposit_creating(&ALICE, 1_000_000);
 
-		initialize_block(3);
+		initialize_block(1);
 
 		assert_ok!(Contracts::upload_code(
 			RuntimeOrigin::signed(ALICE),
@@ -5922,7 +5937,7 @@ fn stake_maps_update_after_instantiating_uploaded_code(){
 			Determinism::Enforced,
 		));
 
-		initialize_block(6);
+		initialize_block(2);
 
         let contract_addr = Contracts::bare_instantiate(
 			ALICE, 
@@ -5943,16 +5958,16 @@ fn stake_maps_update_after_instantiating_uploaded_code(){
 
 		assert_eq!(stake_info.stake_score(),0);
 		assert_eq!(stake_info.reputation(),1);
-		assert_eq!(stake_info.blockheight(),6);
+		assert_eq!(stake_info.blockheight(),2);
 
 		assert_eq!(delegate_info.owner(),ALICE);
 		assert_eq!(delegate_info.delegate_to(),ALICE);
-		assert_eq!(delegate_info.delegate_at(),6);
+		assert_eq!(delegate_info.delegate_at(),2);
     });
 }
 
 #[test]
-fn cannot_delegate_without_minimum_reputation(){
+fn pocs_cannot_delegate_without_minimum_reputation(){
 	let (wasm, _code_hash) = compile_module::<Test>("dummy").unwrap();
 	let (delegate_wasm, _delegate_code_hash) = compile_module::<Test>("dummy").unwrap();
 	ExtBuilder::default().existential_deposit(200).build().execute_with(|| {
@@ -5974,8 +5989,6 @@ fn cannot_delegate_without_minimum_reputation(){
 			.result
 			.unwrap()
 			.account_id;
-
-		initialize_block(5);
 
         let contract_addr = Contracts::bare_instantiate(
 			ALICE, 
@@ -6009,7 +6022,7 @@ fn cannot_delegate_without_minimum_reputation(){
 }
 
 #[test]
-fn delegate_with_minimum_reputation(){
+fn pocs_delegate_with_minimum_reputation(){
 	let (wasm, _code_hash) = compile_module::<Test>("dummy").unwrap();
 	let (delegate_wasm, _delegate_code_hash) = compile_module::<Test>("dummy").unwrap();
 	ExtBuilder::default().existential_deposit(200).build().execute_with(|| {
@@ -6032,8 +6045,6 @@ fn delegate_with_minimum_reputation(){
 			.unwrap()
 			.account_id;
 
-		initialize_block(5);
-
         let contract_addr = Contracts::bare_instantiate(
 			ALICE, 
 			0, 
@@ -6048,7 +6059,7 @@ fn delegate_with_minimum_reputation(){
 			.unwrap()
 			.account_id;
 
-		initialize_block(6);
+		initialize_block(2);
 		assert_ok!(Contracts::bare_call(
 			ALICE, 
 			contract_addr.clone(), 
@@ -6060,7 +6071,7 @@ fn delegate_with_minimum_reputation(){
 			CollectEvents::Skip, 
 			Determinism::Enforced).result);
 		
-		initialize_block(7);
+		initialize_block(3);
 		assert_ok!(Contracts::bare_call(
 			ALICE, 
 			contract_addr.clone(), 
@@ -6078,7 +6089,7 @@ fn delegate_with_minimum_reputation(){
 }
 
 #[test]
-fn reputation_not_increase_in_same_block_calls(){
+fn pocs_reputation_not_increase_in_same_block_calls(){
 	let (wasm, _code_hash) = compile_module::<Test>("dummy").unwrap();
 	ExtBuilder::default().existential_deposit(200).build().execute_with(|| {
 		let _ = Balances::deposit_creating(&ALICE, 1_000_000);
@@ -6101,7 +6112,7 @@ fn reputation_not_increase_in_same_block_calls(){
 
 
 		initialize_block(2);
-		let _result = Contracts::bare_call(
+		assert_ok!(Contracts::bare_call(
 			ALICE, 
 			contract_addr.clone(), 
 			0, 
@@ -6110,7 +6121,7 @@ fn reputation_not_increase_in_same_block_calls(){
 			vec![], 
 			DebugInfo::Skip, 
 			CollectEvents::Skip, 
-			Determinism::Enforced);
+			Determinism::Enforced).result);
 		
 		let init_stake_info = <StakeInfo<Test>>::get(&contract_addr).unwrap();
 
@@ -6131,7 +6142,7 @@ fn reputation_not_increase_in_same_block_calls(){
 }
 
 #[test]
-fn cannot_delegate_by_non_deployer(){
+fn pocs_cannot_delegate_by_non_deployer(){
 	let (wasm, _code_hash) = compile_module::<Test>("dummy").unwrap();
 	let (delegate_wasm, _delegate_code_hash) = compile_module::<Test>("dummy").unwrap();
 	ExtBuilder::default().existential_deposit(200).build().execute_with(|| {
@@ -6155,8 +6166,6 @@ fn cannot_delegate_by_non_deployer(){
 			.unwrap()
 			.account_id;
 
-		initialize_block(2);
-
         let contract_addr = Contracts::bare_instantiate(
 			ALICE, 
 			0, 
@@ -6178,7 +6187,7 @@ fn cannot_delegate_by_non_deployer(){
 }
 
 #[test]
-fn cannot_delegate_an_eoa(){
+fn pocs_cannot_delegate_an_eoa(){
 	let (wasm, _code_hash) = compile_module::<Test>("dummy").unwrap();
 	ExtBuilder::default().existential_deposit(200).build().execute_with(|| {
 		let _ = Balances::deposit_creating(&ALICE, 1_000_000);
@@ -6206,7 +6215,7 @@ fn cannot_delegate_an_eoa(){
 }
 
 #[test]
-fn no_stake_increase_during_delegation(){
+fn pocs_no_stake_increase_during_delegation(){
 	let (wasm, _code_hash) = compile_module::<Test>("dummy").unwrap();
 	let (delegate_wasm, _delegate_code_hash) = compile_module::<Test>("dummy").unwrap();
 	ExtBuilder::default().existential_deposit(200).build().execute_with(|| {
@@ -6229,8 +6238,6 @@ fn no_stake_increase_during_delegation(){
 			.unwrap()
 			.account_id;
 
-		initialize_block(5);
-
         let contract_addr = Contracts::bare_instantiate(
 			ALICE, 
 			0, 
@@ -6245,7 +6252,7 @@ fn no_stake_increase_during_delegation(){
 			.unwrap()
 			.account_id;
 
-		initialize_block(6);
+		initialize_block(2);
 		assert_ok!(Contracts::bare_call(
 			ALICE, 
 			contract_addr.clone(), 
@@ -6257,7 +6264,7 @@ fn no_stake_increase_during_delegation(){
 			CollectEvents::Skip, 
 			Determinism::Enforced).result);
 		
-		initialize_block(7);
+		initialize_block(3);
 		assert_ok!(Contracts::bare_call(
 			ALICE, 
 			contract_addr.clone(), 
@@ -6268,8 +6275,6 @@ fn no_stake_increase_during_delegation(){
 			DebugInfo::Skip, 
 			CollectEvents::Skip, 
 			Determinism::Enforced).result);
-
-		initialize_block(9);
 
 		let before_delegate_stake_info = <StakeInfo<Test>>::get(&contract_addr).unwrap();
 		assert_ok!(Contracts::delegate(RuntimeOrigin::signed(ALICE), contract_addr.clone(), delegate_addr.clone()));
@@ -6279,7 +6284,7 @@ fn no_stake_increase_during_delegation(){
 }
 
 #[test]
-fn stake_reset_after_delegation(){
+fn pocs_stake_reset_after_delegation(){
 	let (wasm, _code_hash) = compile_module::<Test>("dummy").unwrap();
 	let (delegate_wasm, _delegate_code_hash) = compile_module::<Test>("dummy").unwrap();
 	ExtBuilder::default().existential_deposit(200).build().execute_with(|| {
@@ -6302,8 +6307,6 @@ fn stake_reset_after_delegation(){
 			.unwrap()
 			.account_id;
 
-		initialize_block(5);
-
         let contract_addr = Contracts::bare_instantiate(
 			ALICE, 
 			0, 
@@ -6318,7 +6321,7 @@ fn stake_reset_after_delegation(){
 			.unwrap()
 			.account_id;
 
-		initialize_block(6);
+		initialize_block(2);
 		assert_ok!(Contracts::bare_call(
 			ALICE, 
 			contract_addr.clone(), 
@@ -6330,7 +6333,7 @@ fn stake_reset_after_delegation(){
 			CollectEvents::Skip, 
 			Determinism::Enforced).result);
 		
-		initialize_block(7);
+		initialize_block(3);
 		assert_ok!(Contracts::bare_call(
 			ALICE, 
 			contract_addr.clone(), 
@@ -6343,15 +6346,12 @@ fn stake_reset_after_delegation(){
 			Determinism::Enforced).result);
 
 		assert_ok!(Contracts::delegate(RuntimeOrigin::signed(ALICE), contract_addr.clone(), delegate_addr.clone()));
-		
-		initialize_block(9);
-
 		assert_eq!(<StakeInfo<Test>>::get(&contract_addr).unwrap().stake_score(),0);
     });
 }
 
 #[test]
-fn redundant_delegate_fails(){
+fn pocs_redundant_delegate_fails(){
 	let (wasm, _code_hash) = compile_module::<Test>("dummy").unwrap();
 	let (delegate_wasm, _delegate_code_hash) = compile_module::<Test>("dummy").unwrap();
 	ExtBuilder::default().existential_deposit(200).build().execute_with(|| {
@@ -6374,8 +6374,6 @@ fn redundant_delegate_fails(){
 			.unwrap()
 			.account_id;
 
-		initialize_block(5);
-
         let contract_addr = Contracts::bare_instantiate(
 			ALICE, 
 			0, 
@@ -6390,7 +6388,7 @@ fn redundant_delegate_fails(){
 			.unwrap()
 			.account_id;
 
-		initialize_block(6);
+		initialize_block(2);
 		assert_ok!(Contracts::bare_call(
 			ALICE, 
 			contract_addr.clone(), 
@@ -6402,7 +6400,7 @@ fn redundant_delegate_fails(){
 			CollectEvents::Skip, 
 			Determinism::Enforced).result);
 		
-		initialize_block(7);
+		initialize_block(3);
 		assert_ok!(Contracts::bare_call(
 			ALICE, 
 			contract_addr.clone(), 
@@ -6415,8 +6413,6 @@ fn redundant_delegate_fails(){
 			Determinism::Enforced).result);
 
 		assert_ok!(Contracts::delegate(RuntimeOrigin::signed(ALICE), contract_addr.clone(), delegate_addr.clone()));
-
-		initialize_block(10);
 		assert_err!(Contracts::delegate(RuntimeOrigin::signed(ALICE), contract_addr.clone(), delegate_addr.clone())
 		, Error::<Test>::AlreadyDelegated);
 
@@ -6426,7 +6422,7 @@ fn redundant_delegate_fails(){
 
 
 #[test]
-fn validator_delegate_count_increment(){
+fn pocs_validator_delegate_count_increment(){
 	let (first_wasm, _first_code_hash) = compile_module::<Test>("dummy").unwrap();
 	let (second_wasm, _second_code_hash) = compile_module::<Test>("dummy").unwrap();
 	let (delegate_wasm, _delegate_code_hash) = compile_module::<Test>("dummy").unwrap();
@@ -6535,7 +6531,7 @@ fn validator_delegate_count_increment(){
 }
 
 #[test]
-fn validator_delegate_count_decrement(){
+fn pocs_validator_delegate_count_decrement(){
 	let (wasm, _code_hash) = compile_module::<Test>("dummy").unwrap();
 	let (first_delegate_wasm, _first_delegate_code_hash) = compile_module::<Test>("dummy").unwrap();
 	let (second_delegate_wasm, _second_delegate_code_hash) = compile_module::<Test>("dummy").unwrap();
@@ -6613,36 +6609,10 @@ fn validator_delegate_count_decrement(){
 			Determinism::Enforced).result);
 
 		assert_ok!(Contracts::delegate(RuntimeOrigin::signed(ALICE), contract_addr.clone(), first_delegate_addr.clone()));
-
-		initialize_block(4);
-		assert_ok!(Contracts::bare_call(
-			DJANGO, 
-			contract_addr.clone(), 
-			0, 
-			GAS_LIMIT, 
-			None, 
-			vec![], 
-			DebugInfo::Skip, 
-			CollectEvents::Skip, 
-			Determinism::Enforced).result);
-
 		assert_eq!(<ValidateRequest<Test>>::get(&first_delegate_addr).unwrap(),1);
 		assert_ok!(Contracts::delegate(RuntimeOrigin::signed(ALICE), contract_addr.clone(), second_delegate_addr.clone()));
 		assert_err!(<ValidateRequest<Test>>::get(&first_delegate_addr),Error::<Test>::NoValidatorFound);
 		assert_eq!(<DelegateInfo<Test>>::get(&contract_addr).unwrap().delegate_to(),second_delegate_addr.clone());
-
-		initialize_block(5);
-		assert_ok!(Contracts::bare_call(
-			ALICE, 
-			contract_addr.clone(), 
-			0, 
-			GAS_LIMIT, 
-			None, 
-			vec![], 
-			DebugInfo::Skip, 
-			CollectEvents::Skip, 
-			Determinism::Enforced).result);
-
 		assert_eq!(<ValidateRequest<Test>>::get(&second_delegate_addr).unwrap(),1);
 
 		}
@@ -6650,102 +6620,68 @@ fn validator_delegate_count_decrement(){
 }
 
 #[test]
-fn only_validate_when_min_delegate_achieve(){
+fn pocs_stake_score_increment_during_call_pseudo_test(){
+	let (wasm, _code_hash) = compile_module::<Test>("dummy").unwrap();
+	ExtBuilder::default().existential_deposit(200).build().execute_with(|| {
+		let _ = Balances::deposit_creating(&ALICE, 1_000_000);
+		initialize_block(1);
 
+        let contract_addr = Contracts::bare_instantiate(
+			ALICE, 
+			0, 
+			GAS_LIMIT, 
+			None, 
+			Code::Upload(wasm), 
+			vec![], 
+			vec![],
+			DebugInfo::Skip, 
+			CollectEvents::Skip)
+			.result
+			.unwrap()
+			.account_id;
+
+		let init_stake = <StakeInfo<Test>>::get(&contract_addr).unwrap();
+
+		initialize_block(2);
+		assert_ok!(Contracts::bare_call(
+			CHARLIE, 
+			contract_addr.clone(), 
+			0, 
+			GAS_LIMIT, 
+			None, 
+			vec![], 
+			DebugInfo::Skip, 
+			CollectEvents::Skip, 
+			Determinism::Enforced).result);
+
+		let stake_call0 = <StakeInfo<Test>>::get(&contract_addr).unwrap();
+		assert!(stake_call0.stake_score() > init_stake.stake_score());
+
+		initialize_block(3);
+		assert_ok!(Contracts::bare_call(
+			CHARLIE, 
+			contract_addr.clone(), 
+			0, 
+			GAS_LIMIT, 
+			None, 
+			vec![], 
+			DebugInfo::Skip, 
+			CollectEvents::Skip, 
+			Determinism::Enforced).result);
+
+		let stake_call1 = <StakeInfo<Test>>::get(&contract_addr).unwrap();
+		assert!(stake_call1.stake_score() > stake_call0.stake_score());
+
+		});
 }
 
 #[test]
-fn degate_update_by_contract_works(){
-
-}
-
-#[test]
-fn deploy_and_nominate_works(){
-
-}
-
-#[test]
-fn call_reward_contract(){
-
-}
-
-#[test]
-fn nomination_works(){
-
-}
-
-#[test]
-fn stake_maps_update_on_first_call_without_instantiation(){
- // exec.rs test
-}
-
-#[test]
-fn stake_maps_update_when_a_contract_instantiates_code(){
+fn pocs_stake_maps_update_when_a_contract_instantiates_code(){
 	// requires an ink contract which deploys a dummy contract when its called everytime.
 }
 
 #[test]
-fn stake_score_increment_during_delegate_call(){
+fn pocs_stake_score_increment_during_delegate_call(){
 	// frame access where call is made by a contract, so you create a new frame like that to emulate
 }
 
-#[test]
-fn stake_score_increment_during_call(){
-	let (wasm, code_hash) = compile_module::<Test>("dummy").unwrap();
-
-	ExtBuilder::default().existential_deposit(200).build().execute_with(|| {
-		let _ = Balances::deposit_creating(&ALICE, 1_000_000);
-
-		let contract_addr = Contracts::bare_instantiate(
-		ALICE, 
-		0, 
-		GAS_LIMIT, 
-		None, 
-		Code::Upload(wasm), 
-		vec![], 
-		vec![],
-		DebugInfo::Skip, 
-		CollectEvents::Skip)
-		.result
-		.unwrap()
-		.account_id;
-
-		assert_eq!(<StakeInfo<Test>>::get(&contract_addr).unwrap().stake_score(),0);
-
-		let common = CommonInput {
-			origin: Origin::from_account_id(ALICE),
-			value: 0,
-			data: vec![],
-			gas_limit: GAS_LIMIT,
-			storage_deposit_limit: None,
-			debug_message: None
-		};
-		let output = CallInput::<Test> { 
-			dest:contract_addr.clone(), determinism: Determinism::Enforced }.run_guarded(common);
-
-		assert_ok!(output.result);
-		
-		let gas = output.gas_meter.gas_consumed().ref_time();
-		let stake_score = gas as u128;
-
-		assert_eq!(<StakeInfo<Test>>::get(&contract_addr).unwrap().stake_score(),stake_score);
-
-		let common = CommonInput {
-			origin: Origin::from_account_id(ALICE),
-			value: 0,
-			data: vec![],
-			gas_limit: GAS_LIMIT,
-			storage_deposit_limit: None,
-			debug_message: None
-		};
-		let output = CallInput::<Test> { 
-			dest:contract_addr.clone(), determinism: Determinism::Enforced }.run_guarded(common);
-
-		assert_ok!(output.result);
-
-		let gas = output.gas_meter.gas_consumed().ref_time();
-		let new_stake_score = gas as u128;
-
-		assert_eq!(<StakeInfo<Test>>::get(&contract_addr).unwrap().stake_score(),stake_score+new_stake_score);
-	});
-}

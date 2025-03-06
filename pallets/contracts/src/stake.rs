@@ -300,11 +300,10 @@ impl<T: Config> DelegateRequest<T>{
         StakeInfoMap::<T>::insert(contract_addr, new_stake_info.clone());
     }
 
-    pub fn unbond(owner: &T::AccountId, to_unbond: &T::AccountId) -> Result<(), DispatchError>{
+    pub fn unbond(owner: &T::AccountId) -> Result<(), DispatchError>{
         if <Bonded<T>>::contains_key(&owner.clone()){
             let null_stake: u64 = 0;
             <pallet_staking::Pallet<T> as sp_staking::StakingInterface>::unbond(owner,null_stake.into())?;
-            <ValidateRequest<T>>::decrement(to_unbond);
         }
         Ok(())
     }
@@ -384,7 +383,7 @@ impl<T: Config> ValidateRequest<T> {
         }
     }
 
-    fn decrement(validator: &T::AccountId) {
+    pub fn decrement(validator: &T::AccountId) {
         if let Ok(num_delegates) = Self::get(validator){
             if num_delegates > 1 {
                 let new_num_delegates = num_delegates - 1;

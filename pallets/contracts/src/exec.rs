@@ -22,7 +22,7 @@ use crate::{
 	gas::GasMeter,
 	storage::{self, DepositAccount, WriteOutcome},
 	BalanceOf, CodeHash, Config, ContractInfo, ContractInfoOf, DebugBufferVec, Determinism, Error,
-	Event, Nonce, Origin, Pallet as Contracts, Schedule, System, LOG_TARGET, CommonInput, CallInput, 
+	Event, Nonce, Origin, Pallet as Contracts, Schedule, System, LOG_TARGET,  
 };
 use frame_support::{
 	crypto::ecdsa::ECDSAExt,
@@ -45,9 +45,8 @@ use sp_core::{
 	sr25519::{Public as SR25519Public, Signature as SR25519Signature},
 };
 use sp_io::{crypto::secp256k1_ecdsa_recover_compressed, hashing::blake2_256};
-use sp_runtime::{traits::{Convert, Hash, Zero},SaturatedConversion};
+use sp_runtime::{traits::{Convert, Hash, Zero}};
 use sp_std::{marker::PhantomData, mem, prelude::*, vec::Vec};
-use pallet_contracts_primitives::ReturnFlags;
 
 pub type AccountIdOf<T> = <T as frame_system::Config>::AccountId;
 pub type MomentOf<T> = <<T as Config>::Time as Time>::Moment;
@@ -1555,7 +1554,7 @@ pub mod tests {
 	}
 
 	#[derive(Clone)]
-	struct MockExecutable {
+	pub struct MockExecutable {
 		func: Rc<dyn Fn(MockCtx, &Self) -> ExecResult + 'static>,
 		func_type: ExportedFunction,
 		code_hash: CodeHash<Test>,
@@ -2244,7 +2243,7 @@ pub mod tests {
 	}
 
 	#[test]
-	fn root_caller_succeeds() {
+	fn root_caller_succeeds_but_pocs_not_allowed() {
 		let code_bob = MockLoader::insert(Call, |ctx, _| {
 			// root is the origin of the call stack.
 			assert!(ctx.ext.caller_is_root());
@@ -2270,7 +2269,7 @@ pub mod tests {
 				None,
 				Determinism::Enforced,
 			);
-			assert_matches!(result, Ok(_));
+			assert_err!(result, DispatchError::RootNotAllowed);
 		});
 	}
 
@@ -2306,7 +2305,7 @@ pub mod tests {
 	}
 
 	#[test]
-	fn root_caller_succeeds_with_consecutive_calls() {
+	fn root_caller_succeeds_with_consecutive_calls_but_pocs_not_allowed() {
 		let code_charlie = MockLoader::insert(Call, |ctx, _| {
 			// BOB is not root, even though the origin is root.
 			assert!(!ctx.ext.caller_is_root());
@@ -2341,7 +2340,7 @@ pub mod tests {
 				None,
 				Determinism::Enforced,
 			);
-			assert_matches!(result, Ok(_));
+			assert_err!(result, DispatchError::RootNotAllowed);
 		});
 	}
 
@@ -2594,6 +2593,7 @@ pub mod tests {
 			);
 		});
 	}
+
 
 	#[test]
 	fn instantiation_traps() {
@@ -3815,4 +3815,5 @@ pub mod tests {
 			assert_matches!(result, Ok(_));
 		});
 	}
+
 }

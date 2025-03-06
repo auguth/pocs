@@ -113,7 +113,6 @@ use crate::{
 	gas::GasMeter,
 	storage::{meter::Meter as StorageMeter, ContractInfo, DeletionQueueManager},
 	wasm::{CodeInfo, WasmBlob},
-	stake::StakeRequest,
 };
 use codec::{Codec, Decode, Encode, HasCompact};
 use environmental::*;
@@ -133,8 +132,8 @@ use frame_support::{
 	weights::Weight,
 	BoundedVec, RuntimeDebugNoBound,
 };
-use pallet_staking::{Pallet as Staking, ValidatorPrefs};
-use frame_system::{ensure_signed, pallet_prelude::OriginFor, EventRecord, Pallet as System, RawOrigin as ROrigin};
+use pallet_staking::ValidatorPrefs;
+use frame_system::{ensure_signed, pallet_prelude::OriginFor, EventRecord, Pallet as System};
 use pallet_contracts_primitives::{
 	Code, CodeUploadResult, CodeUploadReturnValue, ContractAccessError, ContractExecResult,
 	ContractInstantiateResult, ContractResult, ExecReturnValue, GetStorageResult,
@@ -143,7 +142,6 @@ use pallet_contracts_primitives::{
 use scale_info::TypeInfo;
 use smallvec::Array;
 use sp_runtime::traits::{Convert, Hash, Saturating, StaticLookup, Zero};
-use sp_runtime::SaturatedConversion;
 use sp_std::{fmt::Debug, prelude::*};
 
 pub use weights::ContractWeightInfo;
@@ -194,7 +192,7 @@ const LOG_TARGET: &str = "runtime::contracts";
 #[frame_support::pallet]
 pub mod pallet {
 	use super::*;
-	use frame_support::{dispatch::{DispatchResult, DispatchResultWithPostInfo}, pallet_prelude::*, storage::child::get};
+	use frame_support::{dispatch::{DispatchResult, DispatchResultWithPostInfo}, pallet_prelude::*};
 	use frame_system::pallet_prelude::*;
 use stake::{DelegateRequest, ValidateRequest};
 
@@ -834,7 +832,8 @@ use stake::{DelegateRequest, ValidateRequest};
 		)-> DispatchResult {
 			let origin = ensure_signed(origin.clone())?;
 			let to_unbond = <DelegateRequest<T>>::delegate(&origin,&contract_addr,&delegate_to)?;
-			<DelegateRequest<T>>::unbond(&origin,&to_unbond)?;
+			<DelegateRequest<T>>::unbond(&origin)?;
+            <ValidateRequest<T>>::decrement(&to_unbond);
         	<ValidateRequest<T>>::increment(&delegate_to);
 			Ok(())
 		}
@@ -1404,7 +1403,6 @@ macro_rules! ensure_no_migration_in_progress {
 	};
 }
 
-use crate::{DelegateInfoMap,StakeInfoMap};
 
 impl<T: Config> Pallet<T> {
 
