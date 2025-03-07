@@ -12,6 +12,8 @@ use pallet_staking::{Pallet as Staking, ValidatorPrefs,Bonded};
 
 pub const MIN_REPUTATION: u32 = 3; 
 pub const MIN_DELEGATES: u32 = 10; 
+pub const REPUTATION_FACTOR : u32 = 1;
+pub const INITIAL_STAKE_SCORE : u128 = 0;
 
 
 #[derive(Encode, Decode, Clone, PartialEq, Eq, RuntimeDebug, TypeInfo, MaxEncodedLen)]
@@ -65,7 +67,6 @@ pub struct StakeInfo<T: Config> {
 	reputation: u32,
 	blockheight: BlockNumberFor<T>,
 	stake_score: u128,
-
 }
 
 impl<T: Config> StakeInfo<T>{
@@ -81,21 +82,6 @@ impl<T: Config> StakeInfo<T>{
     pub fn blockheight(&self) -> BlockNumberFor<T> {
         self.blockheight
     }
-    
-    
-    pub fn mock_stake_info(ref_time:&Option<u64>) -> Self{
-        match ref_time {
-            Some(gas) => {
-                let stake_info = Self::new();
-                let result = Self::update(&stake_info, &gas);
-                return result
-            }
-            _none => {
-                let result = Self::new();
-                return result
-            }
-        }
-    }
 
     pub fn get(contract_addr: &T::AccountId) -> Result<StakeInfo<T>,DispatchError> {
         Contracts::<T>::get_stake_info(contract_addr)
@@ -104,9 +90,9 @@ impl<T: Config> StakeInfo<T>{
 
 	fn new() -> Self {
 		Self{
-			reputation: 1,
+			reputation: REPUTATION_FACTOR,
 			blockheight: <frame_system::Pallet<T>>::block_number(),
-			stake_score: 0,
+			stake_score: INITIAL_STAKE_SCORE,
 		}
 	}
 
@@ -114,7 +100,7 @@ impl<T: Config> StakeInfo<T>{
 		Self{
 			reputation: self.reputation,
 			blockheight: <frame_system::Pallet<T>>::block_number(),
-			stake_score: 0,
+			stake_score: INITIAL_STAKE_SCORE,
 		}
 	}
 
@@ -124,7 +110,7 @@ impl<T: Config> StakeInfo<T>{
         if current_block_height > self.blockheight {
             let new_stake_score = (*gas as u128 * current_reputation as u128) + self.stake_score;
             Self {
-                reputation: current_reputation + 1,
+                reputation: current_reputation + REPUTATION_FACTOR,
                 blockheight: current_block_height,
                 stake_score: new_stake_score,
             }
@@ -160,13 +146,13 @@ impl<T: Config> StakeRequest<T>{
     }
 
     fn empty(origin: &T::AccountId, contract_addr: &T::AccountId) {
-        let request_info = Self{
+        let delegate_info = <DelegateInfo<T>>::new(origin);
+        Self::init(&Self{
             contract: contract_addr.clone(),
             caller: origin.clone(),
             gas: 0
-        };
-        let delegate_info = <DelegateInfo<T>>::new(origin);
-        Self::init(&request_info , &delegate_info);
+        } 
+            , &delegate_info);
     }
 
     fn new(contract_addr: &T::AccountId, gas: &u64) -> Result<(),DispatchError>{
@@ -224,7 +210,7 @@ impl<T: Config> StakeRequest<T>{
             stake_info.stake_score.clone().try_into().unwrap_or_default(),
             &delegate_info.owner,
         )?;
-        <DelegateRequest<T>>::nominate(&delegate_info.owner,&delegate_info.delegate_to)?;
+        Self::nominate(&delegate_info.owner,&delegate_info.delegate_to)?;
         Ok(())
     }
 
@@ -232,6 +218,14 @@ impl<T: Config> StakeRequest<T>{
         if StakeInfoMap::<T>::contains_key(&contract_addr) {
             StakeInfoMap::<T>::remove(&contract_addr);
         } 
+    }
+
+    fn nominate(owner: &T::AccountId, validator: &T::AccountId) -> Result<(),DispatchError>{
+        <pallet_staking::Pallet<T> as sp_staking::StakingInterface>::nominate(
+            owner,
+            vec![validator.clone(),]
+        )?;
+        Ok(())
     }
 
 }
@@ -258,7 +252,6 @@ impl<T: Config> DelegateRequest<T>{
                 vec![T::Hashing::hash_of(contract_addr)],
                 Event::Delegated {
                     contract: contract_addr.clone(),
-                    owner: origin.clone(),
                     delegate_to: new_delegate_info.delegate_to,
                 },
             );
@@ -300,55 +293,18 @@ impl<T: Config> DelegateRequest<T>{
         StakeInfoMap::<T>::insert(contract_addr, new_stake_info.clone());
     }
 
-    pub fn unbond(owner: &T::AccountId) -> Result<(), DispatchError>{
+    pub fn unbond(owner: &T::AccountId, to_unbond: &T::AccountId, validator: &T::AccountId) -> Result<(), DispatchError>{
         if <Bonded<T>>::contains_key(&owner.clone()){
             let null_stake: u64 = 0;
             <pallet_staking::Pallet<T> as sp_staking::StakingInterface>::unbond(owner,null_stake.into())?;
         }
+        Self::decrement(to_unbond);
+        Self::increment(validator);
         Ok(())
     }
 
-    fn nominate(owner: &T::AccountId, validator: &T::AccountId) -> Result<(),DispatchError>{
-        <pallet_staking::Pallet<T> as sp_staking::StakingInterface>::nominate(
-            owner,
-            vec![validator.clone(),]
-        )?;
-        Ok(())
-    }
-
-}
-
-#[derive(Encode, Decode, Clone, PartialEq, Eq, RuntimeDebug, TypeInfo, MaxEncodedLen)]
-#[scale_info(skip_type_params(T))]
-pub struct ValidateRequest<T: Config> {
-	validator: T::AccountId,
-    num_delegates: u32,
-}
-
-impl<T: Config> ValidateRequest<T> {
-
-    pub fn get(validator: &T::AccountId) -> Result<u32,DispatchError>{
-        Contracts::<T>::get_validator_info(validator)
-            .ok_or_else(|| Error::<T>::NoValidatorFound.into())
-    }
-
-    fn min_delegates_check(validator: &T::AccountId) -> Result<(),DispatchError>{
-        let num_delegates = Self::get(validator)?;
-        if num_delegates >= MIN_DELEGATES {
-            return Ok(())
-        } else {
-            return Err(Error::<T>::InsufficientDelegates.into())
-        }
-    }
-
-    pub fn validate(origin: OriginFor<T>, prefs: ValidatorPrefs, validator: &T::AccountId) -> Result<(),DispatchError>{
-        Self::min_delegates_check(validator)?;
-        Staking::<T>::validate(origin, prefs)?;
-        Ok(())
-    }
-
-    pub fn increment(validator: &T::AccountId) {
-        if let Ok(num_delegates) = Self::get(validator){
+   fn increment(validator: &T::AccountId) {
+        if let Ok(num_delegates) = <ValidateRequest<T>>::get(validator){
             let new_num_delegates = num_delegates + 1;
             <ValidatorInfoMap<T>>::insert(&validator, new_num_delegates);
             if new_num_delegates >= MIN_DELEGATES {
@@ -383,8 +339,8 @@ impl<T: Config> ValidateRequest<T> {
         }
     }
 
-    pub fn decrement(validator: &T::AccountId) {
-        if let Ok(num_delegates) = Self::get(validator){
+    fn decrement(validator: &T::AccountId) {
+        if let Ok(num_delegates) = <ValidateRequest<T>>::get(validator){
             if num_delegates > 1 {
                 let new_num_delegates = num_delegates - 1;
                 <ValidatorInfoMap<T>>::insert(&validator, new_num_delegates);
@@ -420,6 +376,38 @@ impl<T: Config> ValidateRequest<T> {
             }
         } 
     }
-    
+
+}
+
+#[derive(Encode, Decode, Clone, PartialEq, Eq, RuntimeDebug, TypeInfo, MaxEncodedLen)]
+#[scale_info(skip_type_params(T))]
+pub struct ValidateRequest<T: Config> {
+	validator: T::AccountId,
+    num_delegates: u32,
+}
+
+impl<T: Config> ValidateRequest<T> {
+
+    pub fn get(validator: &T::AccountId) -> Result<u32,DispatchError>{
+        Contracts::<T>::get_validator_info(validator)
+            .ok_or_else(|| Error::<T>::NoValidatorFound.into())
+    }
+
+    fn min_delegates_check(validator: &T::AccountId) -> Result<(),DispatchError>{
+        let num_delegates = Self::get(validator)?;
+        if num_delegates >= MIN_DELEGATES {
+            return Ok(())
+        } else {
+            return Err(Error::<T>::InsufficientDelegates.into())
+        }
+    }
+
+    pub fn validate(origin: OriginFor<T>, prefs: ValidatorPrefs, validator: &T::AccountId) -> Result<(),DispatchError>{
+        Self::min_delegates_check(validator)?;
+        Staking::<T>::validate(origin, prefs)?;
+        Ok(())
+    }
+
+ 
 }
 
