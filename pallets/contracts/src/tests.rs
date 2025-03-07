@@ -6845,6 +6845,39 @@ fn pocs_stake_score_increment_during_delegate_call(){
 }
 
 #[test]
-fn pocs_delegate_by_owner_contract(){
-// via chain extensions
+fn pocs_delegate_by_owner_contract_via_chain_extension(){
+
+}
+
+#[test]
+fn pocs_delegate_by_non_owner_contract_via_chain_extension(){
+
+}
+
+#[test]
+fn pocs_fetch_delegate_to_via_chain_extension(){
+
+}
+
+#[test]
+fn pocs_fetch_delegate_at_via_chain_extension(){
+
+}
+#[test]
+fn pocs_check_is_delegate_via_chain_extension(){
+
+}
+#[test]
+fn pocs_fetch_stake_score_via_chain_extension(){
+
+}
+
+#[test]
+fn pocs_fetch_reputation_via_chain_extension(){
+
+}
+
+#[test]
+fn pocs_fetch_stake_info_tuple_via_chain_extension(){
+
 }

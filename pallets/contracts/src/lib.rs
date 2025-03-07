@@ -100,7 +100,7 @@ mod gas;
 mod schedule;
 mod storage;
 mod wasm;
-mod stake;
+pub mod stake;
 
 pub mod chain_extension;
 pub mod migration;
