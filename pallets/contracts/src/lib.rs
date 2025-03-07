@@ -831,8 +831,7 @@ use stake::{DelegateRequest, ValidateRequest};
 			delegate_to: T::AccountId,
 		)-> DispatchResult {
 			let origin = ensure_signed(origin.clone())?;
-			let to_unbond = <DelegateRequest<T>>::delegate(&origin,&contract_addr,&delegate_to)?;
-			<DelegateRequest<T>>::unbond(&origin, &to_unbond, &delegate_to)?;
+			<DelegateRequest<T>>::delegate(&origin,&contract_addr,&delegate_to)?;
 			Ok(())
 		}
 

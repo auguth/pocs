@@ -240,7 +240,7 @@ pub struct DelegateRequest<T: Config> {
 
 impl<T: Config> DelegateRequest<T>{
 
-    pub fn delegate(origin: &T::AccountId, contract_addr: &T::AccountId, delegate_to: &T::AccountId) -> Result<T::AccountId,DispatchError>{
+    pub fn delegate(origin: &T::AccountId, contract_addr: &T::AccountId, delegate_to: &T::AccountId) -> Result<(),DispatchError>{
         Self::stake_exists(contract_addr)?;
         let delegate_info = Self::owner_check(origin, contract_addr)?;
         let stake_info = <DelegateRequest<T>>::min_reputation(&contract_addr)?;
@@ -255,7 +255,8 @@ impl<T: Config> DelegateRequest<T>{
                     delegate_to: new_delegate_info.delegate_to,
                 },
             );
-            return Ok(delegate_info.delegate_to)
+            Self::unbond(origin, &delegate_info.delegate_to, delegate_to)?;
+            Ok(())
         } else {
             return Err(Error::<T>::AlreadyDelegated.into())
         }

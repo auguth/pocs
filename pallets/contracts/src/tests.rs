@@ -6843,3 +6843,8 @@ fn pocs_stake_score_increment_during_delegate_call(){
 		assert!(<StakeInfo<Test>>::get(&callee_addr).unwrap().stake_score() > init_stake_score);
 	});
 }
+
+#[test]
+fn pocs_delegate_by_owner_contract(){
+// via chain extensions
+}
