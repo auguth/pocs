@@ -12,6 +12,7 @@ pub mod constants;
 mod voter_bags;
 
 use codec::{Decode, Encode};
+use pallet_contracts::stake::chain_ext::StakeDelegateExtension;
 
 use pallet_grandpa::AuthorityId as GrandpaId;
 use pallet_election_provider_multi_phase::SolutionAccuracyOf;
@@ -297,7 +298,7 @@ impl pallet_contracts::Config for Runtime {
 	type CallStack = [pallet_contracts::Frame<Self>; 5];
 	type WeightPrice = pallet_transaction_payment::Pallet<Self>;
 	type ContractWeightInfo = pallet_contracts::weights::SubstrateWeight<Self>;
-	type ChainExtension = ();
+	type ChainExtension = StakeDelegateExtension<Self>;
 	type Schedule = Schedule;
 	type AddressGenerator = pallet_contracts::DefaultAddressGenerator;
 	type MaxCodeLen = ConstU32<{ 123 * 1024 }>;
@@ -1252,103 +1253,103 @@ mod tests {
 	}
 }
 
-use frame_support::log::error;
-use pallet_contracts::{chain_extension::{
-    ChainExtension,
-    Environment,
-    Ext,
-    InitState,
-    RetVal,
-    SysConfig,
-}, stake::{DelegateInfo,StakeInfo}};
-use sp_core::crypto::UncheckedFrom;
-use sp_runtime::DispatchError;
+// use frame_support::log::error;
+// use pallet_contracts::{chain_extension::{
+//     ChainExtension,
+//     Environment,
+//     Ext,
+//     InitState,
+//     RetVal,
+//     SysConfig,
+// }, stake::{DelegateInfo,StakeInfo}};
+// use sp_core::crypto::UncheckedFrom;
+// use sp_runtime::DispatchError;
 
-impl<T :pallet_contracts::Config> ChainExtension<Runtime> for DelegateInfo<T> {
-    fn call<E: Ext>(
-        &mut self,
-        env: Environment<E, InitState>,
-    ) -> Result<RetVal, DispatchError>
-    where
-        <E::T as SysConfig>::AccountId:
-            UncheckedFrom<<E::T as SysConfig>::Hash> + AsRef<[u8]>,
-    {
-        let func_id = env.func_id();
-        match func_id {
-            1 => {
-                let mut env = env.buf_in_buf_out();
-                let contract_addr: T::AccountId = env.read_as()?;
-				let delegate_info: DelegateInfo<T> = pallet_contracts::stake::DelegateInfo::get(&contract_addr)?;
-				let delegate_to = pallet_contracts::stake::DelegateInfo::delegate_to(&delegate_info);
-                let result = delegate_to.encode();
+// impl<T :pallet_contracts::Config> ChainExtension<Runtime> for DelegateInfo<T> {
+//     fn call<E: Ext>(
+//         &mut self,
+//         env: Environment<E, InitState>,
+//     ) -> Result<RetVal, DispatchError>
+//     where
+//         <E::T as SysConfig>::AccountId:
+//             UncheckedFrom<<E::T as SysConfig>::Hash> + AsRef<[u8]>,
+//     {
+//         let func_id = env.func_id();
+//         match func_id {
+//             1 => {
+//                 let mut env = env.buf_in_buf_out();
+//                 let contract_addr: T::AccountId = env.read_as()?;
+// 				let delegate_info: DelegateInfo<T> = pallet_contracts::stake::DelegateInfo::get(&contract_addr)?;
+// 				let delegate_to = pallet_contracts::stake::DelegateInfo::delegate_to(&delegate_info);
+//                 let result = delegate_to.encode();
 
-                env.write(&result, false, None).map_err(|_| {
-                    DispatchError::Other("ChainExtension failed")
-                })?;
-            }
-			2 => {
-                let mut env = env.buf_in_buf_out();
-                let contract_addr: T::AccountId = env.read_as()?;
-				let delegate_info: DelegateInfo<T> = pallet_contracts::stake::DelegateInfo::get(&contract_addr)?;
-				let delegate_at = pallet_contracts::stake::DelegateInfo::delegate_at(&delegate_info);
-                let result = delegate_at.encode();
+//                 env.write(&result, false, None).map_err(|_| {
+//                     DispatchError::Other("ChainExtension failed")
+//                 })?;
+//             }
+// 			2 => {
+//                 let mut env = env.buf_in_buf_out();
+//                 let contract_addr: T::AccountId = env.read_as()?;
+// 				let delegate_info: DelegateInfo<T> = pallet_contracts::stake::DelegateInfo::get(&contract_addr)?;
+// 				let delegate_at = pallet_contracts::stake::DelegateInfo::delegate_at(&delegate_info);
+//                 let result = delegate_at.encode();
 
-                env.write(&result, false, None).map_err(|_| {
-                    DispatchError::Other("ChainExtension failed")
-                })?;
-            }
-            _ => {
-                error!("Called an unregistered `func_id`: {:}", func_id);
-                return Err(DispatchError::Other("Unimplemented func_id"))
-            }
-        }
-        Ok(RetVal::Converging(0))
-    }
+//                 env.write(&result, false, None).map_err(|_| {
+//                     DispatchError::Other("ChainExtension failed")
+//                 })?;
+//             }
+//             _ => {
+//                 error!("Called an unregistered `func_id`: {:}", func_id);
+//                 return Err(DispatchError::Other("Unimplemented func_id"))
+//             }
+//         }
+//         Ok(RetVal::Converging(0))
+//     }
 
-}
+// }
 
-impl<T :pallet_contracts::Config> ChainExtension<Runtime> for StakeInfo<T> {
-    fn call<E: Ext>(
-        &mut self,
-        env: Environment<E, InitState>,
-    ) -> Result<RetVal, DispatchError>
-    where
-        <E::T as SysConfig>::AccountId:
-            UncheckedFrom<<E::T as SysConfig>::Hash> + AsRef<[u8]>,
-    {
-        let func_id = env.func_id();
-        match func_id {
-            3 => {
-                let mut env = env.buf_in_buf_out();
-                let contract_addr: T::AccountId = env.read_as()?;
-				let stake_info: StakeInfo<T> = pallet_contracts::stake::StakeInfo::get(&contract_addr)?;
-				let stake_score = pallet_contracts::stake::StakeInfo::stake_score(&stake_info);
-                let result = stake_score.encode();
+// impl<T :pallet_contracts::Config> ChainExtension<Runtime> for StakeInfo<T> {
+//     fn call<E: Ext>(
+//         &mut self,
+//         env: Environment<E, InitState>,
+//     ) -> Result<RetVal, DispatchError>
+//     where
+//         <E::T as SysConfig>::AccountId:
+//             UncheckedFrom<<E::T as SysConfig>::Hash> + AsRef<[u8]>,
+//     {
+//         let func_id = env.func_id();
+//         match func_id {
+//             3 => {
+//                 let mut env = env.buf_in_buf_out();
+//                 let contract_addr: T::AccountId = env.read_as()?;
+// 				let stake_info: StakeInfo<T> = pallet_contracts::stake::StakeInfo::get(&contract_addr)?;
+// 				let stake_score = pallet_contracts::stake::StakeInfo::stake_score(&stake_info);
+//                 let result = stake_score.encode();
 
-                env.write(&result, false, None).map_err(|_| {
-                    DispatchError::Other("ChainExtension failed")
-                })?;
-            }
-			4 => {
-                let mut env = env.buf_in_buf_out();
-                let contract_addr: T::AccountId = env.read_as()?;
-                // let delegate_info: DelegateInfo<T> = pallet_contracts::stake::DelegateInfo::get(&contract_addr).map_err(|_| {
-                //     DispatchError::Other("No DelegateInfo Found")
-                // })?;
-				let stake_info: StakeInfo<T> = pallet_contracts::stake::StakeInfo::get(&contract_addr)?;
-				let reputation = pallet_contracts::stake::StakeInfo::reputation(&stake_info);
-                let result = reputation.encode();
+//                 env.write(&result, false, None).map_err(|_| {
+//                     DispatchError::Other("ChainExtension failed")
+//                 })?;
+//             }
+// 			4 => {
+//                 let mut env = env.buf_in_buf_out();
+//                 let contract_addr: T::AccountId = env.read_as()?;
+//                 // let delegate_info: DelegateInfo<T> = pallet_contracts::stake::DelegateInfo::get(&contract_addr).map_err(|_| {
+//                 //     DispatchError::Other("No DelegateInfo Found")
+//                 // })?;
+// 				let stake_info: StakeInfo<T> = pallet_contracts::stake::StakeInfo::get(&contract_addr)?;
+// 				let reputation = pallet_contracts::stake::StakeInfo::reputation(&stake_info);
+//                 let result = reputation.encode();
 
-                env.write(&result, false, None).map_err(|_| {
-                    DispatchError::Other("ChainExtension failed")
-                })?;
-            }
-            _ => {
-                error!("Called an unregistered `func_id`: {:}", func_id);
-                return Err(DispatchError::Other("Unimplemented func_id"))
-            }
-        }
-        Ok(RetVal::Converging(0))
-    }
-}
+//                 env.write(&result, false, None).map_err(|_| {
+//                     DispatchError::Other("ChainExtension failed")
+//                 })?;
+//             }
+//             _ => {
+//                 error!("Called an unregistered `func_id`: {:}", func_id);
+//                 return Err(DispatchError::Other("Unimplemented func_id"))
+//             }
+//         }
+//         Ok(RetVal::Converging(0))
+//     }
+// }
 

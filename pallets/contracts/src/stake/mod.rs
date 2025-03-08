@@ -15,6 +15,7 @@ pub const MIN_DELEGATES: u32 = 10;
 pub const REPUTATION_FACTOR : u32 = 1;
 pub const INITIAL_STAKE_SCORE : u128 = 0;
 
+pub mod chain_ext;
 
 #[derive(Encode, Decode, Clone, PartialEq, Eq, RuntimeDebug, TypeInfo, MaxEncodedLen)]
 #[scale_info(skip_type_params(T))]
