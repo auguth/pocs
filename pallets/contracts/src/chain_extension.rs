@@ -486,3 +486,48 @@ mod sealed {
 	impl BufIn for BufInBufOutState {}
 	impl BufOut for BufInBufOutState {}
 }
+
+// Import necessary dependencies
+use crate::{ // Use `crate` because we are inside `pallets/contracts/`
+    Config as ContractsConfig,
+    Pallet as ContractsPallet, // Reference the Pallet implementation
+};
+use codec::Encode;
+/// Chain extension implementation for accessing `ValidatorInfoMap`
+pub struct ValidatorInfoExtension<T>(PhantomData<T>);
+
+impl<T> Default for ValidatorInfoExtension<T> {
+    fn default() -> Self {
+        Self(PhantomData)
+    }
+}
+impl<T> ChainExtension<T> for ValidatorInfoExtension<T>
+where
+    T: ContractsConfig, // Ensure T implements the contracts pallet configuration
+{
+    fn call<E: Ext<T = T>>(
+        &mut self,
+        env: Environment<E, InitState>,
+    ) -> Result<RetVal> {
+        let func_id = env.func_id();
+
+        match func_id {
+            1100 => {
+            	// Change the state to BufIn before reading input
+            	let mut env = env.buf_in_buf_out();
+
+                // Read the account ID from the ink! contract call
+                let account_id: T::AccountId = env.read_as()?;
+
+                // Retrieve the validator info from `ValidatorInfoMap`
+                let value = ContractsPallet::<T>::get_validator_info(&account_id)
+                    .ok_or(DispatchError::Other("ValidatorNotFound"))?;
+
+                // Encode and return the retrieved value to the ink! contract
+                env.write(&value.encode(), false, None)?;
+                Ok(RetVal::Converging(0))
+            }
+            _ => Err(DispatchError::Other("UnknownFunction").into()),
+        }
+    }
+}
