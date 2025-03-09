@@ -8,6 +8,8 @@ use crate::{
 use sp_core::crypto::UncheckedFrom;
 use sp_runtime::DispatchError;
 use core::marker::PhantomData;
+use crate::chain_extension::RegisteredChainExtension;
+
 
 /// Chain Extension for DelegateInfo and StakeInfo
 pub struct StakeDelegateExtension<T>(PhantomData<T>);
@@ -16,6 +18,15 @@ impl<T> Default for StakeDelegateExtension<T> {
     fn default() -> Self {
         Self(PhantomData)
     }
+}
+
+// registered chain extension
+impl<T> RegisteredChainExtension<T> for StakeDelegateExtension<T>
+where
+    T: ContractsConfig,
+    T::AccountId: UncheckedFrom<T::Hash> + AsRef<[u8]>,
+{
+    const ID: u16 = 1200;
 }
 
 impl<T> ChainExtension<T> for StakeDelegateExtension<T>
@@ -72,3 +83,4 @@ where
         Ok(RetVal::Converging(0)) // Return success
     }
 }
+
