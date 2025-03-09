@@ -58,6 +58,11 @@ where
                 let result = stake_info.reputation().encode();
                 env.write(&result, false, None)?;
             }
+            1004 => {
+                let delegate_info = DelegateInfo::<T>::get(&contract_addr)?;
+                let result = delegate_info.owner().encode();
+                env.write(&result, false, None)?;
+            }
             // Handle unknown function IDs
             _ => {
                 error!("Called an unregistered `func_id`: {}", func_id);
