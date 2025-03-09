@@ -843,23 +843,6 @@ use stake::{DelegateRequest, ValidateRequest};
 			Ok(())
 		}
 		
-		#[pallet::call_index(12)]
-		#[pallet::weight(0)]
-		pub fn claim_reward(
-			origin: OriginFor<T>,
-			contract_addr: T::AccountId,
-			#[pallet::compact] value: BalanceOf<T>,
-			gas_limit:Weight,
-			storage_deposit_limit: Option<<BalanceOf<T> as codec::HasCompact>::Type>,
-			data: Vec<u8>,
-		) -> DispatchResultWithPostInfo {
-			let ok_origin = ensure_signed(origin.clone())?;
-			<DelegateRequest<T>>::stake_exists(&contract_addr)?;
-			let delegate_info = <DelegateRequest<T>>::owner_check(&ok_origin,&contract_addr)?;
-			let dest = T::Lookup::unlookup(delegate_info.delegate_to()); 
-			return Self::call(origin,dest, value,gas_limit,storage_deposit_limit,data)
-		}
-		
 	}
 	
 	#[pallet::event]
