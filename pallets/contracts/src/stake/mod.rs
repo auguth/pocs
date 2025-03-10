@@ -1,3 +1,27 @@
+// This file is part of Substrate.
+// Copyright (C) Auguth Research Foundation, India.
+// SPDX-License-Identifier: Apache-2.0
+
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+// 	http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+//
+// This file is utilized for Proof of Contract Stake Protocol (PoCS).
+//
+
+// Module Imports
+pub mod chain_ext;
+
+
+// Imports 
 use crate::{
 	Config, Error, Event, OriginFor, Pallet as Contracts, DelegateInfoMap, StakeInfoMap, ValidatorInfoMap,
 };
@@ -10,13 +34,24 @@ use sp_runtime::{
 use sp_std::prelude::*;
 use pallet_staking::{Pallet as Staking, ValidatorPrefs,Bonded};
 
+/// The minimum reputation required to participate in staking contracts.
 pub const MIN_REPUTATION: u32 = 3; 
+
+/// The minimum number of delegates required for a validator to be eligible.
 pub const MIN_DELEGATES: u32 = 10; 
-pub const REPUTATION_FACTOR : u32 = 1;
-pub const INITIAL_STAKE_SCORE : u128 = 0;
 
-pub mod chain_ext;
+/// The fixed unit used for incrementing reputation and initializing it during instantiation.
+pub const REPUTATION_FACTOR: u32 = 1;
 
+/// The initial stake score, set to zero for contract constructor purposes.
+pub const INITIAL_STAKE_SCORE: u128 = 0;
+
+
+/// Represents the delegation details of a deployed contract.
+/// It includes:
+/// - The owner of the contract.
+/// - The validator account i.e., contract to which the contract is delegated.
+/// - The block number when the delegation was set.
 #[derive(Encode, Decode, Clone, PartialEq, Eq, RuntimeDebug, TypeInfo, MaxEncodedLen)]
 #[scale_info(skip_type_params(T))]
 pub struct DelegateInfo<T: Config> {
@@ -26,42 +61,52 @@ pub struct DelegateInfo<T: Config> {
 }
 
 impl<T: Config> DelegateInfo<T> {
-
+    /// Returns the owner `AccountId` of the contract associated with this `DelegateInfo`.
     pub fn owner(&self) -> T::AccountId {
         self.owner.clone()
     }
 
+    /// Returns the `AccountId` of the validator to whom the contract is delegated.
     pub fn delegate_to(&self) -> T::AccountId {
         self.delegate_to.clone()
     }
     
+    /// Returns the block number when the delegate information was last updated.
     pub fn delegate_at(&self) -> BlockNumberFor<T> {
         self.delegate_at
     }
     
+    /// Retrieves the `DelegateInfo` for a given contract address.
     pub fn get(contract_addr: &T::AccountId) -> Result<DelegateInfo<T>, DispatchError> {
         Contracts::<T>::get_delegate_info(contract_addr)
-        .ok_or_else(|| Error::<T>::NoStakeExists.into())
+            .ok_or_else(|| Error::<T>::NoStakeExists.into())
     }
 
-	fn new(owner: &T::AccountId,) -> Self {
-		Self {
-			owner: owner.clone(),
+    /// Creates a new `DelegateInfo` instance where the deployer is both the owner and delegate.
+    pub fn new(owner: &T::AccountId) -> Self {
+        Self {
+            owner: owner.clone(),
             delegate_to: owner.clone(),
-			delegate_at: frame_system::Pallet::<T>::block_number()
-		}
-	}
+            delegate_at: frame_system::Pallet::<T>::block_number(),
+        }
+    }
 
-	fn update(&self, delegate: &T::AccountId) -> Self {
-		Self{
-			owner: self.owner.clone(), 
-			delegate_to: delegate.clone(),
-			delegate_at: frame_system::Pallet::<T>::block_number()
-		}
-	}
-
+    /// Updates the `delegate_to` field and returns an updated `DelegateInfo` instance.
+    pub fn update(&self, delegate: &T::AccountId) -> Self {
+        Self {
+            owner: self.owner.clone(),
+            delegate_to: delegate.clone(),
+            delegate_at: frame_system::Pallet::<T>::block_number(),
+        }
+    }
 }
 
+
+/// Tracks the gas usage metrics of a contract for staking purposes.
+/// It includes:
+/// - The reputation score of the contract.
+/// - The block height of its most recent usage.
+/// - The stake score associated with the contract.
 #[derive(Encode, Decode, Clone, PartialEq, Eq, RuntimeDebug, TypeInfo, MaxEncodedLen)]
 #[scale_info(skip_type_params(T))]
 pub struct StakeInfo<T: Config> {
@@ -72,23 +117,28 @@ pub struct StakeInfo<T: Config> {
 
 impl<T: Config> StakeInfo<T>{
 
+    /// Returns the stake score of a contract's `StakeInfo`. 
     pub fn stake_score(&self) -> u128 {
         self.stake_score
     }
 
+    /// Returns the reputation score of a contract's `StakeInfo`.
     pub fn reputation(&self) -> u32 {
         self.reputation
     }
     
+    /// Returns the block height of the most recent interaction with the contract. 
     pub fn blockheight(&self) -> BlockNumberFor<T> {
         self.blockheight
     }
 
+    /// Retrieves the `StakeInfo` of an instantiated contract.
     pub fn get(contract_addr: &T::AccountId) -> Result<StakeInfo<T>,DispatchError> {
         Contracts::<T>::get_stake_info(contract_addr)
             .ok_or_else(|| Error::<T>::NoStakeExists.into())
     }
 
+    /// Creates a mock `StakeInfo` instance for testing with a given stake score and reputation.
     pub fn mock_stake(stake_score: u128, reputation: u32) -> Self{
         Self{
             reputation: reputation,
@@ -97,6 +147,7 @@ impl<T: Config> StakeInfo<T>{
         }
     }
 
+    /// Creates a new `StakeInfo` instance using predefined constants for instantiation. 
 	fn new() -> Self {
 		Self{
 			reputation: REPUTATION_FACTOR,
@@ -105,6 +156,7 @@ impl<T: Config> StakeInfo<T>{
 		}
 	}
 
+    /// Resets the stake score in `StakeInfo` to zero, updates the block number, and retains the reputation. 
 	fn reset(&self)-> Self {
 		Self{
 			reputation: self.reputation,
@@ -113,6 +165,7 @@ impl<T: Config> StakeInfo<T>{
 		}
 	}
 
+    /// Updates the stake score based on gas usage provided and adjusts reputation if the block height has changed.
     fn update(&self, gas: &u64) -> Self {
         let current_block_height = <frame_system::Pallet<T>>::block_number();
         let current_reputation = self.reputation;
@@ -227,6 +280,14 @@ impl<T: Config> StakeRequest<T>{
         if StakeInfoMap::<T>::contains_key(&contract_addr) {
             StakeInfoMap::<T>::remove(&contract_addr);
         } 
+        if DelegateInfoMap::<T>::contains_key(&contract_addr){
+            let delegate_info = <DelegateInfo<T>>::get(&contract_addr).unwrap();
+            let delegate_to = delegate_info.delegate_to();
+            if delegate_to != delegate_info.owner(){
+                <DelegateRequest<T>>::decrement(&delegate_to);
+            }
+            DelegateInfoMap::<T>::remove(&contract_addr);
+        }
     }
 
     fn nominate(owner: &T::AccountId, validator: &T::AccountId) -> Result<(),DispatchError>{

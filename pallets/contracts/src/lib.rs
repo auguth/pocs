@@ -74,7 +74,7 @@
 //! calls its constructor to initialize the contract.
 //! * [`Pallet::instantiate`] - The same as `instantiate_with_code` but instead of uploading new
 //! code an existing `code_hash` is supplied.
-//! * [`Pallet::update_delegate`] - Updates the delegate information of the contract. (PoCS)
+//! * [`Pallet::delegate`] - Updates the stake-delegate information of the contract. (PoCS)
 //! * [`Pallet::call`] - Makes a call to an account, optionally transferring some balance.
 //! * [`Pallet::upload_code`] - Uploads new code without instantiating a contract from it.
 //! * [`Pallet::remove_code`] - Removes the stored code and refunds the deposit to its owner. Only
@@ -695,7 +695,6 @@ use stake::{DelegateRequest, ValidateRequest};
 		/// - If the `code_hash` already exists on the chain the underlying `code` will be shared.
 		/// - The destination address is computed based on the sender, code_hash and the salt.
 		/// - The smart-contract account is created at the computed address.
-		/// - The [`gasstakeinfo::AccountStakeinfo`] and [`gasstakeinfo::ContractScarcityinfo`] values are set to default to contract address (PoCS)
 		/// - The `value` is transferred to the new account.
 		/// - The `deploy` function is executed in the context of the newly-created account.
 		#[pallet::call_index(7)]
@@ -917,18 +916,29 @@ use stake::{DelegateRequest, ValidateRequest};
 			code_hash: CodeHash<T>,
 		},
 
-		// PoCS
+		/// Stake Score is updated for a contract (PoCS)
 		Staked {
+			/// The contract address for which stake information is updated
 			contract: T::AccountId,
+			/// The contract's associated stake score
 			stake_score: u128,
 		},
+
+		/// Delegate Information is updated for a contract via [`Pallet::delegate`] (PoCS) 
 		Delegated {
+			/// The contract address for which delegate information is updated by its owner
 			contract: T::AccountId,
+			/// The contract delegated to which account address i.e., the validator
 			delegate_to: T::AccountId,
 		},
+
+		/// Validator validation criteria information as event (PoCS)
 		ValidateInfo {
+			/// The validator's account address i.e., a contract address
 			validator: T::AccountId,
+			/// Number of delegates which the validator can utilize for validation
 			num_delegates: u32,
+			/// Provides Assurance if the validator can start validating
 			can_validate: bool
 		}
 
@@ -940,17 +950,27 @@ use stake::{DelegateRequest, ValidateRequest};
 		InvalidSchedule,
 		/// Invalid combination of flags supplied to `seal_call` or `seal_delegate_call`.
 		InvalidCallFlags,
-		/// PoCS
+		/// Invalid Owner of a contract (PoCS)
 		InvalidContractOwner,
+		/// Stake Information i.e., `StakeInfoMap` doesn't hold the stake information for a given contract address (PoCS)
 		NoStakeExists,
+		/// No validator was found for the given contract address (PoCS)
 		NoValidatorFound,
+		/// The contract does not meet the minimum reputation requirement for updating delegates (PoCS)
 		LowReputation,
+		/// The contract or account is already delegated to the same address (PoCS)
 		AlreadyDelegated,
+		/// Failed to create a new bond for staking (PoCS)
 		NewBondFailed,
+		/// Failed to add extra funds to an existing bond (PoCS)
 		BondExtraFailed,
+		/// Failed to remove an existing bond (PoCS)
 		BondRemoveFailed,
+		/// The nomination process for selecting a validator has failed (PoCS)
 		NominationFailed,
+		/// The validation process has failed for a valid-to-be validator (PoCS)
 		ValidationFailed,
+		/// The required minimum number of delegates has not been met for validation (PoCS)
 		InsufficientDelegates,
 		/// The executed contract exhausted its gas limit.
 		OutOfGas,
@@ -1073,13 +1093,19 @@ use stake::{DelegateRequest, ValidateRequest};
 
 	use crate::stake::{DelegateInfo,StakeInfo};
 
-	/// PoCS
+	/// Tracks Delegate Information of a staked contract (PoCS)
 	#[pallet::storage]
 	#[pallet::getter(fn get_delegate_info)]
 	pub type DelegateInfoMap<T: Config> = StorageMap<_, Twox64Concat, T::AccountId, DelegateInfo<T>>;
+
+	/// Tracks Stake Score Information of a contract (PoCS)
 	#[pallet::storage]
 	#[pallet::getter(fn get_stake_info)]
 	pub type StakeInfoMap<T: Config> = StorageMap<_, Twox64Concat, T::AccountId, StakeInfo<T>>;
+
+	/// Tracks Number of delegates associated with a validator (PoCS)
+	/// 
+	/// Gets updated via [`Pallet::delegate`] extrinsic.
 	#[pallet::storage]
 	#[pallet::getter(fn get_validator_info)]
 	pub type ValidatorInfoMap<T: Config> = StorageMap<_, Twox64Concat, T::AccountId, u32>;

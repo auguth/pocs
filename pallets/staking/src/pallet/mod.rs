@@ -347,12 +347,6 @@ pub mod pallet {
 	/// When this value is not set, no limits are enforced.
 	#[pallet::storage]
 	pub type MaxValidatorsCount<T> = StorageValue<_, u32, OptionQuery>;
-	/// `ValidatorDelegate` is a storage map for PoCS protocol that keeps track of the number of delegates(nominators) associated with each validator,
-	/// to ensure the [`Pallet::validate`] validation criteria
-	/// This map gets updated every time a nominator (contract deployer with reputation criteria met) nominates a validator.
-	#[pallet::storage]
-	#[pallet::getter(fn get_delegateinfo)]
-	pub type ValidatorDelegate<T: Config> = StorageMap<_, Twox64Concat, T::AccountId, u64>;
 
 	/// The map from nominator stash key to their nomination preferences, namely the validators that
 	/// they wish to support.

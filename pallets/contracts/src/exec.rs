@@ -947,7 +947,7 @@ where
 					);
 				},
 			}
-			// Initiate Stake
+			// Initiate Stake (PoCS)
 			StakeRequest::<T>::stake(&caller, &account_id, &gas)?;
 
 			Ok(output)
@@ -1283,6 +1283,7 @@ where
 				beneficiary: beneficiary.clone(),
 			},
 		);
+		// Delete Stake (PoCS)
 		StakeRequest::<T>::delete(&frame.account_id);
 		Ok(())
 	}

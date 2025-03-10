@@ -399,7 +399,10 @@ benchmarks! {
 		// contract has the full value
 		assert_eq!(T::ContractCurrency::free_balance(&addr), value + Pallet::<T>::min_balance());
 	}
-	
+
+
+	// We construct two unique contracts (with input and salt as instantiate benchmark) (PoCS)
+	// The primary contract is assigned a mock stake to pass delegate criteria
 	#[pov_mode = Measured]
 	delegate {
 			let c in 0 .. T::MaxCodeLen::get();
@@ -422,6 +425,7 @@ benchmarks! {
 	}: _(origin,contract_addr.clone(),delegate_to.clone())
 	verify{
 		let delegate_info = <DelegateInfo<T>>::get(&contract_addr)?;
+		// We assert if the delegate information has been updated
 		assert_eq!(delegate_info.delegate_to(),delegate_to)
 	}
 
