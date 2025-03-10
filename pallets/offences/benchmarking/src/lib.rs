@@ -27,7 +27,6 @@ use sp_std::{prelude::*, vec};
 use frame_benchmarking::v1::{account, benchmarks};
 use frame_support::traits::{Currency, Get, ValidatorSet, ValidatorSetWithIdentification};
 use frame_system::{Config as SystemConfig, Pallet as System, RawOrigin};
-use pallet_staking::ValidatorDelegate;
 #[cfg(test)]
 use sp_runtime::traits::UniqueSaturatedInto;
 use sp_runtime::{

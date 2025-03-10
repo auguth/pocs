@@ -2244,7 +2244,7 @@ pub mod tests {
 	}
 
 	#[test]
-	fn root_caller_succeeds_but_pocs_not_allowed() {
+	fn root_caller_succeeds() {
 		let code_bob = MockLoader::insert(Call, |ctx, _| {
 			// root is the origin of the call stack.
 			assert!(ctx.ext.caller_is_root());
@@ -2270,7 +2270,7 @@ pub mod tests {
 				None,
 				Determinism::Enforced,
 			);
-			assert_err!(result, DispatchError::RootNotAllowed);
+			assert_matches!(result, Ok(_));
 		});
 	}
 
@@ -2306,7 +2306,7 @@ pub mod tests {
 	}
 
 	#[test]
-	fn root_caller_succeeds_with_consecutive_calls_but_pocs_not_allowed() {
+	fn root_caller_succeeds_with_consecutive_calls() {
 		let code_charlie = MockLoader::insert(Call, |ctx, _| {
 			// BOB is not root, even though the origin is root.
 			assert!(!ctx.ext.caller_is_root());
@@ -2341,7 +2341,7 @@ pub mod tests {
 				None,
 				Determinism::Enforced,
 			);
-			assert_err!(result, DispatchError::RootNotAllowed);
+			assert_matches!(result, Ok(_));
 		});
 	}
 

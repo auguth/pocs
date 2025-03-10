@@ -405,22 +405,18 @@ benchmarks! {
 	// The primary contract is assigned a mock stake to pass delegate criteria
 	#[pov_mode = Measured]
 	delegate {
-			let c in 0 .. T::MaxCodeLen::get();
-			let i in 0 .. code::max_pages::<T>() * 64 * 1024;
-			let s in 0 .. code::max_pages::<T>() * 64 * 1024;
-			let input = vec![42u8; i as usize];
-			let salt = vec![42u8; s as usize];
-			let value = Pallet::<T>::min_balance();
-			let caller = whitelisted_caller();
-			T::ContractCurrency::make_free_balance_be(&caller, caller_funding::<T>());
-			let WasmModule { code, hash, .. } = WasmModule::<T>::sized(c, Location::Call);
-			let origin = RawOrigin::Signed(caller.clone());
-			let contract_addr = Contracts::<T>::contract_address(&caller, &hash, &input, &salt);
-			let _ = <StakeRequest<T>>::stake(&caller.clone(),&contract_addr, &0);
+			let instance = Contract::<T>::with_caller(
+				whitelisted_caller(), WasmModule::dummy(), vec![],
+			)?;
+			let contract_addr = instance.account_id.clone();
+			let origin = RawOrigin::Signed(instance.caller.clone());
+			let _ = <StakeRequest<T>>::stake(&instance.caller.clone(),&contract_addr, &0);
 			let new_stake_info =  <StakeInfo<T>>::mock_stake(3000000,12);
 			<StakeInfoMap<T>>::insert(&contract_addr, new_stake_info);
-			let WasmModule { code, hash, .. } = WasmModule::<T>::dummy();
-			let delegate_to = Contracts::<T>::contract_address(&caller, &hash, &input, &salt);
+			let dummy_code = WasmModule::<T>::dummy_with_bytes(10);
+			let delegate_to = Contract::<T>::with_caller(
+				whitelisted_caller(), dummy_code, vec![],
+			)?.account_id;
 
 	}: _(origin,contract_addr.clone(),delegate_to.clone())
 	verify{

@@ -149,7 +149,6 @@ impl sp_staking::StakingInterface for StakingMock {
 		unimplemented!("method currently not used in testing")
 	}
 
-	#[cfg(feature = "runtime-benchmarks")]
 	fn add_era_stakers(
 		_current_era: &EraIndex,
 		_stash: &Self::AccountId,
@@ -158,7 +157,6 @@ impl sp_staking::StakingInterface for StakingMock {
 		unimplemented!("method currently not used in testing")
 	}
 
-	#[cfg(feature = "runtime-benchmarks")]
 	fn set_current_era(_era: EraIndex) {
 		unimplemented!("method currently not used in testing")
 	}

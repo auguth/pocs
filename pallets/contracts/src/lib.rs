@@ -94,7 +94,8 @@
 #![cfg_attr(feature = "runtime-benchmarks", recursion_limit = "1024")]
 
 mod address;
-mod benchmarking;
+#[cfg(feature = "runtime-benchmarks")]
+pub mod benchmarking;
 mod exec;
 mod gas;
 mod schedule;
@@ -823,7 +824,7 @@ use stake::{DelegateRequest, ValidateRequest};
 		}
 		
 		#[pallet::call_index(10)]
-		#[pallet::weight(0)]
+		#[pallet::weight(T::ContractWeightInfo::delegate())]
 		pub fn delegate(
 			origin: OriginFor<T>,
 			contract_addr: T::AccountId,

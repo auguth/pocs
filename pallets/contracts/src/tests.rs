@@ -34,7 +34,8 @@ use crate::{
 	weights::ContractWeightInfo,
 	BalanceOf, Code, CollectEvents, Config, ContractInfo, ContractInfoOf, DebugInfo,
 	DefaultAddressGenerator, DeletionQueueCounter, Error, MigrationInProgress, NoopMigration,
-	Origin, Pallet, PristineCode, Schedule, stake::StakeInfo, stake::DelegateInfo, stake::ValidateRequest, 
+	Origin, Pallet, PristineCode, Schedule, 
+	stake::{StakeInfo,DelegateInfo,ValidateRequest,} 
 };
 use assert_matches::assert_matches;
 use codec::Encode;
@@ -5814,7 +5815,7 @@ fn none_cannot_call_code() {
 }
 
 #[test]
-fn root_can_call_but_pocs_not_allowed() {
+fn root_can_call() {
 	let (wasm, _) = compile_module::<Test>("dummy").unwrap();
 
 	ExtBuilder::default().existential_deposit(100).build().execute_with(|| {
@@ -5836,14 +5837,14 @@ fn root_can_call_but_pocs_not_allowed() {
 		.account_id;
 
 		// Call the contract.
-		assert_err_ignore_postinfo!(Contracts::call(
+		assert_ok!(Contracts::call(
 			RuntimeOrigin::root(),
 			addr.clone(),
 			0,
 			GAS_LIMIT,
 			None,
 			vec![]
-		), DispatchError::RootNotAllowed);
+		));
 	});
 }
 

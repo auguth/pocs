@@ -13,7 +13,7 @@ mod voter_bags;
 
 use codec::{Decode, Encode};
 use pallet_contracts::stake::chain_ext::StakeDelegateExtension;
-
+use pallet_contracts::pallet::Pallet;
 use pallet_grandpa::AuthorityId as GrandpaId;
 use pallet_election_provider_multi_phase::SolutionAccuracyOf;
 use pallet_im_online::sr25519::AuthorityId as ImOnlineId;
@@ -336,6 +336,7 @@ parameter_types! {
 	pub const MaxLocks: u32 = 50;
 	pub const MaxReserves: u32 = 50;
 }
+
 
 impl pallet_balances::Config for Runtime {
 	type MaxLocks = MaxLocks;
@@ -841,6 +842,7 @@ mod benches {
 		[pallet_offences, OffencesBench::<Runtime>]
 		[pallet_im_online, ImOnline]
 		[pallet_nomination_pools, NominationPoolsBench::<Runtime>]
+		[pallet_contracts, ContractsBench::<Runtime>]
 	);
 }
 
@@ -1157,6 +1159,7 @@ impl_runtime_apis! {
 			use pallet_offences_benchmarking::Pallet as OffencesBench;
 			use baseline::Pallet as BaselineBench;
 			use pallet_nomination_pools_benchmarking::Pallet as NominationPoolsBench;
+			use pallet_contracts::Pallet as ContractsBench;
 
 			let mut list = Vec::<BenchmarkList>::new();
 			list_benchmarks!(list, extra);
@@ -1175,6 +1178,8 @@ impl_runtime_apis! {
 			use pallet_offences_benchmarking::Pallet as OffencesBench;
 			use baseline::Pallet as BaselineBench;
 			use pallet_nomination_pools_benchmarking::Pallet as NominationPoolsBench;
+			use pallet_contracts::Pallet as ContractsBench;
+
 
 			impl frame_system_benchmarking::Config for Runtime {}
 			impl pallet_offences_benchmarking::Config for Runtime {}

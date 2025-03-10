@@ -73,8 +73,8 @@ pub trait ContractWeightInfo {
 	fn on_runtime_upgrade() -> Weight;
 	fn call_with_code_per_byte(c: u32, ) -> Weight;
 	fn instantiate_with_code(c: u32, i: u32, s: u32, ) -> Weight;
-	fn update_delegate() -> Weight;
 	fn instantiate(i: u32, s: u32, ) -> Weight;
+	fn delegate() -> Weight;
 	fn call() -> Weight;
 	fn upload_code(c: u32, ) -> Weight;
 	fn remove_code() -> Weight;
@@ -388,31 +388,26 @@ impl<T: frame_system::Config> ContractWeightInfo for SubstrateWeight<T> {
 			.saturating_add(T::DbWeight::get().reads(10_u64))
 			.saturating_add(T::DbWeight::get().writes(7_u64))
 	}
-	
-	/// Storage: `Contracts::AccountStakeinfoMap` (r:1 w:1)
-	/// Proof: `Contracts::AccountStakeinfoMap` (`max_values`: None, `max_size`: Some(108), added: 2583, mode: `Measured`)
-	/// Storage: `Contracts::ContractStakeinfoMap` (r:1 w:1)
-	/// Proof: `Contracts::ContractStakeinfoMap` (`max_values`: None, `max_size`: Some(68), added: 2543, mode: `Measured`)
-	/// Storage: `System::EventTopics` (r:1 w:1)
+	/// Storage: `Contracts::DelegateInfoMap` (r:1 w:1)
+	/// Proof: `Contracts::DelegateInfoMap` (`max_values`: None, `max_size`: Some(108), added: 2583, mode: `Measured`)
+	/// Storage: `Contracts::StakeInfoMap` (r:1 w:1)
+	/// Proof: `Contracts::StakeInfoMap` (`max_values`: None, `max_size`: Some(64), added: 2539, mode: `Measured`)
+	/// Storage: `System::EventTopics` (r:2 w:2)
 	/// Proof: `System::EventTopics` (`max_values`: None, `max_size`: None, mode: `Measured`)
-	/// Storage: `Staking::Ledger` (r:1 w:0)
-	/// Proof: `Staking::Ledger` (`max_values`: None, `max_size`: Some(1091), added: 3566, mode: `Measured`)
 	/// Storage: `Staking::Bonded` (r:1 w:0)
 	/// Proof: `Staking::Bonded` (`max_values`: None, `max_size`: Some(72), added: 2547, mode: `Measured`)
-	/// The range of component `c` is `[0, 125952]`.
-	/// The range of component `i` is `[0, 1048576]`.
-	/// The range of component `s` is `[0, 1048576]`.
-	fn update_delegate() -> Weight {
+	/// Storage: `Contracts::ValidatorInfoMap` (r:2 w:1)
+	/// Proof: `Contracts::ValidatorInfoMap` (`max_values`: None, `max_size`: Some(44), added: 2519, mode: `Measured`)
+	fn delegate() -> Weight {
 		// Proof Size summary in bytes:
-		//  Measured:  `941`
-		//  Estimated: `4406`
-		// Minimum execution time: 67_857_000 picoseconds.
-		Weight::from_parts(117_511_999, 0)
-			.saturating_add(Weight::from_parts(0, 4406))
-			.saturating_add(T::DbWeight::get().reads(5))
-			.saturating_add(T::DbWeight::get().writes(3))
+		//  Measured:  `933`
+		//  Estimated: `6873`
+		// Minimum execution time: 97_273_000 picoseconds.
+		Weight::from_parts(100_660_000, 0)
+			.saturating_add(Weight::from_parts(0, 6873))
+			.saturating_add(T::DbWeight::get().reads(7))
+			.saturating_add(T::DbWeight::get().writes(5))
 	}
-
 	/// Storage: Contracts MigrationInProgress (r:1 w:0)
 	/// Proof: Contracts MigrationInProgress (max_values: Some(1), max_size: Some(1026), added: 1521, mode: Measured)
 	/// Storage: Contracts ContractInfoOf (r:1 w:1)
@@ -2198,28 +2193,25 @@ impl ContractWeightInfo for () {
 			.saturating_add(RocksDbWeight::get().reads(10_u64))
 			.saturating_add(RocksDbWeight::get().writes(7_u64))
 	}
-	/// Storage: `Contracts::AccountStakeinfoMap` (r:1 w:1)
-	/// Proof: `Contracts::AccountStakeinfoMap` (`max_values`: None, `max_size`: Some(108), added: 2583, mode: `Measured`)
-	/// Storage: `Contracts::ContractStakeinfoMap` (r:1 w:1)
-	/// Proof: `Contracts::ContractStakeinfoMap` (`max_values`: None, `max_size`: Some(68), added: 2543, mode: `Measured`)
-	/// Storage: `System::EventTopics` (r:1 w:1)
+	/// Storage: `Contracts::DelegateInfoMap` (r:1 w:1)
+	/// Proof: `Contracts::DelegateInfoMap` (`max_values`: None, `max_size`: Some(108), added: 2583, mode: `Measured`)
+	/// Storage: `Contracts::StakeInfoMap` (r:1 w:1)
+	/// Proof: `Contracts::StakeInfoMap` (`max_values`: None, `max_size`: Some(64), added: 2539, mode: `Measured`)
+	/// Storage: `System::EventTopics` (r:2 w:2)
 	/// Proof: `System::EventTopics` (`max_values`: None, `max_size`: None, mode: `Measured`)
-	/// Storage: `Staking::Ledger` (r:1 w:0)
-	/// Proof: `Staking::Ledger` (`max_values`: None, `max_size`: Some(1091), added: 3566, mode: `Measured`)
 	/// Storage: `Staking::Bonded` (r:1 w:0)
 	/// Proof: `Staking::Bonded` (`max_values`: None, `max_size`: Some(72), added: 2547, mode: `Measured`)
-	/// The range of component `c` is `[0, 125952]`.
-	/// The range of component `i` is `[0, 1048576]`.
-	/// The range of component `s` is `[0, 1048576]`.
-	fn update_delegate() -> Weight {
+	/// Storage: `Contracts::ValidatorInfoMap` (r:2 w:1)
+	/// Proof: `Contracts::ValidatorInfoMap` (`max_values`: None, `max_size`: Some(44), added: 2519, mode: `Measured`)
+	fn delegate() -> Weight {
 		// Proof Size summary in bytes:
-		//  Measured:  `941`
-		//  Estimated: `4406`
-		// Minimum execution time: 67_857_000 picoseconds.
-		Weight::from_parts(117_511_999, 0)
-			.saturating_add(Weight::from_parts(0, 4406))
-			.saturating_add(RocksDbWeight::get().reads(5))
-			.saturating_add(RocksDbWeight::get().writes(3))
+		//  Measured:  `933`
+		//  Estimated: `6873`
+		// Minimum execution time: 97_273_000 picoseconds.
+		Weight::from_parts(100_660_000, 0)
+			.saturating_add(Weight::from_parts(0, 6873))
+			.saturating_add(RocksDbWeight::get().reads(7))
+			.saturating_add(RocksDbWeight::get().writes(5))
 	}
 	/// Storage: Contracts MigrationInProgress (r:1 w:0)
 	/// Proof: Contracts MigrationInProgress (max_values: Some(1), max_size: Some(1026), added: 1521, mode: Measured)

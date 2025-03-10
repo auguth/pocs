@@ -35,7 +35,6 @@ use pallet_nomination_pools::{
 	MaxPoolMembersPerPool, MaxPools, Metadata, MinCreateBond, MinJoinBond, Pallet as Pools,
 	PoolMembers, PoolRoles, PoolState, RewardPools, SubPoolsStorage,
 };
-use pallet_staking::ValidatorDelegate;
 use sp_runtime::{
 	traits::{Bounded, StaticLookup, Zero},
 	Perbill,
