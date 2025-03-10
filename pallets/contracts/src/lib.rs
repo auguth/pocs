@@ -132,7 +132,7 @@ use frame_support::{
 	weights::Weight,
 	BoundedVec, RuntimeDebugNoBound,
 };
-use pallet_staking::ValidatorPrefs;
+use pallet_staking::{ValidatorPrefs,weights::WeightInfo};
 use frame_system::{ensure_signed, pallet_prelude::OriginFor, EventRecord, Pallet as System};
 use pallet_contracts_primitives::{
 	Code, CodeUploadResult, CodeUploadReturnValue, ContractAccessError, ContractExecResult,
@@ -836,7 +836,7 @@ use stake::{DelegateRequest, ValidateRequest};
 		}
 
 		#[pallet::call_index(11)]
-		#[pallet::weight(0)]
+		#[pallet::weight(T::WeightInfo::validate())]
 		pub fn validate(origin:OriginFor<T>, prefs: ValidatorPrefs) -> DispatchResult {
 			let validator = ensure_signed(origin.clone())?;
 			<ValidateRequest<T>>::validate(origin,prefs,&validator)?;

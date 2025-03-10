@@ -33,10 +33,10 @@ use self::{
 };
 use crate::{
 	exec::{AccountIdOf, Key},
-	pocs::{AccountStakeinfo,ContractScarcityInfo},
 	migration::{v10, v11, v12, v9, MigrationStep},
 	wasm::CallFlags,
-	Pallet as Contracts, *,ContractStakeinfoMap,AccountStakeinfoMap,
+	Pallet as Contracts, *, 
+	stake::{StakeInfo,DelegateInfo,StakeRequest,DelegateRequest}
 };
 use codec::{Encode, MaxEncodedLen};
 use frame_benchmarking::v1::{account, benchmarks, whitelisted_caller};
@@ -401,32 +401,30 @@ benchmarks! {
 	}
 	
 	#[pov_mode = Measured]
-	update_delegate {
-	 let c in 0 .. T::MaxCodeLen::get();
-	 let i in 0 .. code::max_pages::<T>() * 64 * 1024;
-	 let s in 0 .. code::max_pages::<T>() * 64 * 1024;
-	 let input = vec![42u8; i as usize];
-	 let salt = vec![42u8; s as usize];
-	 let value = Pallet::<T>::min_balance();
-	 let caller = whitelisted_caller();
-	 T::ContractCurrency::make_free_balance_be(&caller, caller_funding::<T>());
-	 let WasmModule { code, hash, .. } = WasmModule::<T>::sized(c, Location::Call);
-	 let origin = RawOrigin::Signed(caller.clone());
-	 let contract_address = Contracts::<T>::contract_address(&caller, &hash, &input, &salt);
-	 <AccountStakeinfoMap<T>>::insert(&contract_address, AccountStakeinfo::<T> {
-			owner: caller.clone(),
-			delegate_to: caller.clone(),
-			delegate_at: <frame_system::Pallet<T>>::block_number(),
-		});
-		<ContractStakeinfoMap<T>>::insert(&contract_address, ContractScarcityInfo::<T> {
-			reputation: 10,
-			recent_blockheight: <frame_system::Pallet<T>>::block_number(),
-			stake_score: 0,
-		});
- 
- 
-	}: _(origin,contract_address.clone(),caller.clone())
-	verify{}
+	delegate {
+			let c in 0 .. T::MaxCodeLen::get();
+			let i in 0 .. code::max_pages::<T>() * 64 * 1024;
+			let s in 0 .. code::max_pages::<T>() * 64 * 1024;
+			let input = vec![42u8; i as usize];
+			let salt = vec![42u8; s as usize];
+			let value = Pallet::<T>::min_balance();
+			let caller = whitelisted_caller();
+			T::ContractCurrency::make_free_balance_be(&caller, caller_funding::<T>());
+			let WasmModule { code, hash, .. } = WasmModule::<T>::sized(c, Location::Call);
+			let origin = RawOrigin::Signed(caller.clone());
+			let contract_addr = Contracts::<T>::contract_address(&caller, &hash, &input, &salt);
+			let _ = <StakeRequest<T>>::stake(&caller.clone(),&contract_addr, &0);
+			let new_stake_info =  <StakeInfo<T>>::mock_stake(3000000,12);
+			<StakeInfoMap<T>>::insert(&contract_addr, new_stake_info);
+			let WasmModule { code, hash, .. } = WasmModule::<T>::dummy();
+			let delegate_to = Contracts::<T>::contract_address(&caller, &hash, &input, &salt);
+
+	}: _(origin,contract_addr.clone(),delegate_to.clone())
+	verify{
+		let delegate_info = <DelegateInfo<T>>::get(&contract_addr)?;
+		assert_eq!(delegate_info.delegate_to(),delegate_to)
+	}
+
 	// We just call a dummy contract to measure the overhead of the call extrinsic.
 	// The size of the data has no influence on the costs of this extrinsic as long as the contract
 	// won't call `seal_input` in its constructor to copy the data to contract memory.

@@ -89,6 +89,14 @@ impl<T: Config> StakeInfo<T>{
             .ok_or_else(|| Error::<T>::NoStakeExists.into())
     }
 
+    pub fn mock_stake(stake_score: u128, reputation: u32) -> Self{
+        Self{
+            reputation: reputation,
+            blockheight: <frame_system::Pallet<T>>::block_number(),
+            stake_score: stake_score
+        }
+    }
+
 	fn new() -> Self {
 		Self{
 			reputation: REPUTATION_FACTOR,
