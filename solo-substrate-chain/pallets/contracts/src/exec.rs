@@ -2457,17 +2457,11 @@ pub mod tests {
 				dummy_ch
 			);
 			assert_eq!(
-				&events(),
-				&[
-					Event::Instantiated {
-						deployer: ALICE,
-						contract: instantiated_contract_address.clone()
-					},
-					Event:: Staked {
-						contract: instantiated_contract_address.clone(),
-						stake_score: 0, 
-					},
-				]
+				events(),
+				vec![Event::Instantiated {
+					deployer: ALICE,
+					contract: instantiated_contract_address.clone()
+				}]
 			);
 
 		});
@@ -2578,17 +2572,9 @@ pub mod tests {
 						deployer: BOB,
 						contract: instantiated_contract_address.clone()
 					},
-					Event::Staked{
-						contract: instantiated_contract_address.clone(),
-						stake_score: 0,
-					},
 					Event::Called {
 						caller: Origin::from_account_id(ALICE),
 						contract: BOB
-					},
-					Event::Staked{
-						contract: BOB,
-						stake_score: 0,
 					},
 				]
 			);
@@ -2648,11 +2634,8 @@ pub mod tests {
 			// The contract wasn't instantiated so we don't expect to see an instantiation
 			// event here.
 			assert_eq!(
-				&events(),
-				&[
-					Event::Called { caller: Origin::from_account_id(ALICE), contract: BOB },
-					Event::Staked{contract: BOB, stake_score:0},
-				]
+				events(),
+				vec![Event::Called { caller: Origin::from_account_id(ALICE), contract: BOB }]
 			);
 		});
 	}
@@ -3054,15 +3037,6 @@ pub mod tests {
 						}),
 						topics: vec![hash(&Origin::<Test>::from_account_id(ALICE)), hash(&BOB)],
 					},
-					EventRecord {
-						phase: Phase::Initialization,
-						event: MetaEvent::Contracts(
-							crate::Event::Staked{
-							contract: BOB,
-							stake_score: 0,
-						}),
-						topics: vec![hash(&BOB)],
-					},
 				]
 			);
 		});
@@ -3164,14 +3138,6 @@ pub mod tests {
 							contract: BOB,
 						}),
 						topics: vec![hash(&Origin::<Test>::from_account_id(ALICE)), hash(&BOB)],
-					},
-					EventRecord {
-						phase: Phase::Initialization,
-						event: MetaEvent::Contracts(crate::Event::Staked{
-							contract: BOB,
-							stake_score: 0,
-						}),
-						topics: vec![hash(&BOB)],
 					},
 				]
 			);

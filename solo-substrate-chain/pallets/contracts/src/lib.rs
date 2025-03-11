@@ -933,6 +933,13 @@ use stake::{DelegateRequest, ValidateRequest};
 			delegate_to: T::AccountId,
 		},
 
+		/// Announce a contract meets minimum reputation for staking 
+		/// Now it can call [`Pallet::delegate`], update its delegate and stake the contract
+		ReadyToStake {
+			/// The contract address which is ready for staking / delegation 
+			contract: T::AccountId
+		},
+
 		/// Validator validation criteria information as event (PoCS)
 		ValidateInfo {
 			/// The validator's account address i.e., a contract address

@@ -17,11 +17,9 @@
 // This file is utilized for Proof of Contract Stake Protocol (PoCS).
 //
 
-// Module Imports
 pub mod chain_ext;
 
 
-// Imports 
 use crate::{
 	Config, Error, Event, OriginFor, Pallet as Contracts, DelegateInfoMap, StakeInfoMap, ValidatorInfoMap,
 };
@@ -218,30 +216,39 @@ impl<T: Config> StakeRequest<T>{
     }
 
     fn new(contract_addr: &T::AccountId, gas: &u64) -> Result<(),DispatchError>{
+        let delegate_info = <DelegateInfo<T>>::get(contract_addr)?;
         let stake_info = <StakeInfo<T>>::get(contract_addr)?;
+        let gas = if delegate_info.owner != delegate_info.delegate_to { gas } else { &0 };
         let new_stake_info = <StakeInfo<T>>::update(&stake_info, gas);
         StakeInfoMap::<T>::insert(contract_addr, new_stake_info.clone());
-        Contracts::<T>::deposit_event(
-            vec![T::Hashing::hash_of(contract_addr)],
-            Event::Staked {
-                contract: contract_addr.clone(),
-                stake_score: new_stake_info.stake_score.clone(),
-            },
-        );
-        let delegate_info = <DelegateInfo<T>>::get(contract_addr)?;
-        Self::decide_bond(&stake_info, &new_stake_info, &delegate_info)?;
+        if delegate_info.owner != delegate_info.delegate_to {
+            Contracts::<T>::deposit_event(
+                vec![T::Hashing::hash_of(contract_addr)],
+                Event::Staked {
+                    contract: contract_addr.clone(),
+                    stake_score: new_stake_info.stake_score.clone(),
+                },
+            );
+            Self::decide_bond(&stake_info, &new_stake_info, &delegate_info)?;
+        } 
+        if stake_info.reputation >= MIN_REPUTATION {
+            Contracts::<T>::deposit_event(
+                vec![T::Hashing::hash_of(contract_addr)],
+                Event::ReadyToStake {
+                    contract: contract_addr.clone(),
+                },
+            );
+        }
         Ok(())
     }
 
     fn decide_bond(stake_info:&StakeInfo<T>, new_stake_info:&StakeInfo<T> , delegate_info:&DelegateInfo<T>)-> Result<(),DispatchError>{
-        if delegate_info.owner != delegate_info.delegate_to {
-            if stake_info.reputation >= MIN_REPUTATION {
-                if <Bonded<T>>::contains_key(&delegate_info.owner.clone()){
-                    let stake_score_difference = new_stake_info.stake_score - stake_info.stake_score;
-                    <StakeRequest<T>>::add_bond(&delegate_info.owner, &stake_score_difference)?;
-                } else {
-                    <StakeRequest<T>>::new_bond(&delegate_info, &new_stake_info)?;
-                }
+        if stake_info.reputation >= MIN_REPUTATION {
+            if <Bonded<T>>::contains_key(&delegate_info.owner.clone()){
+                let stake_score_difference = new_stake_info.stake_score - stake_info.stake_score;
+                <StakeRequest<T>>::add_bond(&delegate_info.owner, &stake_score_difference)?;
+            } else {
+                <StakeRequest<T>>::new_bond(&delegate_info, &new_stake_info)?;
             }
         }
         Ok(())
@@ -257,13 +264,6 @@ impl<T: Config> StakeRequest<T>{
 		let stake_info: StakeInfo<T> = StakeInfo::<T>::new();
 		StakeInfoMap::<T>::insert(&self.contract, stake_info.clone());
         DelegateInfoMap::<T>::insert(&self.contract, delegate.clone());
-		Contracts::<T>::deposit_event(
-			vec![T::Hashing::hash_of(&self.contract)],
-			Event::Staked {
-				contract: self.contract.clone(),
-				stake_score: stake_info.stake_score.clone(),
-			},
-		);
 	}
 
     fn new_bond(delegate_info: &DelegateInfo<T>, stake_info: &StakeInfo<T>) -> Result<(),DispatchError>{

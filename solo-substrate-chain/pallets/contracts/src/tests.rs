@@ -884,14 +884,6 @@ fn instantiate_and_call_and_deposit_event() {
 					}),
 					topics: vec![hash(&ALICE), hash(&addr)],
 				},
-				EventRecord {
-					phase: Phase::Initialization,
-					event: RuntimeEvent::Contracts(crate::Event::Staked{
-						contract: addr.clone(),
-						stake_score: INITIAL_STAKE_SCORE,
-					}),
-					topics: vec![hash(&addr)],
-				},
 			]
 		);
 	});
@@ -1295,12 +1287,6 @@ fn deploy_and_call_other_contract() {
 			callee_code_hash.as_ref().to_vec(),
 		));
 
-		let callee_stake_info = <StakeInfo<Test>>::get(&callee_addr).unwrap();
-		let callee_stake_score = <StakeInfo<Test>>::stake_score(&callee_stake_info);
-
-		let caller_stake_info = <StakeInfo<Test>>::get(&caller_addr).unwrap();
-		let caller_stake_score = <StakeInfo<Test>>::stake_score(&caller_stake_info);
-
 		let callee = get_contract(&callee_addr);
 		let deposit_account = callee.deposit_account().deref();
 
@@ -1372,15 +1358,6 @@ fn deploy_and_call_other_contract() {
 					}),
 					topics: vec![hash(&caller_addr), hash(&callee_addr)],
 				},
-				EventRecord{
-					phase: Phase::Initialization,
-					event: RuntimeEvent::Contracts(crate::Event::Staked{
-						contract: callee_addr.clone(),
-						stake_score: INITIAL_STAKE_SCORE,
-
-					}),
-					topics: vec![hash(&callee_addr)]
-				},
 				EventRecord {
 					phase: Phase::Initialization,
 					event: RuntimeEvent::Balances(pallet_balances::Event::Transfer {
@@ -1401,15 +1378,6 @@ fn deploy_and_call_other_contract() {
 						hash(&callee_addr)
 					],
 				},
-				EventRecord{
-					phase: Phase::Initialization,
-					event: RuntimeEvent::Contracts(crate::Event::Staked{
-						contract: callee_addr.clone(),
-						stake_score: callee_stake_score,
-
-					}),
-					topics: vec![hash(&callee_addr)]
-				},
 				EventRecord {
 					phase: Phase::Initialization,
 					event: RuntimeEvent::Contracts(crate::Event::Called {
@@ -1417,15 +1385,6 @@ fn deploy_and_call_other_contract() {
 						contract: caller_addr.clone(),
 					}),
 					topics: vec![hash(&Origin::<Test>::from_account_id(ALICE)), hash(&caller_addr)],
-				},
-				EventRecord{
-					phase: Phase::Initialization,
-					event: RuntimeEvent::Contracts(crate::Event::Staked{
-						contract: caller_addr.clone(),
-						stake_score: caller_stake_score,
-
-					}),
-					topics: vec![hash(&caller_addr)]
 				},
 			]
 		);
@@ -1743,23 +1702,6 @@ fn self_destruct_works() {
 						contract: addr.clone(),
 					}),
 					topics: vec![hash(&Origin::<Test>::from_account_id(ALICE)), hash(&addr)],
-				},
-				// Here PoCS Events should not be proceeding
-				// StakeInfoMap is updated but again inserted from first-EOA-caller-stake-approach 
-				// As Call is made after terminate() is called to terminate the contract.
-				// As <StakeRequest<T>>::stake is designed to be fit in fn run(stack) approach it has limitations
-				// Solution : 
-				// 1. Seperation of Tests between pocs and pallet_contracts as pallet_contracts tests are mock
-				// before properly instantiating a contract for testing delegate calls 
-				// 2. Including an enum to represent activity of a pair in StakeInfoMap - Active or Killed 
-				// Killed StakeInfos cannot be revived or delegated or updated 
-				EventRecord {
-					phase: Phase::Initialization,
-					event: RuntimeEvent::Contracts(crate::Event::Staked {
-						contract: addr.clone(),
-						stake_score: INITIAL_STAKE_SCORE,
-					}),
-					topics: vec![hash(&addr)],
 				},
 				EventRecord {
 					phase: Phase::Initialization,
@@ -3997,14 +3939,6 @@ fn instantiate_with_zero_balance_works() {
 					}),
 					topics: vec![hash(&ALICE), hash(&addr)],
 				},
-				EventRecord {
-					phase: Phase::Initialization,
-					event: RuntimeEvent::Contracts(crate::Event::Staked{
-						contract: addr.clone(),
-						stake_score: INITIAL_STAKE_SCORE,
-					}),
-					topics: vec![hash(&addr)],
-				},
 			]
 		);
 	});
@@ -4126,14 +4060,6 @@ fn instantiate_with_below_existential_deposit_works() {
 					}),
 					topics: vec![hash(&ALICE), hash(&addr)],
 				},
-				EventRecord {
-					phase: Phase::Initialization,
-					event: RuntimeEvent::Contracts(crate::Event::Staked{
-						contract: addr.clone(),
-						stake_score : INITIAL_STAKE_SCORE,
-					}),
-					topics: vec![hash(&addr)],
-				},
 			]
 		);
 	});
@@ -4178,12 +4104,6 @@ fn storage_deposit_works() {
 		deposit += charged0;
 		assert_eq!(get_contract(&addr).total_deposit(), deposit);
 
-		// Requires a new frame_based_bare_call to actually assert stake score and stake level
-		// Currently we query from the runtime to satisfy the tests
-
-		let first_call_stake_info = <StakeInfo<Test>>::get(&addr).unwrap();
-		let first_call_stake_score = <StakeInfo<Test>>::stake_score(&first_call_stake_info);
-
 		// Add more storage (but also remove some)
 		assert_ok!(Contracts::call(
 			RuntimeOrigin::signed(ALICE),
@@ -4196,9 +4116,6 @@ fn storage_deposit_works() {
 		let charged1 = 1_000 - 100;
 		deposit += charged1;
 		assert_eq!(get_contract(&addr).total_deposit(), deposit);
-
-		let second_call_stake_info = <StakeInfo<Test>>::get(&addr).unwrap();
-		let second_call_stake_score = <StakeInfo<Test>>::stake_score(&second_call_stake_info);
 
 		// Remove more storage (but also add some)
 		assert_ok!(Contracts::call(
@@ -4213,9 +4130,6 @@ fn storage_deposit_works() {
 		let refunded0 = 4_000 - 100 - 1;
 		deposit -= refunded0;
 		assert_eq!(get_contract(&addr).total_deposit(), deposit);
-
-		let third_call_stake_info = <StakeInfo<Test>>::get(&addr).unwrap();
-		let third_call_stake_score = <StakeInfo<Test>>::stake_score(&third_call_stake_info);
 
 		let contract = get_contract(&addr);
 		let deposit_account = contract.deposit_account().deref();
@@ -4240,15 +4154,6 @@ fn storage_deposit_works() {
 					}),
 					topics: vec![hash(&Origin::<Test>::from_account_id(ALICE)), hash(&addr)],
 				},
-				EventRecord{
-					phase: Phase::Initialization,
-					event: RuntimeEvent::Contracts(crate::Event::Staked{
-						contract: addr.clone(),
-						stake_score: first_call_stake_score,
-
-					}),
-					topics: vec![hash(&addr)]
-				},
 				EventRecord {
 					phase: Phase::Initialization,
 					event: RuntimeEvent::Balances(pallet_balances::Event::Transfer {
@@ -4266,15 +4171,6 @@ fn storage_deposit_works() {
 					}),
 					topics: vec![hash(&Origin::<Test>::from_account_id(ALICE)), hash(&addr)],
 				},
-				EventRecord{
-					phase: Phase::Initialization,
-					event: RuntimeEvent::Contracts(crate::Event::Staked{
-						contract: addr.clone(),
-						stake_score: second_call_stake_score,
-
-					}),
-					topics: vec![hash(&addr)]
-				},
 				EventRecord {
 					phase: Phase::Initialization,
 					event: RuntimeEvent::Balances(pallet_balances::Event::Transfer {
@@ -4291,15 +4187,6 @@ fn storage_deposit_works() {
 						contract: addr.clone(),
 					}),
 					topics: vec![hash(&Origin::<Test>::from_account_id(ALICE)), hash(&addr)],
-				},
-				EventRecord{
-					phase: Phase::Initialization,
-					event: RuntimeEvent::Contracts(crate::Event::Staked{
-						contract: addr.clone(),
-						stake_score: third_call_stake_score,
-
-					}),
-					topics: vec![hash(&addr)]
 				},
 				EventRecord {
 					phase: Phase::Initialization,
@@ -4760,9 +4647,6 @@ fn set_code_hash() {
 		.unwrap();
 		assert_return_code!(result, 1);
 
-		let first_call_stake_info = <StakeInfo<Test>>::get(&contract_addr).unwrap();
-		let first_call_stake_score = <StakeInfo<Test>>::stake_score(&first_call_stake_info);
-
 		// Second calls new contract code that returns 2
 		let result = Contracts::bare_call(
 			ALICE,
@@ -4778,9 +4662,6 @@ fn set_code_hash() {
 		.result
 		.unwrap();
 		assert_return_code!(result, 2);
-
-		let second_call_stake_info = <StakeInfo<Test>>::get(&contract_addr).unwrap();
-		let second_call_stake_score = <StakeInfo<Test>>::stake_score(&second_call_stake_info);
 
 		// Checking for the last event only
 		assert_eq!(
@@ -4806,15 +4687,6 @@ fn set_code_hash() {
 						hash(&contract_addr)
 					],
 				},
-				EventRecord{
-					phase: Phase::Initialization,
-					event: RuntimeEvent::Contracts(crate::Event::Staked{
-						contract: contract_addr.clone(),
-						stake_score: first_call_stake_score,
-
-					}),
-					topics: vec![hash(&contract_addr)]
-				},
 				EventRecord {
 					phase: Phase::Initialization,
 					event: RuntimeEvent::Contracts(crate::Event::Called {
@@ -4825,15 +4697,6 @@ fn set_code_hash() {
 						hash(&Origin::<Test>::from_account_id(ALICE)),
 						hash(&contract_addr)
 					],
-				},
-				EventRecord{
-					phase: Phase::Initialization,
-					event: RuntimeEvent::Contracts(crate::Event::Staked{
-						contract: contract_addr.clone(),
-						stake_score: second_call_stake_score,
-
-					}),
-					topics: vec![hash(&contract_addr)]
 				},
 			],
 		);
@@ -6260,7 +6123,7 @@ fn pocs_no_stake_increase_during_delegation(){
 		let before_delegate_stake_info = <StakeInfo<Test>>::get(&contract_addr).unwrap();
 		assert_ok!(Contracts::delegate(RuntimeOrigin::signed(ALICE), contract_addr.clone(), delegate_addr.clone()));
 		let after_delegate_stake_info = <StakeInfo<Test>>::get(&contract_addr).unwrap();
-		assert!(before_delegate_stake_info.stake_score() > after_delegate_stake_info.stake_score());
+		assert!(before_delegate_stake_info.stake_score() >= after_delegate_stake_info.stake_score());
     });
 }
 
@@ -6675,9 +6538,24 @@ fn pocs_validator_delegate_count_decrement(){
 fn pocs_stake_score_increment_during_call_pseudo_test(){
 	let (wasm, _code_hash) = compile_module::<Test>("dummy").unwrap();
 	ExtBuilder::default().existential_deposit(200).build().execute_with(|| {
+		initialize_block(1);
 		let _ = Balances::deposit_creating(&ALICE, 1_000_000);
+		let _ = Balances::deposit_creating(&CHARLIE, 1_000_000);
         let contract_addr = Contracts::bare_instantiate(
 			ALICE, 
+			0, 
+			GAS_LIMIT, 
+			None, 
+			Code::Upload(wasm.clone()), 
+			vec![], 
+			vec![],
+			DebugInfo::Skip, 
+			CollectEvents::Skip)
+			.result
+			.unwrap()
+			.account_id;
+		let delegate_addr = Contracts::bare_instantiate(
+			CHARLIE, 
 			0, 
 			GAS_LIMIT, 
 			None, 
@@ -6689,6 +6567,29 @@ fn pocs_stake_score_increment_during_call_pseudo_test(){
 			.result
 			.unwrap()
 			.account_id;
+		initialize_block(2);
+		assert_ok!(Contracts::bare_call(
+			CHARLIE, 
+			contract_addr.clone(), 
+			0, 
+			GAS_LIMIT, 
+			None, 
+			vec![], 
+			DebugInfo::Skip, 
+			CollectEvents::Skip, 
+			Determinism::Enforced).result);
+		initialize_block(3);
+		assert_ok!(Contracts::bare_call(
+			CHARLIE, 
+			contract_addr.clone(), 
+			0, 
+			GAS_LIMIT, 
+			None, 
+			vec![], 
+			DebugInfo::Skip, 
+			CollectEvents::Skip, 
+			Determinism::Enforced).result);
+		assert_ok!(Contracts::delegate(RuntimeOrigin::signed(ALICE), contract_addr.clone(), delegate_addr));
 		let init_stake = <StakeInfo<Test>>::get(&contract_addr).unwrap();
 		assert_ok!(Contracts::bare_call(
 			CHARLIE, 
@@ -6703,7 +6604,7 @@ fn pocs_stake_score_increment_during_call_pseudo_test(){
 		let stake_call0 = <StakeInfo<Test>>::get(&contract_addr).unwrap();
 		assert!(stake_call0.stake_score() > init_stake.stake_score());
 		assert_ok!(Contracts::bare_call(
-			CHARLIE, 
+			ALICE, 
 			contract_addr.clone(), 
 			0, 
 			GAS_LIMIT, 
@@ -6802,6 +6703,7 @@ fn pocs_stake_score_increment_during_delegate_call(){
 	let (wasm_callee, _code_hash_callee) = compile_module::<Test>("dummy").unwrap();
 	const ED: u64 = 200;
 	ExtBuilder::default().existential_deposit(ED).build().execute_with(|| {
+		initialize_block(1);
 		let _ = Balances::deposit_creating(&ALICE, 1_000_000);
 		let caller_addr = Contracts::bare_instantiate(
 			ALICE,
@@ -6831,6 +6733,29 @@ fn pocs_stake_score_increment_during_delegate_call(){
 		.result
 		.unwrap()
 		.account_id;
+		initialize_block(2);
+		assert_ok!(Contracts::bare_call(
+			CHARLIE, 
+			callee_addr.clone(), 
+			0, 
+			GAS_LIMIT, 
+			None, 
+			vec![], 
+			DebugInfo::Skip, 
+			CollectEvents::Skip, 
+			Determinism::Enforced).result);
+		initialize_block(3);
+		assert_ok!(Contracts::bare_call(
+			CHARLIE, 
+			callee_addr.clone(), 
+			0, 
+			GAS_LIMIT, 
+			None, 
+			vec![], 
+			DebugInfo::Skip, 
+			CollectEvents::Skip, 
+			Determinism::Enforced).result);
+		assert_ok!(Contracts::delegate(RuntimeOrigin::signed(ALICE), callee_addr.clone(), caller_addr.clone()));
 		let init_stake_score = <StakeInfo<Test>>::get(&callee_addr).unwrap().stake_score();
 		assert_eq!(init_stake_score, 0);
 		assert_ok!(Contracts::call(

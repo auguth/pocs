@@ -1,5 +1,5 @@
 [package]
-name = "stake_delegate_contract"
+name = "delegate_at"
 version = "0.1.0"
 authors = ["Auguth Research Foundation"]
 edition = "2021"
@@ -23,6 +23,6 @@ std = [
 ]
 
 [lib]
-name = "stake_delegate_contract"
+name = "delegate_at"
 path = "lib.rs"
 
