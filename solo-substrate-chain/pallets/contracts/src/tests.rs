@@ -1744,7 +1744,7 @@ fn self_destruct_works() {
 					}),
 					topics: vec![hash(&Origin::<Test>::from_account_id(ALICE)), hash(&addr)],
 				},
-				// PoCS: Here PoCS Events should not be proceeding
+				// Here PoCS Events should not be proceeding
 				// StakeInfoMap is updated but again inserted from first-EOA-caller-stake-approach 
 				// As Call is made after terminate() is called to terminate the contract.
 				// As <StakeRequest<T>>::stake is designed to be fit in fn run(stack) approach it has limitations

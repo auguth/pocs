@@ -401,7 +401,7 @@ benchmarks! {
 	}
 
 
-	// We construct two unique contracts (with input and salt as instantiate benchmark) (PoCS)
+	// We instantiate two unique contracts (PoCS)
 	// The primary contract is assigned a mock stake to pass delegate criteria
 	#[pov_mode = Measured]
 	delegate {

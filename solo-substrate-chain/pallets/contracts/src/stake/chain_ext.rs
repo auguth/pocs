@@ -21,13 +21,13 @@ use codec::Encode;
 use frame_support::log::error; // Import logging functions
 use crate::{
     chain_extension::{ChainExtension, Environment, Ext, InitState, RetVal},
-    stake::{DelegateInfo, StakeInfo},
+    stake::{DelegateInfo, StakeInfo,DelegateRequest},
 };
 use sp_core::crypto::UncheckedFrom;
 use sp_runtime::DispatchError;
 use core::marker::PhantomData;
 use crate::chain_extension::RegisteredChainExtension;
-
+use scale_info::prelude::format;
 
 /// Chain Extension for DelegateInfo and StakeInfo
 pub struct StakeDelegateExtension<T>(PhantomData<T>);
@@ -87,10 +87,28 @@ where
                 let result = stake_info.reputation().encode();
                 env.write(&result, false, None)?;
             }
+            // Get owner
             1004 => {
                 let delegate_info = DelegateInfo::<T>::get(&contract_addr)?;
                 let result = delegate_info.owner().encode();
                 env.write(&result, false, None)?;
+            }
+            // Do Delegate Update
+            1005 => {
+                let executing_contract = env.ext().address();
+                let delegate_result = <DelegateRequest<T>>::delegate(executing_contract,executing_contract,&contract_addr);
+                match delegate_result {
+                    Ok(_) => {
+                        let result = executing_contract.encode();
+                        env.write(&result, false, None)?;
+                    }
+                    Err(e) => {
+                        error!("Delegate failed: {:?}", e);
+                        let error_message = format!("DelegateFailed: {:?}", e).encode();
+                        env.write(&error_message, false, None)?;
+                        return Err(e);
+                    }
+                }
             }
             // Handle unknown function IDs
             _ => {
