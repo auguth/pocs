@@ -31,9 +31,9 @@ use scale_info::prelude::format;
 
 /// Chain Extension for DelegateInfo, StakeInfo and Delegate Update
 /// 
-pub struct StakeDelegateExtension<T>(PhantomData<T>);
+pub struct FetchStakeInfo<T>(PhantomData<T>);
 
-impl<T> Default for StakeDelegateExtension<T> {
+impl<T> Default for FetchStakeInfo<T> {
     fn default() -> Self {
         Self(PhantomData)
     }
@@ -41,7 +41,7 @@ impl<T> Default for StakeDelegateExtension<T> {
 
 /// Register Chain extension
 /// 
-impl<T> RegisteredChainExtension<T> for StakeDelegateExtension<T>
+impl<T> RegisteredChainExtension<T> for FetchStakeInfo<T>
 where
     T: ContractsConfig,
     T::AccountId: UncheckedFrom<T::Hash> + AsRef<[u8]>,
@@ -51,7 +51,7 @@ where
 
 /// Implementation template provided in [`crate::chain_extension`]
 /// 
-impl<T> ChainExtension<T> for StakeDelegateExtension<T>
+impl<T> ChainExtension<T> for FetchStakeInfo<T>
 where
     T: ContractsConfig, 
     T::AccountId: UncheckedFrom<T::Hash> + AsRef<[u8]>,
@@ -65,8 +65,6 @@ where
 
         // Read contract account ID
         let contract_addr: T::AccountId = env.read_as()?;
-        // Read delegate_to account ID for func_id: 1005 
-        let delegate_to: T::AccountId = env.read_as()?;
 
         match func_id {
             // Get delegate_to of a contract 
@@ -103,24 +101,6 @@ where
                 let delegate_info = DelegateInfo::<T>::get(&contract_addr)?;
                 let result = delegate_info.owner().encode();
                 env.write(&result, false, None)?;
-            }
-            // Do Delegate Update 
-            // Used by the implementing contract as owner of another contract
-            1005 => {
-                let executing_contract = env.ext().address();
-                let delegate_result = <DelegateRequest<T>>::delegate(executing_contract,&contract_addr,&delegate_to);
-                match delegate_result {
-                    Ok(_) => {
-                        let result = executing_contract.encode();
-                        env.write(&result, false, None)?;
-                    }
-                    Err(e) => {
-                        error!("Delegate failed: {:?}", e);
-                        let error_message = format!("DelegateFailed: {:?}", e).encode();
-                        env.write(&error_message, false, None)?;
-                        return Err(e);
-                    }
-                }
             }
             // Handle unknown function IDs
             _ => {

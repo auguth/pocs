@@ -6,10 +6,10 @@ use ink::env::{chain_extension::FromStatusCode, Environment};
 use parity_scale_codec::{Decode, Encode};
 use scale_info::TypeInfo;
 
-/// PoCS StakeDelegateExtension: Chain Extension with registered ID 1200
+/// PoCS FetchStakeInfo: Chain Extension with registered ID 1200
 /// 
 #[ink::chain_extension(extension = 1200)]
-pub trait StakeDelegateExtension {
+pub trait FetchStakeInfo {
 
     /// The error type returned by the message functions
     /// 
@@ -123,9 +123,9 @@ impl Environment for CustomEnvironment {
     type BlockNumber = <ink::env::DefaultEnvironment as Environment>::BlockNumber;
     type Timestamp = <ink::env::DefaultEnvironment as Environment>::Timestamp;
 
-    /// Defines `StakeDelegateExtension` as ChainExtension
+    /// Defines `FetchStakeInfo` as ChainExtension
     /// 
-    type ChainExtension = StakeDelegateExtension;
+    type ChainExtension = FetchStakeInfo;
 
 }
 

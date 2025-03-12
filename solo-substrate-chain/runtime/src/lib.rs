@@ -12,7 +12,7 @@ pub mod constants;
 mod voter_bags;
 
 use codec::{Decode, Encode};
-use pallet_contracts::stake::chain_ext::StakeDelegateExtension;
+use pallet_contracts::stake::chain_ext::FetchStakeInfo;
 use pallet_contracts::pallet::Pallet;
 use pallet_grandpa::AuthorityId as GrandpaId;
 use pallet_election_provider_multi_phase::SolutionAccuracyOf;
@@ -298,7 +298,7 @@ impl pallet_contracts::Config for Runtime {
 	type CallStack = [pallet_contracts::Frame<Self>; 5];
 	type WeightPrice = pallet_transaction_payment::Pallet<Self>;
 	type ContractWeightInfo = pallet_contracts::weights::SubstrateWeight<Self>;
-	type ChainExtension = StakeDelegateExtension<Self>;
+	type ChainExtension = FetchStakeInfo<Self>;
 	type Schedule = Schedule;
 	type AddressGenerator = pallet_contracts::DefaultAddressGenerator;
 	type MaxCodeLen = ConstU32<{ 123 * 1024 }>;

@@ -7216,3 +7216,13 @@ fn pocs_stake_score_increment_during_contract_delegate_call(){
 		));
 	});
 }
+
+#[test]
+fn pocs_fetch_based_all_chain_extensions_works(){
+
+}
+
+#[test]
+fn pocs_update_delegate_chain_extension_works(){
+
+}
