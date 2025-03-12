@@ -102,13 +102,12 @@ mod schedule;
 mod storage;
 mod wasm;
 pub mod stake;
-
 pub mod chain_extension;
 pub mod migration;
 pub mod weights;
 
 #[cfg(test)]
-mod tests;
+pub mod tests;
 use crate::{
 	exec::{AccountIdOf, ErrorOrigin, ExecError, Executable, Key, Stack as ExecStack},
 	gas::GasMeter,

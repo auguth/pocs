@@ -7,30 +7,37 @@ use parity_scale_codec::{Decode, Encode};
 use scale_info::TypeInfo;
 
 /// PoCS StakeDelegateExtension: Chain Extension with registered ID 1200
+/// 
 #[ink::chain_extension(extension = 1200)]
 pub trait StakeDelegateExtension {
 
     /// The error type returned by the message functions
+    /// 
     type ErrorCode = StakeDelegateError;
 
     /// Retrieves the validator `AccountId` that the given contract is delegated to
+    /// 
     #[ink(function = 1000)]
     fn delegate_of(account_id: <CustomEnvironment as Environment>::AccountId) 
         -> <CustomEnvironment as Environment>::AccountId;
 
     /// Retrieves the block number at which the contract last updated its delegate information
+    /// 
     #[ink(function = 1001)]
     fn delegate_at(account_id: <CustomEnvironment as Environment>::AccountId) -> u32;
 
     /// Retrieves the stake score associated with the given contract
+    /// 
     #[ink(function = 1002)]
     fn stake_score(account_id: <CustomEnvironment as Environment>::AccountId) -> u128;
 
     /// Retrieves the reputation score of the given contract
+    /// 
     #[ink(function = 1003)]
     fn reputation(account_id: <CustomEnvironment as Environment>::AccountId) -> u32;
 
     /// Retrieves the `AccountId` of the owner of the given contract
+    /// 
     #[ink(function = 1004)]
     fn owner(account_id: <CustomEnvironment as Environment>::AccountId) 
         -> <CustomEnvironment as Environment>::AccountId;
@@ -38,36 +45,37 @@ pub trait StakeDelegateExtension {
 
 
 /// Represents possible errors that can occur in our contract
+/// 
 #[derive(Debug, PartialEq, Eq, Encode, Decode, TypeInfo)]
 pub enum StakeDelegateError {
-    /// The provided contract address is not delegated to our contract
+
+    // The provided contract address is not delegated to our contract
     InvalidDelegate = 1,
 
-    /// The stake score is insufficient to claim rewards
+    // The stake score is insufficient to claim rewards
     InsufficientStakeScore = 2,
 
-    /// The caller is not the valid owner of the contract attempting operations
+    // The caller is not the valid owner of the contract attempting operations
     InvalidContractOwner = 3,
 
-    /// Insufficient balance to process the reward claim
+    // Insufficient balance to process the reward claim
     InsufficientFunds = 4,
 
-    /// The registered contract address has updated its delegate information after registration
+    // The registered contract address has updated its delegate information after registration
     InvalidRegistration = 5,
 
-    /// No reward has been allocated for the given contract address
+    // No reward has been allocated for the given contract address
     NoRewardAllocated = 6,
 
-    /// Transfer operation failed due to an unknown error
+    // Transfer operation failed due to an unknown error
     TransferFailed = 7,
 
-    /// An unknown or unspecified error occurred
+    // An unknown or unspecified error occurred
     UnknownError = 8,
 }
 
-/// Implements conversion from `u8` integer error code to `StakeDelegateError`
+/// Maps raw integer error codes into `Error` variants
 /// 
-/// This allows mapping raw error codes returned by the chain extension functions into error variants
 impl From<u8> for StakeDelegateError {
 
     fn from(value: u8) -> Self {
@@ -79,9 +87,9 @@ impl From<u8> for StakeDelegateError {
 
 }
 
-/// Implements conversion from a `status_code` integer returned by the chain extension functions
+/// Maps `status_code` integer to `Error` variants
+/// A status code of `0` indicates success
 /// 
-/// Returns a `Result<(), StakeDelegateError>`. A status code of `0` indicates success
 impl FromStatusCode for StakeDelegateError {
 
     fn from_status_code(status_code: u32) -> Result<(), Self> {
@@ -94,7 +102,8 @@ impl FromStatusCode for StakeDelegateError {
 
 }
 
-/// Extends the default Ink! environment while integrating the `StakeDelegateExtension`
+/// Custom Ink! environment integrating `ChainExtension`
+/// 
 #[derive(Debug, Clone, PartialEq, Eq)]
 #[ink::scale_derive(TypeInfo)]
 pub struct CustomEnvironment {}
@@ -102,10 +111,12 @@ pub struct CustomEnvironment {}
 impl Environment for CustomEnvironment {
 
     /// Defines the maximum number of topics that an event can have in this environment
+    /// 
     const MAX_EVENT_TOPICS: usize =
         <ink::env::DefaultEnvironment as Environment>::MAX_EVENT_TOPICS;
 
     /// Type alias from default environment required for our chain extension custom environment
+    /// 
     type AccountId = <ink::env::DefaultEnvironment as Environment>::AccountId;
     type Balance = <ink::env::DefaultEnvironment as Environment>::Balance;
     type Hash = <ink::env::DefaultEnvironment as Environment>::Hash;
@@ -113,32 +124,49 @@ impl Environment for CustomEnvironment {
     type Timestamp = <ink::env::DefaultEnvironment as Environment>::Timestamp;
 
     /// Defines `StakeDelegateExtension` as ChainExtension
+    /// 
     type ChainExtension = StakeDelegateExtension;
 
 }
 
 /// Ink! contract for managing stake delegation and reward distribution
+/// 
 #[ink::contract(env = self::CustomEnvironment)]
 mod delegate_registry {
 
     use super::*;
 
     /// Storage structure for the Delegate Registry.
+    /// 
     #[ink(storage)]
     pub struct DelegateRegistry {
+
         /// Mapping of contract addresses to their registration time delegation info
+        /// 
         /// - `u32` represents the block number when delegation was updated
         /// - `u128` represents the stake score at registration time
+        /// 
         delegates: Mapping<AccountId, (u32, u128)>,
-        ///
+
         /// Total stake score pool accumulated in the contract
         /// Maps to total balance of our contract excluding minimum balance (existential deposit)
+        /// 
         pool: u128,
+    }
+
+    impl Default for DelegateRegistry {
+
+        /// Provides a default implementation that calls the `new` constructor
+        /// 
+        fn default() -> Self {
+            Self::new()
+        }
     }
 
     impl DelegateRegistry {
 
         /// Initializes a new `DelegateRegistry` instance during instantiation of our contract
+        /// 
         #[ink(constructor)]
         pub fn new() -> Self {
             Self {

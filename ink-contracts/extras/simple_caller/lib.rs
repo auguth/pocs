@@ -7,6 +7,7 @@ use ink::env::{
     };
 
 /// Ink! contract for simply calling another contract
+/// 
 #[ink::contract]
 mod simple_caller {
     
@@ -14,12 +15,14 @@ mod simple_caller {
 
     /// Storage struct requirement for the contract.  
     /// It does not hold any state.
+    /// 
     #[ink(storage)]
     pub struct Caller {}
 
     impl Default for Caller {
         
         /// Provides a default implementation that calls the `new` constructor
+        /// 
         fn default() -> Self {
             Self::new()
         }
@@ -28,12 +31,14 @@ mod simple_caller {
     impl Caller {
 
         /// Constructor to initialize the contract.
+        /// 
         #[ink(constructor)]
         pub fn new() -> Self {
             Self {}
         }
 
         /// Calls the specified contract
+        /// 
         #[ink(message)]
         pub fn call(
             &mut self,

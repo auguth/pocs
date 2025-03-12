@@ -1,4 +1,4 @@
-// This file is part of Substrate.
+// This file is part of PoCS-Substrate.
 // Copyright (C) Auguth Research Foundation, India.
 // SPDX-License-Identifier: Apache-2.0
 
@@ -18,7 +18,7 @@
 //
 use crate::Config as ContractsConfig;
 use codec::Encode;
-use frame_support::log::error; // Import logging functions
+use frame_support::log::error; 
 use crate::{
     chain_extension::{ChainExtension, Environment, Ext, InitState, RetVal},
     stake::{DelegateInfo, StakeInfo,DelegateRequest},
@@ -29,7 +29,8 @@ use core::marker::PhantomData;
 use crate::chain_extension::RegisteredChainExtension;
 use scale_info::prelude::format;
 
-/// Chain Extension for DelegateInfo and StakeInfo
+/// Chain Extension for DelegateInfo, StakeInfo and Delegate Update
+/// 
 pub struct StakeDelegateExtension<T>(PhantomData<T>);
 
 impl<T> Default for StakeDelegateExtension<T> {
@@ -38,7 +39,8 @@ impl<T> Default for StakeDelegateExtension<T> {
     }
 }
 
-// registered chain extension
+/// Register Chain extension
+/// 
 impl<T> RegisteredChainExtension<T> for StakeDelegateExtension<T>
 where
     T: ContractsConfig,
@@ -47,6 +49,8 @@ where
     const ID: u16 = 1200;
 }
 
+/// Implementation template provided in [`crate::chain_extension`]
+/// 
 impl<T> ChainExtension<T> for StakeDelegateExtension<T>
 where
     T: ContractsConfig, 
@@ -57,46 +61,54 @@ where
         env: Environment<E, InitState>,
     ) -> Result<RetVal, DispatchError> {
         let func_id = env.func_id();
-        let mut env = env.buf_in_buf_out(); // Set buffer mode
+        let mut env = env.buf_in_buf_out(); 
 
         // Read contract account ID
         let contract_addr: T::AccountId = env.read_as()?;
+        // Read delegate_to account ID for func_id: 1005 
+        let delegate_to: T::AccountId = env.read_as()?;
 
         match func_id {
-            // Get delegate_to
+            // Get delegate_to of a contract 
+            // Field of `crate::stake::DelegateInfo`
             1000 => {
                 let delegate_info = DelegateInfo::<T>::get(&contract_addr)?;
                 let result = delegate_info.delegate_to().encode();
                 env.write(&result, false, None)?;
             }
-            // Get delegate_at
+            // Get delegate_at of a contract
+            // Field of `crate::stake::DelegateInfo`
             1001 => {
                 let delegate_info = DelegateInfo::<T>::get(&contract_addr)?;
                 let result = delegate_info.delegate_at().encode();
                 env.write(&result, false, None)?;
             }
-            // Get stake_score
+            // Get stake_score of a contract
+            // Field of `crate::stake::StakeInfo`
             1002 => {
                 let stake_info = StakeInfo::<T>::get(&contract_addr)?;
                 let result = stake_info.stake_score().encode();
                 env.write(&result, false, None)?;
             }
-            // Get reputation
+            // Get reputation of a contract
+            // Field of [`crate::stake::StakeInfo`]
             1003 => {
                 let stake_info = StakeInfo::<T>::get(&contract_addr)?;
                 let result = stake_info.reputation().encode();
                 env.write(&result, false, None)?;
             }
-            // Get owner
+            // Get Owner of a contract
+            // Field of [`crate::stake::DelegateInfo`]
             1004 => {
                 let delegate_info = DelegateInfo::<T>::get(&contract_addr)?;
                 let result = delegate_info.owner().encode();
                 env.write(&result, false, None)?;
             }
-            // Do Delegate Update
+            // Do Delegate Update 
+            // Used by the implementing contract as owner of another contract
             1005 => {
                 let executing_contract = env.ext().address();
-                let delegate_result = <DelegateRequest<T>>::delegate(executing_contract,executing_contract,&contract_addr);
+                let delegate_result = <DelegateRequest<T>>::delegate(executing_contract,&contract_addr,&delegate_to);
                 match delegate_result {
                     Ok(_) => {
                         let result = executing_contract.encode();
