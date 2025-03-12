@@ -2,22 +2,14 @@
 
 set -e  
 
-echo "Setting up cargo-contract"
-cd ink-contracts
-rustup component add rust-src
-cargo install --force --locked cargo-contract
-cd ..
-
-build_contract() {
+cargo_clean() {
     local contract_path=$1
     local contract_name=$2
 
-    echo "Building $contract_path"
+    echo "cleaning $contract_path"
     cd $contract_path
-    cargo contract build
+    cargo clean
 
-    mv -f target/ink/$contract_name.contract ../../contracts
-    cd - > /dev/null
 }
 
 declare -A contracts=(
@@ -31,12 +23,12 @@ declare -A contracts=(
 )
 
 for path in "${!contracts[@]}"; do
-    build_contract "$path" "${contracts[$path]}"
+    cargo_clean "$path" "${contracts[$path]}"
 done
 
-echo "Building solo-substrate-chain"
+echo "Cleaning solo-substrate-chain"
 cd solo-substrate-chain
-chmod +x setup.sh && ./setup.sh
+cargo clean
 cd ..
 
-echo "Build process completed!"
+echo "Cleaning process completed!"

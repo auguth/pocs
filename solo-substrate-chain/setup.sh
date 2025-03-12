@@ -32,5 +32,5 @@ rustup target add wasm32-unknown-unknown --toolchain nightly-2023-12-21
 echo "Setting nightly version as override..."
 rustup override set nightly-2023-12-21  
 
-# Restart bash for changes to take effect
-exec bash
+# Build in release mode
+cargo build --release
