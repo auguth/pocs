@@ -1,0 +1,8 @@
+# Ignore all target directories
+**/target/
+
+# Ignore all .vscode directories
+**/.vscode/
+
+# Ignore all .DS_Store files (macOS system files)
+**/.DS_Store
