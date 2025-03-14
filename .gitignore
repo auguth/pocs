@@ -6,3 +6,6 @@
 
 # Ignore all .DS_Store files (macOS system files)
 **/.DS_Store
+
+# Ignore all setup flags
+**/.setup
