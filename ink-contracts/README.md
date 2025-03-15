@@ -1,52 +1,45 @@
 # ink-contracts
 
-These are ink-contracts provided for PoCS Substrate Node Testing 
+This directory contains all **Ink! smart contracts** used in the PoCS (Proof-of-Concept Substrate) project. You can build, test, and clean these contracts using the `pocs.sh` script.
 
-Contracts are pre-built and provided as `.contract` file in its respective source directories which can be uploaded via an extrinsic call to `pallet-contract` via `instantiate_with_code`
+Some contracts may include custom Chain Extension from [solo-substrate-chain](../solo-substrate-chain/pallets/contracts/src/chain_extension.rs).
 
-## Ink! Environment Setup
+## Setup Instructions
+Ensure you have the following prerequisites:
 
-Ensure your development environment meets the following requirements:
+- **Rust** (via `rustup`)
+- **cargo-contract** (for Ink! compilation)
+- **Protobuf Compiler** (for building the Substrate node)
 
-- Rust & C++ Compiler:
+If these are missing, the `pocs.sh` script will handle the setup automatically.
 
-    In addition to Rust, installation requires a C++ compiler that supports C++17. Modern releases of gcc and clang, as well as Visual Studio 2019+, should work.
+## Usage Guide
 
-**Installation Steps:**
+### 1️⃣ Build Contracts
 
-1. Install Rust Source:
+To compile all Ink! contracts and bundle the `.contract` files into the `contracts-bundle/` directory:
 
-    ``` rust
-    rustup component add rust-src
-    ```
+```bash
+./pocs.sh --build --contracts
+```
 
-2. Install `cargo-contract`:
+### 2️⃣ Test Contracts (Unit + E2E)
 
-    ``` rust
-    cargo install --force --locked cargo-contract
-    ```
+Run unit tests and perform end-to-end (E2E) tests for all contracts:
 
-3. To build and deploy:
+```bash
+./pocs.sh --test --contracts
+```
 
-    - Run the setup script if applicable:
+### 3️⃣ Clean Contracts
 
-        ``` rust
-        chmod +x setup.sh && ./setup.sh
-        ```
+Remove all compiled artifacts:
 
-    - Open contract folder
+```bash
+./pocs.sh --clean --contracts
+```
 
-    - Build the contract in release mode using cargo-contract:
-
-        ``` rust
-        cargo contract build --release
-        ```
-
-    - Deploy the contract to your local or test network using the Polkadot-JS-App or Contracts UI:
-
-4. To Run Test:
-
-    ```rust
-    cargo test
-    ```
+This will:
+- Clean the build cache for each contract (`cargo clean`)
+- Delete the `contracts-bundle` folder
 
