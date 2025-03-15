@@ -1,15 +1,16 @@
 [package]
-name = "flipper"
+name = "owner"
 version = "0.1.0"
 authors = ["Auguth Research Foundation"]
 edition = "2021"
 license = "MIT"
- 
+
 [dependencies]
+# Ink! dependencies
 ink = { version = "5.1.1", default-features = false }
 parity-scale-codec = { version = "3.6", default-features = false, features = ["derive"] }
 scale-info = { version = "2.11.6", default-features = false, features = ["derive"] }
- 
+
 [features]
 default = ["std"]
 std = [
@@ -17,9 +18,8 @@ std = [
     "parity-scale-codec/std",
     "scale-info/std",
 ]
-ink-as-dependency = []
- 
- 
+
 [lib]
-name = "flipper"
+name = "owner"
 path = "lib.rs"
+

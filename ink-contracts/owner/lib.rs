@@ -7,24 +7,25 @@ use scale_info::TypeInfo;
 
 /// PoCS ChainExtension: Chain Extension with registered ID 1200
 /// 
-#[ink::chain_extension(extension = 1200)] 
+#[ink::chain_extension(extension = 1200)]
 pub trait ChainExtension {
 
     /// The error type returned by the message functions
     /// 
     type ErrorCode = Error;
 
-    /// Retrieves the validator `AccountId` that the given contract is delegated to
+    /// Retrieves the stake owner of a given contract address
     /// 
-    #[ink(function = 1000)]
-    fn delegate_to(contract_addr: <CustomEnvironment as Environment>::AccountId) -> <CustomEnvironment as Environment>::AccountId;
+    #[ink(function = 1004)]
+    fn owner(contract_addr: <CustomEnvironment as Environment>::AccountId) -> <CustomEnvironment as Environment>::AccountId;
+
 }
 
 /// Represents possible errors that can occur in our contract
 /// 
 #[derive(Debug, PartialEq, Eq, Encode, Decode, TypeInfo)]
 pub enum Error {
-    DelegateInfoNotFound = 1,
+    OwnerNotFound = 1,
     UnknownError = 2,
 }
 
@@ -33,7 +34,7 @@ pub enum Error {
 impl From<u8> for Error {
     fn from(value: u8) -> Self {
         match value {
-            1 => Error::DelegateInfoNotFound,
+            1 => Error::OwnerNotFound,
             _ => Error::UnknownError,
         }
     }
@@ -46,7 +47,7 @@ impl FromStatusCode for Error {
     fn from_status_code(status_code: u32) -> Result<(), Self> {
         match status_code {
             0 => Ok(()),
-            1 => Err(Error::DelegateInfoNotFound),
+            1 => Err(Error::OwnerNotFound),
             _ => Err(Error::UnknownError),
         }
     }
@@ -78,11 +79,10 @@ impl Environment for CustomEnvironment {
     type ChainExtension = ChainExtension;
 }
 
-
-/// Ink! contract for retrieving the validator address for which the contract is delegated to
+/// Ink! contract for retrieving the stake owner of a contract
 /// 
 #[ink::contract(env = self::CustomEnvironment)]
-mod fetch_delegate_to {
+mod fetch_owner {
 
     use super::*;
 
@@ -90,9 +90,9 @@ mod fetch_delegate_to {
     /// It does not hold any state.
     /// 
     #[ink(storage)]
-    pub struct FetchDelegateTo {}
+    pub struct FetchOwner {}
 
-    impl Default for FetchDelegateTo {
+    impl Default for FetchOwner {
 
         /// Provides a default implementation that calls the `new` constructor
         /// 
@@ -102,7 +102,7 @@ mod fetch_delegate_to {
 
     }
 
-    impl FetchDelegateTo {
+    impl FetchOwner {
 
         /// Constructor to initialize the contract.
         /// 
@@ -111,16 +111,16 @@ mod fetch_delegate_to {
             Self {}
         }
 
-        /// Fetches the validator account address of a staked contract
+        /// Fetches the stake owner of a given contract address
         /// 
         #[ink(message)]
-        pub fn fetch_delegate_to(&self, contract_addr: AccountId) -> Result<AccountId, Error> {
-            let delegate_to = self.env()
+        pub fn fetch_owner(&self, contract_addr: AccountId) -> Result<AccountId, Error> {
+            let owner = self.env()
                 .extension()
-                .delegate_to(contract_addr)
-                .map_err(|_| Error::DelegateInfoNotFound)?;
+                .owner(contract_addr)
+                .map_err(|_| Error::OwnerNotFound)?;
             
-            Ok(delegate_to)
+            Ok(owner)
         }
     }
 }

@@ -10,22 +10,6 @@ DEPLOY_DIR="contracts-bundle"
 NODE_DIR="solo-substrate-chain"
 ENV_FLAG=".setup"
 
-show_spinner() {
-    local pid=$1
-    local delay=0.1
-    local spin_chars=('⠋' '⠙' '⠹' '⠸' '⠼' '⠴' '⠦' '⠧' '⠇' '⠏')
-
-    echo -n "⏳ Waiting for the node to start..."
-    while kill -0 $pid 2>/dev/null; do
-        for char in "${spin_chars[@]}"; do
-            echo -ne "\r$char ⏳ Waiting for the PoCS-Substrate node to start..."
-            sleep $delay
-        done
-    done
-    echo -ne "\r✅ PoCS-Substrate Node is ready!\n"
-}
-
-
 detect_os() {
     case "$(uname -s)" in
         Linux*) OS="Linux" ;;
@@ -38,7 +22,7 @@ detect_os() {
 install_dependencies() {
  
     detect_os
-    echo "🛠️ Detected OS: $OS"
+    echo "️Detected OS: $OS"
  
     if [ "$OS" = "Linux" ]; then
         echo "Updating packages..."  
@@ -137,74 +121,21 @@ build_node() {
     cargo build --release
 }
 
-test_e2e(){
-    if [ -f "test.sh" ]; then 
-       chmod +x test.sh && ./test.sh
-    fi
-}
- 
-test_contracts() {
-    # for contract in *; do
-    #     if [ -d "$contract" ] && [ "$(basename "$contract")" != "$DEPLOY_DIR" ]; then
-    #         echo "Testing Ink! contract "$contract"..."
-    #         (cd "$contract" && cargo test)
-    #         echo "Do you wish to continue to next cargo test? (y/n)"
-    #         read -r answer
-
-    #         if [[ "$answer" =~ ^[Yy]$ ]]; then
-    #             echo "Proceeding to the next test..."
-    #         else
-    #             echo "Exiting Tests..."
-    #             exit 1
-    #         fi
-    #     fi
-    # done
-    # echo "All Cargo Test for Contracts are completed, Proceeding to E2E Tests"
-    (   
-        cd ../
-        if [ ! -f "./$NODE_DIR/target/release/pocs" ]; then
-            echo -e "Node Build Targets are missing"
-            echo "Do you wish to build PoCS-Substrate Node for Running ink! E2E Tests? (y/n)"
-            read -r answer
-            if [[ "$answer" =~ ^[Yy]$ ]]; then
-                echo "Proceeding to build PoCS-Substrate Node..."
-                ./pocs.sh --build --node
-            else
-                echo "Exiting Tests..."
-                exit 1
-            fi                                                                                                            
-        fi
-        if [ ! -d "./$CONTRACTS_DIR/$DEPLOY_DIR-bundle" ];  then
-            echo -e "Contract Bundles are Missing"
-            echo "Do you wish to build Contract Bundles for Running ink! E2E Tests? (y/n)"
-            read -r answer
-            if [[ "$answer" =~ ^[Yy]$ ]]; then
-                echo "Proceding to build Contracts Bundles..."
-                ./pocs.sh --build --contracts
-            else
-                echo "Exiting Tests..."
-                exit 1
-            fi
-        fi
-    )
-    for contract in *; do
-        if [ -d "$contract" ] && [ "$(basename "$contract")" != "$DEPLOY_DIR" ]; then
-            echo "Do you wish to run E2E-Tests on $contract Ink! contract? (y/n)"
-            read -r answer
-            if [[ "$answer" =~ ^[Yy]$ ]]; then
-                echo "Proceeding to run E2E-Tests on $contract Ink! contract..."
-                (cd "$contract" && test_e2e)
-            else
-                echo "Exiting Tests..."
-                exit 1
-            fi
-        fi
-    done
+test_ink_e2e(){
+    chmod +x test.sh && ./test.sh
     echo "All E2E Tests for Contracts are completed"
 }
  
+test_cargo_contracts() {
+    for contract in *; do
+        if [ -d "$contract" ] && [ "$(basename "$contract")" != "$DEPLOY_DIR" ]; then
+            (cd "$contract" && cargo test)
+        fi
+    done
+    echo "All Cargo Test for Contracts are completed, Proceeding to E2E Tests"
+}
+ 
 test_node() {
-    echo "Testing Substrate node..."
     cargo test --all
 }
  
@@ -214,9 +145,10 @@ run_node() {
         echo "Do you wish to build PoCS-Substrate Node? (y/n)"
         read -r answer
         if [[ "$answer" =~ ^[Yy]$ ]]; then
-            echo "Proceding to build PoCS-Substrate Node..."
-            cd ../
-            ./pocs.sh --build --node
+            (
+                cd ../
+                ./pocs.sh --build --node
+            )
         else
             echo "Exiting Run Node..."
             exit 1
@@ -247,13 +179,7 @@ clean_node() {
     echo "Cleaning Substrate node..."
     cargo clean
 }
- 
-clean_env(){
-    if [ -f "$ENV_FLAG" ]; then
-        rm "$ENV_FLAG"
-        echo "Removed $ENV_FLAG"
-    fi
-}
+
  
 case $action in
     --build)
@@ -280,7 +206,8 @@ case $action in
             --contracts)
                 cd $CONTRACTS_DIR
                 setup_contract_environment
-                test_contracts
+                test_cargo_contracts
+                test_ink_e2e
                 ;;
             --node)
                 cd $NODE_DIR
@@ -304,13 +231,11 @@ case $action in
             --contracts)
                 cd $CONTRACTS_DIR
                 clean_contracts
-                clean_env
                 clean_built_contracts
                 ;;
             --node)
                 cd $NODE_DIR
                 clean_node
-                clean_env
                 ;;
             *)
                 echo "Usage: $0 --clean {--contracts|--node}"
@@ -324,4 +249,4 @@ case $action in
         exit 1
         ;;
 esac
- 
+

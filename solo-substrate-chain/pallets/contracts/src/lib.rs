@@ -959,11 +959,11 @@ use stake::{DelegateRequest, ValidateRequest};
 		InvalidCallFlags,
 		/// Invalid Owner of a contract (PoCS)
 		InvalidContractOwner,
-		/// Stake Information i.e., `StakeInfoMap` doesn't hold the stake information for a given contract address (PoCS)
+		/// Stake information for account is not available (PoCS)
 		NoStakeExists,
 		/// No validator was found for the given contract address (PoCS)
 		NoValidatorFound,
-		/// The contract does not meet the minimum reputation requirement for updating delegates (PoCS)
+		/// The contract does not meet the minimum reputation requirement (PoCS)
 		LowReputation,
 		/// The contract or account is already delegated to the same address (PoCS)
 		AlreadyDelegated,

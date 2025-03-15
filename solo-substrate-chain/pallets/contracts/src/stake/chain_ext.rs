@@ -29,7 +29,7 @@ use core::marker::PhantomData;
 use crate::chain_extension::RegisteredChainExtension;
 use scale_info::prelude::format;
 
-/// Chain Extension for DelegateInfo, StakeInfo and Delegate Update
+/// Chain Extension for Fetching Contract's DelegateInfo, StakeInfo 
 /// 
 pub struct FetchStakeInfo<T>(PhantomData<T>);
 
@@ -39,7 +39,7 @@ impl<T> Default for FetchStakeInfo<T> {
     }
 }
 
-/// Register Chain extension
+/// Register FetchStakeInfo Chain extension id 1200
 /// 
 impl<T> RegisteredChainExtension<T> for FetchStakeInfo<T>
 where
@@ -112,3 +112,78 @@ where
     }
 }
 
+/// Chain Extension for Updating Delegate of Contract Owned Contracts 
+/// 
+pub struct UpdateDelegate<T>(PhantomData<T>);
+
+impl<T> Default for UpdateDelegate<T> {
+    fn default() -> Self {
+        Self(PhantomData)
+    }
+}
+
+/// Register UpdateDelegate Chain extension id 1300
+///
+impl<T> RegisteredChainExtension<T> for UpdateDelegate<T>
+where
+    T: ContractsConfig,
+    T::AccountId: UncheckedFrom<T::Hash> + AsRef<[u8]>,
+{
+    const ID: u16 = 1300;
+}
+
+/// Implementation template provided in [`crate::chain_extension`]
+/// 
+impl<T> ChainExtension<T> for UpdateDelegate<T>
+where
+    T: ContractsConfig, 
+    T::AccountId: UncheckedFrom<T::Hash> + AsRef<[u8]>,
+{
+    fn call<E: Ext<T = T>>(
+        &mut self,
+        env: Environment<E, InitState>,
+    ) -> Result<RetVal, DispatchError> {
+        let func_id = env.func_id();
+        let mut env = env.buf_in_buf_out(); 
+
+        // Read the parameters passed from the environment: 
+        //
+        // It includes:
+        // - `contract_addr` - The contract that needs to be updated
+        // - `delegate_to` - The delegate contract to which updates will be applied
+        let (contract_addr, delegate_to): (T::AccountId, T::AccountId) = env.read_as()?;
+        
+        match func_id {
+            1005 => {
+
+                // Get the current contract that is executing the chain extension
+                // As passing as parameters is unsafe, cause contracts cannot sign transactions 
+                // We verify that the contract calling the extension from reading its address from environment
+                let executing_contract = env.ext().address();
+
+                // Execute updating delegate which updates map [`Pallet::DelegateInfoMap`]
+                // The same function call is utilized by [`Pallet::delegate`] for EOA owned contracts delegate update
+                let delegate_result = <DelegateRequest<T>>::delegate(executing_contract, &contract_addr, &delegate_to);
+
+                match delegate_result {
+                    Ok(()) => {
+                        env.write(&[], false, None)?;
+                    }
+                    Err(e) => {
+                        error!("Delegate failed: {:?}", e);
+                        let error_message = format!("DelegateFailed: {:?}", e).encode();
+                        env.write(&error_message, false, None)?;
+                        return Err(e);
+                    }
+                }
+            }
+            
+            // Handle unknown function IDs
+            _ => {
+                error!("Called an unregistered `func_id`: {}", func_id);
+                return Err(DispatchError::Other("UnknownFunction"));
+            }
+        }
+        Ok(RetVal::Converging(0)) // Return success
+    }
+}
