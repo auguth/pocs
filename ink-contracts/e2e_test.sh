@@ -88,6 +88,40 @@ CONTRACTS_PATH="./ink-contracts/contracts-bundle"
 # Go to Root
 cd ../
 
+if [ ! -f "./solo-substrate-chain/target/release/pocs" ]; then
+    echo -e "Node Build Targets are missing"
+    echo "Do you wish to build PoCS-Substrate Node? (y/n)"
+    read -r answer
+    if [[ "$answer" =~ ^[Yy]$ ]]; then
+        chmod +x pocs.sh && ./pocs.sh --build --node
+    else
+        echo "Exiting Run Node..."
+        exit 1
+    fi
+fi
+
+# Flipper Contract is used for dummy contract testing
+FLIPPER_CONTRACT="$CONTRACTS_PATH/flipper.contract"
+
+# Flip Function of Flipper Contract
+FLIPPER_FUNCTION="flip"
+
+# Tests if Flipper is missing
+if [ ! -f "$FLIPPER_CONTRACT" ]; then
+    echo "Contract Bundles Missing on $FLIPPER_CONTRACT"
+    echo "Do you wish to build Contract Bundles for Running ink! E2E Tests? (y/n)"
+    read -r answer
+    if [[ "$answer" =~ ^[Yy]$ ]]; then
+        chmod +x pocs.sh && ./pocs.sh --build --contracts
+        echo -e "Ready to Run E2E Tests for Contracts"
+    else
+        echo -e "Exiting Tests..."
+        kill $NODE_PID
+        exit 1
+    fi
+fi
+
+
 # Run PoCS-Substrate Node
 $NODE_PATH --dev > /dev/null 2>&1 &
 
@@ -116,28 +150,6 @@ sleep 10 & spinner $!
 echo "Starting ink! E2E Tests..."
 
 #### UPLOAD FLIPPER CONTRACT
-
-# Flipper Contract is used for dummy contract testing
-FLIPPER_CONTRACT="$CONTRACTS_PATH/flipper.contract"
-
-# Flip Function of Flipper Contract
-FLIPPER_FUNCTION="flip"
-
-
-# Tests if Flipper is missing
-if [ ! -f "$FLIPPER_CONTRACT" ]; then
-    echo "Contract Bundles Missing on $FLIPPER_CONTRACT"
-    echo "Do you wish to build Contract Bundles for Running ink! E2E Tests? (y/n)"
-    read -r answer
-    if [[ "$answer" =~ ^[Yy]$ ]]; then
-        chmod +x pocs.sh && ./pocs.sh --build --contracts
-        echo -e "Ready to Run E2E Tests for Contracts"
-    else
-        echo -e "Exiting Tests..."
-        kill $NODE_PID
-        exit 1
-    fi
-fi
 
 # Upload Flipper Contract and Get Code Hash
 UPLOAD_FLIPPER=$(

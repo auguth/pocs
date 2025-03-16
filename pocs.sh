@@ -122,7 +122,7 @@ build_node() {
 }
 
 test_ink_e2e(){
-    chmod +x test.sh && ./test.sh
+    chmod +x e2e_test.sh && ./e2e_test.sh
     echo "All E2E Tests for Contracts are completed"
 }
  
