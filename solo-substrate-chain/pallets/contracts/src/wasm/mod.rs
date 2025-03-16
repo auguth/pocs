@@ -27,6 +27,7 @@ pub use crate::wasm::runtime::api_doc;
 #[cfg(test)]
 pub use tests::MockExt;
 
+#[allow(unused_imports)]
 pub use crate::wasm::runtime::{
 	AllowDeprecatedInterface, AllowUnstableInterface, CallFlags, Environment, ReturnCode, Runtime,
 	RuntimeCosts,

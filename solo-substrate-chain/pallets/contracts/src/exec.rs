@@ -1176,6 +1176,7 @@ where
 		// is caught by it.
 		self.top_frame_mut().allows_reentry = allows_reentry;
 
+		#[allow(unused_mut)]
 		let mut try_call = || {
 			if !self.allows_reentry(&to) {
 				return Err(<Error<T>>::ReentranceDenied.into())
@@ -1512,11 +1513,11 @@ mod sealing {
 pub mod tests {
 	use super::*;
 	use crate::{
-		exec::ExportedFunction::*, gas::GasMeter, pallet::StakeInfoMap, stake::{DelegateInfo, StakeInfo}, tests::{
+		exec::ExportedFunction::*, gas::GasMeter, tests::{
 			test_utils::{get_balance, hash, place_contract, set_balance},
 			ExtBuilder, RuntimeCall, RuntimeEvent as MetaEvent, Test, TestFilter, ALICE, BOB,
 			CHARLIE, GAS_LIMIT, compile_module,
-		}, Error, Invokable
+		}, Error
 	};
 	use assert_matches::assert_matches;
 	use codec::{Decode, Encode};

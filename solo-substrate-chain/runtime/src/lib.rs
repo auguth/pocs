@@ -12,15 +12,14 @@ pub mod constants;
 mod voter_bags;
 
 use codec::{Decode, Encode};
-use pallet_contracts::stake::chain_ext::{FetchStakeInfo,UpdateDelegateInfo};
-use pallet_contracts::pallet::Pallet;
+use pallet_contracts::stake::chain_ext::{FetchStakeInfo,UpdateDelegate};
 use pallet_grandpa::AuthorityId as GrandpaId;
 use pallet_election_provider_multi_phase::SolutionAccuracyOf;
 use pallet_im_online::sr25519::AuthorityId as ImOnlineId;
 use frame_election_provider_support::{
 	onchain, BalancingConfig, ElectionDataProvider, SequentialPhragmen, VoteWeight,
 };
-use frame_system::{ limits::{BlockLength, BlockWeights},EnsureRoot, EnsureRootWithSuccess, EnsureSigned, EnsureSignedBy, EnsureWithSuccess};
+use frame_system::{ limits::{BlockLength, BlockWeights},EnsureRoot, EnsureSigned};
 
 use sp_api::impl_runtime_apis;
 use sp_core::{crypto::KeyTypeId, OpaqueMetadata};
@@ -39,7 +38,7 @@ use sp_std::prelude::*;
 use sp_version::NativeVersion;
 use sp_version::RuntimeVersion;
 
-use constants::{currency::*, time::*};
+use constants::time::*;
 
 #[cfg(any(feature = "std", test))]
 pub use pallet_staking::StakerStatus;
@@ -129,7 +128,7 @@ pub fn native_version() -> NativeVersion {
 
 pub struct BaseFilter;
 impl Contains<RuntimeCall> for BaseFilter {
-	fn contains(call: &RuntimeCall) -> bool {
+	fn contains(_call: &RuntimeCall) -> bool {
 		//!matches!(call, RuntimeCall::TemplateModule(..))
 		true
 	}
@@ -818,7 +817,7 @@ pub type Executive = frame_executive::Executive<
 	AllPalletsWithSystem,
 >;
 
-type Migrations = (
+type _Migrations = (
 	pallet_nomination_pools::migration::v2::MigrateToV2<Runtime>,
 );
 

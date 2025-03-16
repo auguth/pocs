@@ -36,7 +36,7 @@ use crate::{
 	migration::{v10, v11, v12, v9, MigrationStep},
 	wasm::CallFlags,
 	Pallet as Contracts, *, 
-	stake::{StakeInfo,DelegateInfo,StakeRequest,DelegateRequest}
+	stake::{StakeInfo,DelegateInfo,StakeRequest}
 };
 use codec::{Encode, MaxEncodedLen};
 use frame_benchmarking::v1::{account, benchmarks, whitelisted_caller};

@@ -999,7 +999,7 @@ pub mod pallet {
 					ledger.active = Zero::zero();
 				}
 
-				let min_active_bond = if Nominators::<T>::contains_key(&ledger.stash) {
+				let _= if Nominators::<T>::contains_key(&ledger.stash) {
 					MinNominatorBond::<T>::get()
 				} else if Validators::<T>::contains_key(&ledger.stash) {
 					MinValidatorBond::<T>::get()

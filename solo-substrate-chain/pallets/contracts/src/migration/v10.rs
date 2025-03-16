@@ -184,7 +184,7 @@ impl<T: Config> MigrationStep for Migration<T> {
 					"Failed to transfer the base deposit, reason: {:?}",
 					err
 				);
-				T::ContractCurrency::deposit_creating(&deposit_account, min_balance);
+				let _ = T::ContractCurrency::deposit_creating(&deposit_account, min_balance);
 				min_balance
 			});
 
