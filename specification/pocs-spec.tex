@@ -1,0 +1,656 @@
+\documentclass{article}
+\usepackage{cite}
+\usepackage{amsmath,amssymb,amsfonts}
+\usepackage{algorithm}
+\usepackage{algpseudocode}
+
+
+\usepackage{graphicx,xcolor}
+\usepackage{tabularray}
+
+\usepackage{textcomp}
+\usepackage{comment}
+\usepackage{hyperref}
+\hypersetup{
+    pdftitle={Proof of Contract Stake},
+    pdfauthor={Joby Reuben},
+    pdfkeywords={PoCS, Stake Score, Reputation, Blockchain Security, Smart Contracts},
+    pdfsubject={A novel staking mechanism tying execution to security}
+}
+
+\begin{document}
+
+\title{Proof of Contract Stake \\ Formal Specification}
+
+\author{Joby J Reuben \\
+Auguth Research Foundation \\
+Bangalore, India \\
+joby@auguth.org
+}
+
+\maketitle
+
+\begin{abstract}  
+    PoCS ties stake score (\( S_c \)) to smart contract execution, ensuring security through verifiable computation. Unlike token-based staking, PoCS rewards actively executed contracts using reputation score (\( R_c \)) preventing artificial inflation. Delegation allows contracts to assign validation rights based on reputation, ensuring Sybil resistance. By aligning computation with staking, PoCS strengthens economic security and incentivizes long-term execution. This research and reference-implementation development is funded by the Web3 Foundation Grants Program, Switzerland.  
+\end{abstract}
+    
+\section{Summary} \label{Summary}
+
+\begin{enumerate}
+    \item \textbf{Contracts as Staking Bonds} The Proof of Contract Stake (PoCS) mechanism formalizes smart contracts as staking bonds, denoted as $B_c$, where a contract $C$ can be delegated or nominated to a validator $V$ for block production. The bond value $B_c$ is a function of the contract’s execution history which we denote as stake score $S_c$, ensuring a quantitative commitment to the network’s security and consensus mechanism. Formally, 
+    \begin{equation}
+        B_c = S_c
+    \end{equation}
+    where $S_c$ is computed based on contract-specific parameters, including execution history and network contribution.
+    
+    \item \textbf{Stake Score ($S_c$)} The stake score $S_c$ is a dynamic metric representing a contract’s contribution to network security. It updates as:  
+    \begin{equation}
+        S_c^{(t+1)} =
+        \begin{cases} 
+        (S_c^{(t)} \cdot R_c^{(t+1)}) + G_c^{(t+1)}, & \text{if } b(t+1) \neq b(t) \text{ (new block)} \\
+        S_c^{(t)} + G_c^{(t+1)}, & \text{if } b(t+1) = b(t) \text{ (same block)}
+        \end{cases}
+    \end{equation}
+    where:
+    \begin{itemize}
+        \item $S_c^{(t)}$ is the contract’s stake score at time $t$.
+        \item $R_c^{(t+1)}$ is the updated reputation score, incrementing once per block.
+        \item $G_c^{(t+1)}$ is the gas consumption for execution at $t+1$.
+        \item $b(t)$ denotes the block index at time $t$.
+    \end{itemize}
+    A higher $S_c$ results in a larger bond value $B_c$, affecting validator nomination and reward allocation.
+
+    \item \textbf{Reputation Factor ($R_c$)} The reputation score $R_c$ increases only once per block when the contract is executed. It updates as:  
+    \begin{equation}
+        R_c^{(t+1)} =
+        \begin{cases} 
+        R_c^{(t)} + \Delta R_c, & \text{if } b(t+1) \neq b(t) \text{ (new block)} \\
+        R_c^{(t)}, & \text{if } b(t+1) = b(t) \text{ (same block)}
+        \end{cases}
+    \end{equation}
+    where:
+    \begin{itemize}
+        \item $R_c^{(t)}$ is the reputation score at time $t$.
+        \item $\Delta R_c$ is a protocol-defined increment applied only once per block, which is generally a constant or consensus decided integer.
+        \item $b(t)$ denotes the block index at time $t$.
+    \end{itemize}
+    Since reputation does not increase for multiple executions within the same block, contracts benefit from sustained execution over multiple blocks. A higher $R_c$ enhances the stake score $S_c$ and strengthens a contract’s eligibility for validator nomination i.e., delegation and reward distribution.
+
+    \item \textbf{Minimum Requirements} PoCS enforces minimum participation criteria for both contracts and validators to ensure network stability and security. These requirements include:  
+    \begin{enumerate}
+        \item \textit{Minimum Reputation Requirement}: A contract $C$ must satisfy the reputation threshold:  
+            \begin{equation}
+                R_c \geq R_{\text{min}}
+            \end{equation}
+            where $R_{\text{min}}$ is a network-defined constant, either set by governance consensus or a fixed protocol parameter. Contracts failing to meet this threshold are ineligible for nomination or delegation.
+            
+        \item \textit{Minimum Delegation Requirement for Validators}: A validator $V$ can only begin validation if it has received stake from at least $N_{\text{min}}$ distinct contracts:  
+            \begin{equation}
+                N_c \geq N_{\text{min}}
+            \end{equation}
+            where $N_c$ represents the number of unique delegated contracts, and $N_{\text{min}}$ is a predefined network constant. This constraint ensures that validators operate with sufficient decentralized support.
+    \end{enumerate}
+    These conditions guarantee fair participation, prevent centralization risks, and uphold the integrity of the PoCS mechanism.
+
+\end{enumerate}
+
+For a comprehensive formal analysis of PoCS, refer to its Research Model documentation. This document strictly defines the reference implementation structure along with its computational invariants, ensuring adherence to protocol constraints and correctness conditions.
+
+
+\section{Instantiation}
+
+The process of \textit{contract instantiation} varies across different blockchain architectures, depending on their execution models and state management mechanisms. In some implementations, deployment involves uploading a \textit{binary file} \( \mathcal{B} \), which can be of some majorily used choices such as the Ethereum Virtual Machine (EVM) bytecode or WebAssembly (WASM) binary. The latter is often preferred due to its encapsulated runtime model, providing near native performance and security guarantees. 
+
+Upon deployment, a contract is assigned a \textit{unique contract address} \( A_c \), which is typically computed as:
+
+\begin{equation}
+A_c = H(N_d, H(\mathcal{B}))
+\end{equation}
+
+where \( H(\cdot) \) denotes a cryptographic hash function, and \( N_d \) represents the deployer’s nonce. Alternative instantiation and contract address derivation models exists to cater contract migration, code upgrades, and state inheritance. Some blockchain architectures allow contracts to store only unique storage slots, dynamically fetching execution logic from a \textit{code hash} \( H(\mathcal{B}) \) rather than embedding a unique-bytecode directly.
+
+However, within the \textit{Proof of Contract Stake (PoCS)} mechanism, staking computations are strictly associated with \textit{contract addresses} \( A_c \), rather than the underlying code hash. This ensures that stake accumulation and delegation remain bound to individual contract-runtimes rather than their instruction logic.
+
+Upon contract instantiation at block height \( b_t \), two essential mappings are initialized:
+
+\begin{itemize}
+    \item \textit{DelegateInfo} \( \mathcal{H}_\mathcal{D}: K \to \mathcal{D} \)
+    \item \textit{StakeInfo} \( \mathcal{H}_{\Sigma}: K \to \Sigma \)
+\end{itemize}
+
+where \( K \) represents the unique contract identifier. The mappings store delegation and staking-related metadata separately to ensure efficient state management.
+
+\subsection{Structures}
+
+In addition to the pre-existing on-chain state variables stored within a Contract Account, two supplementary data structures, namely \texttt{DelegateInfo} and \texttt{StakeInfo}, are introduced. These structures encapsulate essential parameters governing stake delegation, validator nomination, and stake aging mechanisms.
+
+\subsubsection{DelegateInfo}  
+
+The \texttt{DelegateInfo} structure, denoted as $\mathcal{D}$, encapsulates delegation-related metadata for a contract account. It is formally represented as an ordered triplet:
+
+\begin{equation}
+\mathcal{D} = (\mathcal{D}_\lambda, \mathcal{D}_\nu, \mathcal{D}_\tau)
+\end{equation}
+
+where:  
+\begin{itemize}
+    \item $\mathcal{D}_\lambda = \texttt{owner}$: The unique identifier of the contract deployer, responsible for authorization of delegation updates.
+    \item $\mathcal{D}_\nu = \texttt{delegateTo}$: The validator controller contract address to which the contract is currently staked.
+    \item $\mathcal{D}_\tau = \texttt{delegateAt}$: The block height $b(t)$ at which the last delegation update occurred, essential for stake age computation.
+\end{itemize}
+
+Upon contract instantiation at initial block height $b_t$, $\mathcal{D}$ is initialized with \textbf{default values}:
+
+\begin{equation}
+\mathcal{D} \gets (\mathcal{D}_\lambda, \mathcal{D}_\nu, \mathcal{D}_\tau) = (\texttt{deployerID}, \texttt{deployerID}, b_t)
+\end{equation}
+
+Initially, the delegation target $\mathcal{D}_\nu$ is set to the deployer’s account ID, ensuring that delegation can only be reassigned once the contract accrues sufficient reputation, satisfying:
+
+\begin{equation}
+R_c^{(t)} \geq R_{\min}
+\end{equation}
+
+where:  
+\begin{itemize}
+    \item $R_c^{(t)}$ is the reputation score of the contract at time $t$.
+    \item $R_{\min}$ is the protocol-defined threshold required for delegation eligibility.
+\end{itemize}
+
+Since block height $b(t)$ is monotonically increasing, delegation updates are constrained by the progression of the blockchain, preventing rapid or arbitrary delegation switching. This mechanism ensures that only reputable contracts participate in validator nomination, reinforcing network security and stability.
+
+\subsubsection{StakeInfo}
+
+The structure \texttt{StakeInfo}, denoted as $\Sigma$, encapsulates scarcity-related parameters i.e., execution history as a computed single unit of a staked contract. It is formally defined as an ordered triplet:
+
+\begin{equation}
+\Sigma = (\Sigma_\rho, \Sigma_\beta, \Sigma_s)
+\end{equation}
+
+where:
+\begin{itemize}
+    \item $\Sigma_\rho = \texttt{reputation}$: The contract's reputation score $R_c^{(t)}$, derived from recurrent contract invocations over consecutive blocks.
+    \item $\Sigma_\beta = \texttt{recentBlockHeight}$: The most recent block height $b(t)$ in which the contract was invoked via an extrinsic. Utilized for reputation increment conditionals.
+    \item $\Sigma_s = \texttt{stake\_score}$: The stake score $S_c^{(t)}$ representing the scarcity value of the contract.
+\end{itemize}
+
+Analogous to $\mathcal{D}$, the structure $\Sigma$ is initialized with default values during contract instantiation. These values can only be modified externally via an invocation of the function \texttt{delegate()}. Assuming an ordered indexing scheme, the \textbf{default values} are:
+
+\begin{equation}
+\Sigma_i \gets (\Delta R_c, b_t, S_{\text{init}})
+\end{equation}
+
+where:
+\begin{itemize}
+    \item $\Delta R_c$ is a protocol-defined increment applied only once per block, which is generally a constant or a consensus-decided integer.
+    \item $b_t$ represents the block height at contract instantiation.
+    \item \( S_{\text{init}} \) is the protocol-defined initial stake score, a consensus-decided constant.
+\end{itemize}
+
+Setting the initial stake score \( S_{\text{init}} \) as a network-decided constant provides flexibility in adjusting staking parameters based on network conditions. This ensures an optimal balance between security, decentralization, and economic stability. The network can dynamically adjust \( S_{\text{init}} \) in response to staking inflation, validator performance, or governance policies. For instance, a congested blockchain might decrease \( S_{\text{init}} \) to limit unnecessary contract deployments, while a growing ecosystem may increase it to incentivize adoption. 
+
+\subsection{Considerations}  
+
+The structures \texttt{DelegateInfo} and \texttt{StakeInfo} need not be embedded within the primary contract storage but can instead be modeled as external state mappings, denoted as $\mathcal{H}_\mathcal{D}$ and $\mathcal{H}_\Sigma$, respectively. Formally, these mappings are defined as:
+
+\begin{equation}
+\mathcal{H}_\mathcal{D}: K \to \mathcal{D}, \quad \mathcal{H}_\Sigma: K \to \Sigma
+\end{equation}
+
+where $K$ represents the unique contract identifier. These mappings enable dynamic queries for delegation and stake-related operations without imposing rigid storage constraints within the contract itself.
+
+The selection of an appropriate storage paradigm depends on the blockchain execution environment—whether a monolithic system like \href{https://geth.ethereum.org/}{Geth} (Ethereum) or a modular blockchain framework such as \href{https://substrate.io}{Substrate}. External state mappings $\mathcal{H}_\mathcal{D}$ and $\mathcal{H}_\Sigma$ ensure backward compatibility and prevent hard forks by decoupling delegation and stake-related metadata from the contract's core storage. This design facilitates seamless upgrades without requiring modifications to the contract's fundamental data structures.
+
+The lookup operations in $\mathcal{H}_\mathcal{D}$ and $\mathcal{H}_\Sigma$ depend on the underlying storage structure. In standard blockchain implementations, hash maps typically exhibit an average-case complexity of $O(1)$ for lookups and updates, assuming an ideal hash function with minimal collisions. However, in the worst case (e.g., due to hash collisions or poor distribution), performance may degrade to $O(n)$.  
+
+In contrast, if delegation and stake information were stored within additional contract-bound structs, accessing them would require traversing storage slots or executing nested calls, often resulting in polynomial-time retrieval complexities, denoted as $O(p(n))$, where $p(n)$ represents the degree of polynomial growth based on the number of stored contract instances. This is particularly inefficient in environments with large-scale contract participation, as the retrieval time increases significantly with network size.
+
+By leveraging external hash maps, the proposed model optimally balances storage efficiency and retrieval time. While direct struct-based storage simplifies contract design, it imposes higher computational costs during execution with tightly coupled changes. In comparison, using $\mathcal{H}_\mathcal{D}$ and $\mathcal{H}_\Sigma$ allows efficient indexing while avoiding unnecessary state bloat, ensuring scalable stake management and delegation processes.
+
+\section{Invocations}  
+
+Every contract invocation dynamically updates its stake score $S_c$ in accordance with the Proof of Contract Stake (PoCS) framework. The update mechanism influences validator selection, security commitments, and staking bond formation.  
+
+PoCS formalizes smart contracts as staking bonds, denoted as $B_c$ or explicitly known as stake score $S_c$, where a contract $C$ is delegated or nominated to a validator $V$ for block production. The stake score dynamically evolves based on execution behavior, ensuring a quantitative metric for network security participation.  
+
+The stake score $S_c$ follows a \textit{block-dependent update rule}, expressed as:  
+
+\begin{equation}
+S_c^{(t+1)} =
+\begin{cases} 
+(S_c^{(t)} \cdot R_c^{(t+1)}) + G_c^{(t+1)}, & \text{if } b(t+1) \neq b(t) \text{ (new block)} \\
+S_c^{(t)} + G_c^{(t+1)}, & \text{if } b(t+1) = b(t) \text{ (same block)}
+\end{cases}
+\end{equation}
+
+where:  
+\begin{itemize}
+    \item $S_c^{(t)}$ is the contract’s stake score at time $t$.  
+    \item $R_c^{(t+1)}$ is the currently available \textit{reputation score}.  
+    \item $G_c^{(t+1)}$ is the \textit{gas consumption} of execution at $t+1$.  
+    \item $b(t)$ is the block index at time $t$.  
+\end{itemize}
+
+\subsection{Stake Score}
+
+In PoCS, the \textit{stake score} can either be recorded as an independent state variable or be directly coupled with a existing \textit{staking module} to optimize storage efficiency and minimize computational overhead. The latter reduces redundant storage overhead, as each stake score update would otherwise require separate state storage operations.  
+
+The typical \textit{bit-width} requirements for on-chain storage are:  
+\begin{itemize}
+\item \textit{Stake Score}: $64$ to $128$ bits, based on execution volume i.e., computational units.  
+\item \textit{Reputation Score}: Fixed at $32$ bits.  
+\end{itemize}
+
+The PoCS framework necessitates a distinct staking module, as traditional cryptocurrency-focused staking mechanisms fail to accommodate its \textit{non-fungible} and \textit{non-transferable} stake score properties. Unlike native token-based staking, where staking assets are fungible and transferrable:  
+
+\begin{equation}
+B_u \neq B_v \quad \forall u,v \in C, \quad B_c \notin \mathbb{F}
+\end{equation}
+
+This condition states that the staking bond $B_u$ of a contract $C_u$ is distinct from the staking bond $B_v$ of another contract $C_v$. That is, for any two contracts $u, v \in C$, their respective staking bonds are unique and non-interchangeable. Unlike traditional token-based staking mechanisms, where participants stake identical fungible tokens, PoCS enforces a one-to-one mapping between contracts and their staking bonds.
+
+\begin{equation}
+\forall C_i, C_j \in C, \quad S_{C_i} \neq S_{C_j} \text{ unless identical execution history}
+\end{equation}
+
+This condition states that the stake score \( S_c \) is uniquely tied to each contract \( C \). Two different contracts \( C_i \) and \( C_j \) will generally have different stake scores, even if they perform similar functions. The only exception is when two contracts have an identical execution history—meaning they have been invoked in precisely the same manner, with the same gas consumption, over the same sequence of blocks.  
+
+Even if contracts \( C_i \) and \( C_j \) possess similar execution patterns, their respective reputations \( R_{C_i} \) and \( R_{C_j} \) may differ due to variations in their historical interactions, delegation status, or accumulated validation contributions. Furthermore, since computed stake score types exhibit high entropy (e.g., 128-bits), the probability of two distinct contracts converging to the exact same stake score remains negligibly small, ensuring uniqueness and preventing fraudulent replication.  
+
+\begin{equation}
+B_c \not\rightarrow B_{c'}
+\end{equation}
+
+This expression asserts that a contract’s staking bond \( B_c \) is \textbf{non-transferable} to another contract \( B_{c'} \). Unlike token-based staking, where a validator can move staked tokens freely, PoCS enforces \textbf{strict contract-bound staking}—the stake score earned by a contract remains permanently attached to it.
+
+Since reputation \( R_c \) increments at most once per block, the upper bound on the stake score’s growth over \( n \) blocks is given by:
+
+\begin{equation}
+S_c^{(t+n)}  \leq \left[ \left( S_c^{(t)} \prod_{k=1}^{n} R_c^{(t+k)} \right) + \sum_{k=1}^{n} G_c^{(t+k)} \right]
+\end{equation} 
+where:
+\begin{itemize}
+    \item \( S_c^{(t+n)} \) is the stake score after \( n \) blocks.
+    \item \( S_c^{(t)} \) is the initial stake score at time \( t \).
+    \item \( R_c^{(t+k)} \) is the contract's \textbf{reputation} at block \( t+k \).
+    \item \( G_c^{(t+k)} \) is the \textbf{gas consumption} at block \( t+k \), contributing directly to stake growth.
+\end{itemize}
+        
+The historical stake score \( S_c(t) \) evolves dynamically, influenced by two primary factors: \textit{reputation scaling} and \textit{gas expenditure}. Reputation scaling introduces a \textit{multiplicative effect}, where the stake score is progressively scaled by the contract's reputation coefficient \( R_c \), ensuring that long-term reliable execution strengthens its staking power. Concurrently, \textit{gas expenditure contributes additively}, meaning that each contract invocation increases the stake score by an amount proportional to the gas consumed during execution. This dual mechanism ensures that both sustained activity and computational resource usage play a crucial role in determining the contract’s staking influence.
+
+\subsection{Reputation}
+
+The reputation factor \( R_c \) is a dynamic metric that quantifies the historical execution frequency of a contract. It plays a crucial role in determining a contract’s \textit{stake score} \( S_c \) and its eligibility for validator nomination, delegation, and reward distribution in the Proof of Contract Stake (PoCS) model.
+
+The reputation score \( R_c \) follows a strictly \textit{block-based increment rule}, ensuring that a contract's activity is rewarded based on sustained execution across multiple blocks rather than repeated calls within the same block. Formally, its evolution is governed by:
+
+\begin{equation}
+    R_c^{(t+1)} =
+    \begin{cases} 
+    R_c^{(t)} + \Delta R_c, & \text{if } b(t+1) \neq b(t) \text{ (new block)} \\
+    R_c^{(t)}, & \text{if } b(t+1) = b(t) \text{ (same block)}
+    \end{cases}
+\end{equation}
+
+where:
+\begin{itemize}
+    \item \( R_c^{(t)} \) is the contract’s reputation score at time \( t \).
+    \item \( \Delta R_c \) is a \textit{protocol-defined increment} applied at most once per block. This increment is generally a \textit{constant} or a consensus-decided integer, ensuring controlled growth.
+    \item \( b(t) \) denotes the block index at time \( t \).
+\end{itemize}
+
+Some Implications of Reputation Constraints involve:
+
+\begin{enumerate}
+    \item \textit{Prevention of Exploitative Execution}: Since \( R_c \) does not increase for multiple invocations within the same block, contracts cannot artificially inflate their reputation by self-invoking or being spammed with calls within a single block.
+
+    \item \textit{Long-Term Execution Incentive}: Contracts benefit from consistent execution over multiple blocks, fostering sustained utility rather than short-term burst execution. A higher \( R_c \) correlates with higher stake score (\( S_c \)) growth, making the contract a stronger candidate for validator delegation.
+
+    \item \textit{Influence on Stake Score Computation}: The stake score \( S_c \) is dependent on the reputation score, particularly in cases where contract execution occurs in non-consecutive blocks:
+        \begin{equation}
+        S_c^{(t+1)} =
+        \begin{cases} 
+        S_c^{(t)} \cdot R_c^{(t+1)} + G_c^{(t+1)}, & \text{if } b(t+1) \neq b(t) \text{ (new block)} \\
+        S_c^{(t)} + G_c^{(t+1)}, & \text{if } b(t+1) = b(t) \text{ (same block)}
+        \end{cases}
+        \end{equation}
+
+        where \( G_c^{(t)} \) represents the gas expenditure of the contract execution. This equation ensures that contracts executing persistently over time gain higher stake scores, reinforcing their importance in the network’s security and consensus mechanisms.
+
+    \item \textit{Decentralized Block Production and Spam Resistance}: Block production is handled by different validators at varying intervals, each with discretion over transaction inclusion. Since validators operate independently, it is computationally infeasible to coordinate 2/3 of the validators for spam attacks. This decentralized decision-making process makes it significantly harder to exploit stake score or reputation computations through coordinated spam transactions.
+\end{enumerate}
+
+
+The reputation system in PoCS adheres to the following invariants:
+
+\begin{itemize}
+    \item \textit{Monotonicity:} Reputation never decreases, ensuring that once a contract builds execution history, it retains its standing.
+    \begin{equation}
+        R_c^{(t+1)} \geq R_c^{(t)} \quad \forall t
+    \end{equation}
+    
+    \item \textit{Upper Bound on Reputation Growth:} Given that \( R_c \) increments at most once per block, the maximum possible reputation at time \( t+n \) is:
+    \begin{equation}
+        R_c^{(t+n)} \leq R_c^{(t)} + n \cdot \Delta R_c
+    \end{equation}
+    This ensures that contracts cannot grow their reputation arbitrarily within short timeframes, where each individual unit of time in the chain corresponds to the block time.
+
+
+    \item \textit{Block-Dependence:} The function \( f: T \to R_c \), mapping time \( t \) to reputation score, is discrete and block-indexed, meaning that:
+    \begin{equation}
+        \forall t_1, t_2 \text{ such that } b(t_1) = b(t_2), \quad R_c^{(t_1)} = R_c^{(t_2)}
+    \end{equation}
+    ensuring no intra-block variations in reputation, where:  
+    \begin{itemize}
+        \item \( t_1, t_2 \) are distinct timestamps occurring within the same block.
+        \item \( b(t) \) represents the block index corresponding to time \( t \).
+        \item If \( t_1 \) and \( t_2 \) belong to the same block, then the reputation score remains unchanged:  
+    \end{itemize}.
+\end{itemize}
+
+\section{Stack-Frame}
+
+In a blockchain execution model, smart contracts serve as isolated computational units, executing within an instance of a \textit{Virtual Machine (VM)} environment. Formally, each contract \( C \) consists of a set of externally invokable functions:
+
+\begin{equation}
+C = \{ f_1, f_2, \dots, f_n \}, \quad f_i: I \to O
+\end{equation}
+
+where \( f_i \) denotes an invokable function mapping an input set \( I \) to an output set \( O \). While contract execution is self-contained, modern blockchains support \textit{cross-contract execution}, enabling a contract \( C_i \) to invoke another contract \( C_j \) through a \textit{delegate call} mechanism.  
+
+When a contract \( C \) invokes another contract \( C' \), a new \textit{stack frame} \( \mathcal{F} \) is created. An execution stack may consist of nested frames. Formally we assume a frame $\mathcal{F}$ to be:
+
+\begin{equation}
+\mathcal{F} = (\mathcal{C}, \mathcal{T}, \mathcal{G})
+\end{equation}
+
+where:
+\begin{itemize}
+    \item \( \mathcal{C} = (C_{\text{caller}}, C_{\text{callee}}) \) represents the caller-callee contract pair.
+    \item \( \mathcal{T} \) denotes the execution target function within \( C_{\text{callee}} \) along with its arguments.
+    \item \( \mathcal{G} \) represents the gas allocated for execution within this stack frame.
+\end{itemize}
+
+A sequence of nested contract calls constructs a \textit{LIFO (Last-In, First-Out)} execution stack, where given nested contract calls, the execution \textit{may follow}:
+
+\begin{equation}
+\mathcal{F}_0 \to \mathcal{F}_1 \to \mathcal{F}_2 \to \dots \to \mathcal{F}_k
+\end{equation}
+    
+where \( \mathcal{F}_0 \) is the \textit{transaction originator} (typically an Externally Owned Account (EOA)), and \( \mathcal{F}_k \) is the deepest execution frame. Each frame resolves when its top frame returns the execution result, as blockchains are single-threaded to ensure deterministic state transition and consistent distribution across nodes, unless operating under a sharded execution model.
+    
+Each stack frame consumes a gas amount \( G_{\mathcal{F}_i} \), and the total execution gas for a transaction is:
+
+\begin{equation}
+G_{\text{tx}} = \sum_{i=0}^{k} G_{\mathcal{F}_i}
+\end{equation}
+
+Since PoCS defines \textit{stake score} \( S_c \) as a function of \textit{gas expenditure}, we formally establish, for each individual stack frame $\mathcal{F}_j$:
+
+\begin{equation}
+S_{C_j}^{(t+1)} =
+\begin{cases} 
+(S_{C_j}^{(t)} \cdot R_{C_j}^{(t+1)}) + G_{\mathcal{F}_j}^{(t+1)}, & \text{if } b(t+1) \neq b(t) \text{ (new block)} \\
+S_{C_j}^{(t)} + G_{\mathcal{F}_j}^{(t+1)}, & \text{if } b(t+1) = b(t) \text{ (same block)}
+\end{cases}
+\end{equation}
+
+where:
+\begin{itemize}
+    \item \( S_{C_j}^{(t)} \) is the stake score of contract \( C_j \) at time \( t \).
+    \item \( R_{C_j}^{(t+1)} \) is the reputation score, which increments at most once per block.
+    \item \( G_{\mathcal{F}_j}^{(t+1)} \) is the gas spent by the contract in execution.
+    \item \( b(t) \) represents the block index at time \( t \).
+    \item \( C_j \) is the callee contract, which accumulates the stake score based on its gas expenditure per execution frame.
+\end{itemize}
+
+Regardless of whether the caller is an \textit{EOA} or another contract, the stake score is bound to the \textit{callee} \( C_j \), ensuring that execution costs reflect computational contributions.
+
+For PoCS correctness, the system must ensure:
+
+\begin{equation}
+\sum_{i=0}^{k} G_{\mathcal{F}_i} = G_{\text{tx}}
+\end{equation}
+
+i.e., the total gas allocated across all stack frames must match the transaction-level gas usage, preventing incorrect stake score accumulation.
+
+This ensures fair stake score attribution, maintaining consistency in PoCS computations across nested contract executions.
+
+\subsection{Delegate Instantiation}
+
+Contract deployment is analogous to asymmetric-pair signing, where an execution binary or bytecode is uploaded and instantiated on-chain. However, beyond externally owned accounts (EOAs) deploying contracts, it is also possible for a contract to deploy another contract.  
+
+In such cases, the instantiating contract, rather than the original transaction signer, assumes the role of the \textit{responsible caller}. This mirrors stack-frame execution semantics, where the caller initiates execution but does not retain responsibility for subsequent computations.
+ 
+During contract deployment within a transaction signed by an externally owned account \( E \), if a contract \( C_{\text{caller}} \) deploys another contract \( C_{\text{new}} \), the ownership and execution responsibility shift to:
+
+\begin{equation}
+    \texttt{owner}(C_{\text{new}}) = C_{\text{caller}}
+\end{equation}
+
+Thus, \( C_{\text{caller}} \) becomes the effective \textbf{responsible caller} in the current execution frame. The transaction signer \( S \) may have initiated the process, but the on-chain instantiation logic ensures that ownership adheres to the deploying contract.
+Upon deployment, PoCS ensures that the \texttt{DelegateInfo} structure of \( C_{\text{new}} \) is initialized to its default values as:
+
+\begin{equation}
+    \mathcal{D}(C_{\text{new}}) \gets (C_{\text{caller}}, C_{\text{caller}}, b_t)
+\end{equation}
+
+\subsection{Rollbacks}
+
+Todo (PoCS v0.2) - Out of Gas, Partial Executions , etc
+
+\section{Delegation}
+
+Delegation in PoCS is the process of assigning a contract to a validator address. A validator in this system may either be an externally owned account (EOA) or a smart contract. In the case of a smart contract validator, it manages its delegated contracts trustlessly, handling reward distribution and governance autonomously.
+
+Let \( C \) be a contract seeking delegation and \( V \) be a validator. 
+
+\begin{equation}
+    \mathcal{D}_\nu(C) \to V
+\end{equation}
+
+where \( C \) satisfies a set of eligibility conditions, primarily the \textit{minimum reputation} requirement.
+
+Each contract \( C \) maintains a reputation score \( R_C \), which is an incremental function based on recurrent calls in consecutive blocks, as defined in previous sections. For a contract \( C \) to delegate to a validator \( V \), it must satisfy:
+
+\begin{equation}
+    R_C \geq R_{\text{min}}
+\end{equation}
+
+where \( R_{\text{min}} \) is a network-defined threshold. This threshold can be dynamic and can periodically be updated to prevent manipulation through mass contract deployment.
+
+The network can update \( R_{\text{min}} \) based on system load and validator participation:
+
+\begin{equation}
+    R_{\text{min}}^{(t+1)} = 
+    \begin{cases}
+        R_{\text{min}}^{(t)} + \Delta R, & \text{if } N_{\text{delegates}} > \theta_{\text{high}} \\
+        R_{\text{min}}^{(t)} - \Delta R, & \text{if } N_{\text{delegates}} < \theta_{\text{low}} \\
+        R_{\text{min}}^{(t)}, & \text{otherwise}
+    \end{cases}
+\end{equation}
+
+where:
+\begin{itemize}
+    \item \( \theta_{\text{high}} \) and \( \theta_{\text{low}} \) are predefined thresholds for network congestion and underutilization, respectively.
+    \item \( N_{\text{delegates}} \) is the total number of delegated contracts.
+    \item \( \Delta R \) is the adjustment factor.
+\end{itemize}
+
+This ensures that as network activity increases, delegation criteria become more stringent, and vice versa.
+
+Validators must maintain a required number of delegated contracts \( N_V \) to participate in validation:
+
+\begin{equation}
+    N_V \geq N_{\text{min}}
+\end{equation}
+
+where \( N_{\text{min}} \) is a network-defined constant. This prevents validators from self-delegating a large number of low-reputation contracts to gain an unfair advantage.
+
+When a contract \( C \) is instantiated, as previously discussed, the deployer address is automatically assigned as both the \texttt{owner} and the \texttt{delegate\_toto} field within the \texttt{DelegateInfo} mapping:
+
+\begin{equation}
+    \mathcal{D}(C) = (\texttt{owner}(C), \texttt{delegate\_to}(C), b_t)
+\end{equation}
+
+\noindent where:
+\begin{itemize}
+    \item \( \texttt{owner}(C) \) represents the deploying account.
+    \item \( \texttt{delegate\_to}(C) \) initially points to the owner.
+    \item \( b_t \) is the block index of contract instantiation.
+\end{itemize}
+
+Given this initialization, a contract should not accumulate stake score (\( S_C \)) if the \texttt{owner} and \texttt{delegate\_toto} fields remain the same:
+
+\begin{equation}
+    \texttt{owner}(C) = \texttt{delegate\_to}(C) \implies \Delta S_C = 0
+\end{equation}
+
+\noindent \textbf{Rationale:} Stake score is intended to measure computational contribution validated through delegation. If the owner and delegate are identical, there is no external validation or trustless assurance of execution, meaning self-delegation does not align with the core principles of PoCS.
+
+To ensure trustless validation and correct incentive distribution, a contract must explicitly delegate itself to another address \( V \) (typically a validator contract) by invoking a special \texttt{delegate()} function. The delegation process is governed by the following constraints:
+
+\begin{enumerate}
+    \item \textit{Minimum Reputation Threshold:} A contract must achieve a minimum reputation \( R_{\text{min}} \) before it can delegate:
+    \begin{equation}
+        R_C \geq R_{\text{min}}
+    \end{equation}
+    Since reputation (\( R_C \)) is non-decreasing (as per its invariants), once a contract attains delegation eligibility, it remains eligible unless \( R_{\text{min}} \) is updated by the network.
+
+    \item \textit{Owner Authorization:} Only the owner of the contract can authorize delegation:
+    \begin{equation}
+        \sigma_{\text{tx}} = \texttt{owner}(C) \Rightarrow \text{valid delegation}
+    \end{equation}
+    where \( \sigma_{\text{tx}} \) is the transaction signer.
+
+    If the owner is an externally owned account (EOA), signature verification follows standard cryptographic validation:
+
+    \begin{equation}
+        \text{Verify}(\sigma_{\text{tx}}, \texttt{owner}(C), H(\mathcal{T})) = \text{true}
+    \end{equation}
+
+    where \( H(\mathcal{T}) \) is the transaction hash, and \( \text{Verify} \) is the digital signature verification function.
+
+    However, if \( \texttt{owner}(C) \) is itself a contract, signature verification is undefined, as smart contracts lack private keys for signing. Instead, delegation must be authorized via an on-chain call:
+
+    \begin{equation}
+        \mathcal{E}(\mathcal{F}_{\text{caller}}) = C_{\texttt{owner}} \Rightarrow \text{valid delegation}
+    \end{equation}
+
+    where \( \mathcal{E} \) represents the execution environment, and \( \mathcal{F}_{\text{caller}} \) is the active execution frame. This ensures that delegation is validated by the blockchain VM rather than relying on explicit cryptographic signatures.
+
+    \item \textit{Delegate Update:} The \texttt{DelegateInfo} mapping is updated upon successful delegation:
+    \begin{equation}
+        \texttt{delegate\_to}(C) \gets V
+    \end{equation}
+    where \( V \) is the validator address.
+
+    \item \textit{Validator Delegate Count:} 
+    The network is required to maintain a mapping \texttt{ValidateInfo}, which tracks the number of contracts delegated to each validator:
+
+    \begin{equation}
+        \texttt{ValidateInfo}: V \to \mathbb{N}
+    \end{equation}
+
+    where:
+    \begin{itemize}
+        \item \( V \) is a validator address.
+        \item \( \mathbb{N} \) represents the count of contracts delegated to \( V \).
+    \end{itemize} 
+    The number of contracts delegated to a validator is updated as follows:
+    \begin{itemize}
+        \item If the contract was previously delegated to another validator \( V' \), decrement its delegate count:
+        \begin{equation}
+            V'(\mathbb{N}) \gets V'(\mathbb{N}) - 1, \quad \text{if } \texttt{delegate\_to}(C) \neq \texttt{owner}(C)
+        \end{equation}
+        \item Increment the new validator's delegate count:
+        \begin{equation}
+            V(\mathbb{N}) \gets V(\mathbb{N}) + 1
+        \end{equation}
+    \end{itemize}
+\end{enumerate}
+
+Once delegation is complete, the stake score of contract \( C \) is updated after each invocation. The condition for stake score accumulation is:
+
+\begin{equation}
+    (\texttt{delegate\_to}(C) \neq \texttt{owner}(C)) \wedge (R_c \geq R_\text{min}) \implies \Delta S_C = G_C
+\end{equation}
+
+\noindent where \( G_C \) is the gas consumed by the contract execution.
+
+\paragraph{Validator Address Considerations:}
+
+PoCS does not enforce that only contract addresses can serve as validators. However, practical implementation of validation logic may favor contract-based validators for trustless execution and reward distribution. In general:
+\begin{itemize}
+    \item Delegating to a smart contract validator ensures rewards are distributed trustlessly to delegating contracts.
+    \item Delegating to an externally owned account (EOA) relies on the validator to manually distribute rewards, with its consent only.
+    \item Validator contracts can be designed such that their \texttt{owners} sign and produce blocks on behalf of the validator contract.
+\end{itemize}
+
+\section{Migration}
+
+Contract migration refers to updating the execution logic of a smart contract while preserving its on-chain state. This is achieved by replacing the contract’s \textit{code hash} without altering its \textit{storage layout} or \textit{contract address}.  
+
+Formally, let a contract \( C \) at address \( \alpha \) be defined by:  
+
+\begin{equation}
+C_{\alpha} = (\mathcal{H}, \mathcal{S})
+\end{equation}
+
+where:  
+\begin{itemize}
+    \item \( \mathcal{H} \) represents the \textit{code hash} of the contract’s execution logic.  
+    \item \( \mathcal{S} \) is the \textit{persistent storage} associated with \( C_{\alpha} \).  
+\end{itemize}
+
+Migration modifies \( \mathcal{H} \) while preserving \( \mathcal{S} \), ensuring that:  
+
+\begin{equation}
+C_{\alpha}' = (\mathcal{H}', \mathcal{S})
+\end{equation}
+
+Since the contract address \( \alpha \) remains unchanged, all external interactions and on-chain references to \( C_{\alpha} \) remain valid, eliminating compatibility concerns.  
+
+As stake score \( S_c \) is derived from gas expenditure and contract execution, migration must ensure that:  
+
+\begin{equation}
+S_{C}' = S_{C}
+\end{equation}
+
+This guarantees that contracts do not reset their stake score upon migration, preventing potential exploitation where execution history is erased. While migration does not affect prior stake accumulation, new execution costs may differ. However, PoCS continues to attribute gas usage fairly under the new code logic.  
+
+\section{Validation}
+
+\subsection{Minimum Delegates}
+
+In PoCS, block validation requires a structured approach to ensure network integrity while preventing abuse through counterfeit contract deployments. Two key factors govern validation eligibility: \textbf{minimum delegates} and \textbf{minimum reputation}.  
+
+The network enforces a fixed constant for \textit{minimum delegates}, similar to the reputation factor. For a contract to update its delegate, it must satisfy the \textit{minimum reputation threshold}. Likewise, for a validator to participate in validation, they must have a minimum number of delegated contracts.  
+
+Formally, let \( D_{\text{min}} \) be the \textit{minimum delegates} required per validator.  
+
+A validator \( V \) is eligible to validate only if:  
+
+\begin{equation}
+    |C_V| \geq D_{\text{min}}
+\end{equation}
+
+where \( |C_V| \) denotes the number of contracts delegating to \( V \).  
+
+A potential concern is whether an entity can deploy a large number of contracts, delegate them to a validator address, and gain validation privileges. To mitigate this the network can enforce periodic updates to \( R_{\text{min}} \) to adapt to ecosystem growth and prevent counterfeit delegate contracts creation. 
+
+By dynamically adjusting reputation requirements and enforcing delegation thresholds, sybil-like attacks can be prevented.
+
+\subsection{Block Production}
+
+Todo (PoCS v0.2) - Validator Election, etc
+
+\section{Dynamic Constants}
+
+Todo (PoCS v0.2) - Network constants vote
+
+\section{Destruction}
+
+Todo (PoCS v0.2) - Contract Destruction
+
+\end{document}

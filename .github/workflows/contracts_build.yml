@@ -1,0 +1,51 @@
+name: Build Ink! Contracts
+
+on:
+  push:
+    branches: ["master"]
+    paths:
+      - 'ink-contracts/**'
+  pull_request:
+    branches: ["master"]
+    paths:
+      - 'ink-contracts/**'
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  build-ink:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v3
+
+      - name: Install Rust Nightly Toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: nightly-2023-12-21
+          components: rustfmt, clippy
+          override: true
+
+      - name: Add WebAssembly Target
+        run: rustup target add wasm32-unknown-unknown
+
+      - name: Install Protocol Buffers Compiler
+        run: sudo apt-get install -y protobuf-compiler
+
+      - name: Set PROTOC Environment Variable
+        run: echo "PROTOC=$(which protoc)" >> $GITHUB_ENV
+
+      - name: Install cargo-contract
+        run: cargo install cargo-contract --force
+
+      - name: Build All Ink! Contracts
+        run: |
+          for dir in ink-contracts/*/; do
+            if [ -f "$dir/Cargo.toml" ]; then
+              echo "Building contract in $dir"
+              (cd "$dir" && cargo contract build --release)
+            fi
+          done

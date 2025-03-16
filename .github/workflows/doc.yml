@@ -2,12 +2,13 @@ name: RustDocs
 
 on:
   push:
-    branches:
-      - master
+    branches: ["master"]
+    paths:
+      - 'solo-substrate-chain/**'
   pull_request:
-    branches:
-      - master
-  workflow_dispatch:
+    branches: ["master"]
+    paths:
+      - 'solo-substrate-chain/**'
 
 jobs:
   build:
@@ -37,10 +38,12 @@ jobs:
       run: rustup target add wasm32-unknown-unknown
 
     - name: Generate docs
-      run: cargo doc -p pallet-contracts
+      run: |
+        cd solo-substrate-chain
+        cargo doc -p pallet-contracts
     
     - name: Copy documentation files to root
-      run: cp -R target/doc .
+      run: cp -R solo-substrate-chain/target/doc .
 
     - name: Create index.html file
       run: echo '<meta http-equiv=refresh content=0;url=target/doc/pallet_contracts/index.html>' > index.html
