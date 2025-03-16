@@ -1068,6 +1068,50 @@ RECENTLY_CALLED_CONTRACT_ADDRESS=$(echo "$REGISTER_FLIPPER" | jq -r '.[] | selec
 # Assertion
 assert_str "$RECENTLY_CALLED_CONTRACT_ADDRESS" "$VALIDATOR_ADDRESS" "validator_contract_register_delegate_successful"
 
+# Call Flipper to Increase Stake Score before Registering 
+CALL_FLIPPER=$(
+    cargo contract call \
+    --suri //Alice \
+    --execute \
+    --contract "$FLIPPER_ADDRESS" \
+    --message "$FLIPPER_FUNCTION" \
+    --skip-confirm \
+    --output-json \
+    "$FLIPPER_CONTRACT"  2>/dev/null\
+)
+
+# To increase reputation which multiplies Stake Score
+sleep 5
+
+# Call Flipper to Increase Stake Score before Registering 
+CALL_FLIPPER=$(
+    cargo contract call \
+    --suri //Alice \
+    --execute \
+    --contract "$FLIPPER_ADDRESS" \
+    --message "$FLIPPER_FUNCTION" \
+    --skip-confirm \
+    --output-json \
+    "$FLIPPER_CONTRACT" \
+)
+
+# To increase reputation which multiplies Stake Score
+sleep 5
+
+# Call Flipper to Increase Stake Score before Registering 
+CALL_FLIPPER=$(
+    cargo contract call \
+    --suri //Alice \
+    --execute \
+    --contract "$FLIPPER_ADDRESS" \
+    --message "$FLIPPER_FUNCTION" \
+    --skip-confirm \
+    --output-json \
+    "$FLIPPER_CONTRACT" \
+)
+
+
+
 test_summary
 
 kill $NODE_PID

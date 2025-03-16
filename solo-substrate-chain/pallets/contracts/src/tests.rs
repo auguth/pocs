@@ -64,12 +64,7 @@ use sp_runtime::{
 use sp_staking::{EraIndex, SessionIndex};
 use std::ops::Deref;
 
-type AccountId64 = u64;
-type Nonce = u32;
-type Balance = u64;
-
 type Block = frame_system::mocking::MockBlock<Test>;
-
 
 frame_support::construct_runtime!(
 	pub enum Test
@@ -103,7 +98,7 @@ macro_rules! assert_refcount {
 pub mod test_utils {
 	use super::{Balances, DepositPerByte, DepositPerItem, Hash, SysConfig, Test};
 	use crate::{
-		exec::AccountIdOf, pallet::StakeInfoMap, stake::StakeRequest, CodeHash, CodeInfo, CodeInfoOf, Config, ContractInfo, ContractInfoOf, Nonce, PristineCode
+		exec::AccountIdOf, CodeHash, CodeInfo, CodeInfoOf, Config, ContractInfo, ContractInfoOf, Nonce, PristineCode
 	};
 	use codec::{Encode, MaxEncodedLen};
 	use frame_support::traits::Currency;

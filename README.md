@@ -9,7 +9,7 @@
 |-----------------|-------------------------------------------------|----------------------|
 |Litepaper        | Conceptual overview of the PoCS protocol        |[pocs-litepaper.pdf](litepaper/pocs-litepaper.pdf) |
 |Research Model   | In-depth technical design and theoretical model |[pocs-research.pdf](research-model/pocs-research.pdf)|
-|Specificagion    | Detailed system architecture and implementation |[pocs-spec.pdf](specification/pocs-spec.pdf)|
+|Specification    | Detailed system architecture and implementation |[pocs-spec.pdf](specification/pocs-spec.pdf)|
 
 
 ## Runnig `pocs.sh` script

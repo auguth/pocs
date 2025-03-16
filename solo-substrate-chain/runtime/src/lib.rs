@@ -12,7 +12,7 @@ pub mod constants;
 mod voter_bags;
 
 use codec::{Decode, Encode};
-use pallet_contracts::stake::chain_ext::{FetchStakeInfo,UpdateDelegate};
+use pallet_contracts::stake::chain_ext::{FetchStakeInfo,UpdateDelegateInfo};
 use pallet_grandpa::AuthorityId as GrandpaId;
 use pallet_election_provider_multi_phase::SolutionAccuracyOf;
 use pallet_im_online::sr25519::AuthorityId as ImOnlineId;

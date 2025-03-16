@@ -1516,7 +1516,7 @@ pub mod tests {
 		exec::ExportedFunction::*, gas::GasMeter, tests::{
 			test_utils::{get_balance, hash, place_contract, set_balance},
 			ExtBuilder, RuntimeCall, RuntimeEvent as MetaEvent, Test, TestFilter, ALICE, BOB,
-			CHARLIE, GAS_LIMIT, compile_module,
+			CHARLIE, GAS_LIMIT, 
 		}, Error
 	};
 	use assert_matches::assert_matches;
