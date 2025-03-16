@@ -402,7 +402,7 @@ benchmarks! {
 
 
 	// We instantiate two unique contracts (PoCS)
-	// The primary contract is assigned a mock stake to pass delegate criteria
+	// The primary contract is assigned a mock stake to pass reputation criteria
 	#[pov_mode = Measured]
 	delegate {
 			let instance = Contract::<T>::with_caller(
@@ -423,6 +423,30 @@ benchmarks! {
 		let delegate_info = <DelegateInfo<T>>::get(&contract_addr)?;
 		// We assert if the delegate information has been updated
 		assert_eq!(delegate_info.delegate_to(),delegate_to)
+	}
+
+	// We instantiate two unique contracts (PoCS)
+	// The primary contract is assigned a mock stake to pass reputation criteria
+	#[pov_mode = Measured]
+	update_owner {
+			let instance = Contract::<T>::with_caller(
+				whitelisted_caller(), WasmModule::dummy(), vec![],
+			)?;
+			let contract_addr = instance.account_id.clone();
+			let origin = RawOrigin::Signed(instance.caller.clone());
+			let _ = <StakeRequest<T>>::stake(&instance.caller.clone(),&contract_addr, &0);
+			let new_stake_info =  <StakeInfo<T>>::mock_stake(3000000,12);
+			<StakeInfoMap<T>>::insert(&contract_addr, new_stake_info);
+			let dummy_code = WasmModule::<T>::dummy_with_bytes(10);
+			let new_owner = Contract::<T>::with_caller(
+				whitelisted_caller(), dummy_code, vec![],
+			)?.account_id;
+
+	}: _(origin,contract_addr.clone(),new_owner.clone())
+	verify{
+		let delegate_info = <DelegateInfo<T>>::get(&contract_addr)?;
+		// We assert if the stake owner has been updated
+		assert_eq!(delegate_info.owner(),new_owner)
 	}
 
 	// We just call a dummy contract to measure the overhead of the call extrinsic.

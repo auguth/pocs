@@ -835,6 +835,18 @@ use stake::{DelegateRequest, ValidateRequest};
 		}
 
 		#[pallet::call_index(11)]
+		#[pallet::weight(T::ContractWeightInfo::update_owner())]
+		pub fn update_owner(
+			origin: OriginFor<T>,
+			contract_addr: T::AccountId,
+			new_owner: T::AccountId,
+		)-> DispatchResult {
+			let origin = ensure_signed(origin.clone())?;
+			<DelegateRequest<T>>::update_stake_owner(&origin,&contract_addr,&new_owner)?;
+			Ok(())
+		}
+
+		#[pallet::call_index(12)]
 		#[pallet::weight(T::WeightInfo::validate())]
 		pub fn validate(origin:OriginFor<T>, prefs: ValidatorPrefs) -> DispatchResult {
 			let validator = ensure_signed(origin.clone())?;
@@ -947,8 +959,15 @@ use stake::{DelegateRequest, ValidateRequest};
 			num_delegates: u32,
 			/// Provides Assurance if the validator can start validating
 			can_validate: bool
-		}
-
+		},
+		
+		/// Stake Owner is updated for a contract via [`Pallet::update_owner`] (PoCS) 
+		StakeOwner {
+			/// The contract address for which owner information is updated 
+			contract: T::AccountId,
+			/// The new stake owner of the contract
+			new_owner: T::AccountId,
+		},
 	}
 
 	#[pallet::error]
@@ -967,6 +986,8 @@ use stake::{DelegateRequest, ValidateRequest};
 		LowReputation,
 		/// The contract or account is already delegated to the same address (PoCS)
 		AlreadyDelegated,
+		/// The contract or account is already owned by the given account address (PoCS)
+		AlreadyOwner,
 		/// Failed to create a new bond for staking (PoCS)
 		NewBondFailed,
 		/// Failed to add extra funds to an existing bond (PoCS)

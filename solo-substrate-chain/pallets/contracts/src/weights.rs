@@ -75,6 +75,7 @@ pub trait ContractWeightInfo {
 	fn instantiate_with_code(c: u32, i: u32, s: u32, ) -> Weight;
 	fn instantiate(i: u32, s: u32, ) -> Weight;
 	fn delegate() -> Weight;
+	fn update_owner() -> Weight;
 	fn call() -> Weight;
 	fn upload_code(c: u32, ) -> Weight;
 	fn remove_code() -> Weight;
@@ -407,6 +408,24 @@ impl<T: frame_system::Config> ContractWeightInfo for SubstrateWeight<T> {
 			.saturating_add(Weight::from_parts(0, 6873))
 			.saturating_add(T::DbWeight::get().reads(7))
 			.saturating_add(T::DbWeight::get().writes(5))
+	}
+	/// Storage: `Contracts::DelegateInfoMap` (r:1 w:1)
+	/// Proof: `Contracts::DelegateInfoMap` (`max_values`: None, `max_size`: Some(108), added: 2583, mode: `Measured`)
+	/// Storage: `Contracts::StakeInfoMap` (r:1 w:1)
+	/// Proof: `Contracts::StakeInfoMap` (`max_values`: None, `max_size`: Some(64), added: 2539, mode: `Measured`)
+	/// Storage: `System::EventTopics` (r:1 w:1)
+	/// Proof: `System::EventTopics` (`max_values`: None, `max_size`: None, mode: `Measured`)
+	/// Storage: `Staking::Bonded` (r:1 w:0)
+	/// Proof: `Staking::Bonded` (`max_values`: None, `max_size`: Some(72), added: 2547, mode: `Measured`)
+	fn update_owner() -> Weight {
+		// Proof Size summary in bytes:
+		//  Measured:  `933`
+		//  Estimated: `4398`
+		// Minimum execution time: 87_906_000 picoseconds.
+		Weight::from_parts(89_578_000, 0)
+			.saturating_add(Weight::from_parts(0, 4398))
+			.saturating_add(T::DbWeight::get().reads(4))
+			.saturating_add(T::DbWeight::get().writes(3))
 	}
 	/// Storage: Contracts MigrationInProgress (r:1 w:0)
 	/// Proof: Contracts MigrationInProgress (max_values: Some(1), max_size: Some(1026), added: 1521, mode: Measured)
@@ -2212,6 +2231,24 @@ impl ContractWeightInfo for () {
 			.saturating_add(Weight::from_parts(0, 6873))
 			.saturating_add(RocksDbWeight::get().reads(7))
 			.saturating_add(RocksDbWeight::get().writes(5))
+	}
+	/// Storage: `Contracts::DelegateInfoMap` (r:1 w:1)
+	/// Proof: `Contracts::DelegateInfoMap` (`max_values`: None, `max_size`: Some(108), added: 2583, mode: `Measured`)
+	/// Storage: `Contracts::StakeInfoMap` (r:1 w:1)
+	/// Proof: `Contracts::StakeInfoMap` (`max_values`: None, `max_size`: Some(64), added: 2539, mode: `Measured`)
+	/// Storage: `System::EventTopics` (r:1 w:1)
+	/// Proof: `System::EventTopics` (`max_values`: None, `max_size`: None, mode: `Measured`)
+	/// Storage: `Staking::Bonded` (r:1 w:0)
+	/// Proof: `Staking::Bonded` (`max_values`: None, `max_size`: Some(72), added: 2547, mode: `Measured`)
+	fn update_owner() -> Weight {
+		// Proof Size summary in bytes:
+		//  Measured:  `933`
+		//  Estimated: `4398`
+		// Minimum execution time: 87_906_000 picoseconds.
+		Weight::from_parts(89_578_000, 0)
+			.saturating_add(Weight::from_parts(0, 4398))
+			.saturating_add(RocksDbWeight::get().reads(4))
+			.saturating_add(RocksDbWeight::get().writes(3))
 	}
 	/// Storage: Contracts MigrationInProgress (r:1 w:0)
 	/// Proof: Contracts MigrationInProgress (max_values: Some(1), max_size: Some(1026), added: 1521, mode: Measured)

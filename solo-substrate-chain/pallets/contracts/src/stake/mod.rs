@@ -109,6 +109,16 @@ impl<T: Config> DelegateInfo<T> {
             delegate_at: frame_system::Pallet::<T>::block_number(),
         }
     }
+
+    /// Updates the `owner` field and returns an updated `DelegateInfo` instance
+    ///
+    pub fn update_owner(&self, new_owner: &T::AccountId) -> Self {
+        Self {
+            owner: new_owner.clone(),
+            delegate_to: self.delegate_to.clone(),
+            delegate_at: frame_system::Pallet::<T>::block_number(),
+        }
+    }
 }
 
 
@@ -406,7 +416,6 @@ impl<T: Config> DelegateRequest<T>{
     /// 
     pub fn delegate(origin: &T::AccountId, contract_addr: &T::AccountId, delegate_to: &T::AccountId) -> Result<(),DispatchError>{
         Self::stake_exists(contract_addr)?;
-        // !!! delegate_to needs to be checked as contract PoCS v0.2 !!!
         let delegate_info = Self::owner_check(origin, contract_addr)?;
         let stake_info = <DelegateRequest<T>>::min_reputation(&contract_addr)?;
         if delegate_info.delegate_to != *delegate_to {
@@ -568,6 +577,41 @@ impl<T: Config> DelegateRequest<T>{
 				);
             }
         } 
+    }
+
+    pub fn update_stake_owner(origin: &T::AccountId, contract_addr: &T::AccountId, new_owner: &T::AccountId) -> Result<(),DispatchError>{
+        Self::stake_exists(contract_addr)?;
+        let delegate_info = Self::owner_check(origin, contract_addr)?;
+        let stake_info = <DelegateRequest<T>>::min_reputation(&contract_addr)?;
+        if delegate_info.owner != *new_owner {
+            Self::reset_stake(contract_addr, &stake_info);
+            let new_delegate_info = <DelegateInfo<T>>::update_owner(&delegate_info, new_owner);
+            DelegateInfoMap::<T>::insert(contract_addr, new_delegate_info.clone());
+            Contracts::<T>::deposit_event(
+                vec![T::Hashing::hash_of(contract_addr)],
+                Event::StakeOwner {
+                    contract: contract_addr.clone(),
+                    new_owner: new_delegate_info.owner,
+                },
+            );
+            Self::sweep_bond(origin)?;
+            Ok(())
+        } else {
+            return Err(Error::<T>::AlreadyOwner.into())
+        }
+    }
+
+    /// Unbonds or Sweep Bonds (essentially destroying) the current stake score of the contract.
+    ///
+    /// If the owner has an active bond, it is unbonded.  
+    /// This function is synonymous to `unbond` but validators info are not touched
+    /// 
+    fn sweep_bond(owner: &T::AccountId) -> Result<(), DispatchError>{
+        if <Bonded<T>>::contains_key(&owner.clone()){
+            let null_stake: u64 = 0;
+            <pallet_staking::Pallet<T> as sp_staking::StakingInterface>::unbond(owner,null_stake.into())?;
+        }
+        Ok(())
     }
 
 }

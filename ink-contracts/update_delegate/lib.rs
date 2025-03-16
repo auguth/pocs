@@ -16,7 +16,7 @@ use flipper::FlipperRef;
 /// PoCS ChainExtension: Chain Extension with registered ID 1300
 /// 
 #[ink::chain_extension(extension = 1300)] 
-pub trait StakeDelegateExtension {
+pub trait ChainExtension {
 
     /// The error type returned by the message functions
     /// 
@@ -29,6 +29,8 @@ pub trait StakeDelegateExtension {
         account_addr: <CustomEnvironment as Environment>::AccountId, 
         delegate_to: <CustomEnvironment as Environment>::AccountId
     ) -> Result<(), Error>;
+
+
 }
 
 /// Represents possible errors that can occur in our contract
@@ -92,7 +94,7 @@ impl Environment for CustomEnvironment {
 
     /// Integrating our ChainExtension
     /// 
-    type ChainExtension = StakeDelegateExtension;
+    type ChainExtension = ChainExtension;
 }
 
 // Implement ink! ContractEnv for our CustomEnvironment
@@ -164,5 +166,6 @@ mod update_delegate {
             contract_ref.to_account_id()
 
         }
+
     }
 }
