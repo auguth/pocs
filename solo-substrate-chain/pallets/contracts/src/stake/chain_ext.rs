@@ -113,18 +113,19 @@ where
 }
 
 /// Chain Extension for Updating Delegate of Contract Owned Contracts 
+/// and to update stake owner of a contract owned contract
 /// 
-pub struct UpdateDelegate<T>(PhantomData<T>);
+pub struct UpdateDelegateInfo<T>(PhantomData<T>);
 
-impl<T> Default for UpdateDelegate<T> {
+impl<T> Default for UpdateDelegateInfo<T> {
     fn default() -> Self {
         Self(PhantomData)
     }
 }
 
-/// Register UpdateDelegate Chain extension id 1300
+/// Register UpdateDelegateInfo Chain extension id 1300
 ///
-impl<T> RegisteredChainExtension<T> for UpdateDelegate<T>
+impl<T> RegisteredChainExtension<T> for UpdateDelegateInfo<T>
 where
     T: ContractsConfig,
     T::AccountId: UncheckedFrom<T::Hash> + AsRef<[u8]>,
@@ -134,7 +135,7 @@ where
 
 /// Implementation template provided in [`crate::chain_extension`]
 /// 
-impl<T> ChainExtension<T> for UpdateDelegate<T>
+impl<T> ChainExtension<T> for UpdateDelegateInfo<T>
 where
     T: ContractsConfig, 
     T::AccountId: UncheckedFrom<T::Hash> + AsRef<[u8]>,
@@ -150,8 +151,8 @@ where
         //
         // It includes:
         // - `contract_addr` - The contract that needs to be updated
-        // - `delegate_to` - The delegate contract to which updates will be applied
-        let (contract_addr, delegate_to): (T::AccountId, T::AccountId) = env.read_as()?;
+        // - `target_addr` - The target contract for the chain extension function
+        let (contract_addr, target_addr): (T::AccountId, T::AccountId) = env.read_as()?;
         
         match func_id {
             1005 => {
@@ -163,7 +164,7 @@ where
 
                 // Execute updating delegate which updates map [`Pallet::DelegateInfoMap`]
                 // The same function call is utilized by [`Pallet::delegate`] for EOA owned contracts delegate update
-                let delegate_result = <DelegateRequest<T>>::delegate(executing_contract, &contract_addr, &delegate_to);
+                let delegate_result = <DelegateRequest<T>>::delegate(executing_contract, &contract_addr, &target_addr);
 
                 match delegate_result {
                     Ok(()) => {
@@ -177,7 +178,31 @@ where
                     }
                 }
             }
-            
+
+            1006 => {
+
+                // Get the current contract that is executing the chain extension
+                // As passing as parameters is unsafe, cause contracts cannot sign transactions 
+                // We verify that the contract calling the extension from reading its address from environment
+                let executing_contract = env.ext().address();
+
+                // Execute updating stake owner of a contract which updates map [`Pallet::DelegateInfoMap`]
+                // The same function call is utilized by [`Pallet::update_owner`] for EOA owned contracts owner update
+                let update_owner_result = <DelegateRequest<T>>::update_stake_owner(executing_contract, &contract_addr, &target_addr);
+
+                match update_owner_result {
+                    Ok(()) => {
+                        env.write(&[], false, None)?;
+                    }
+                    Err(e) => {
+                        error!("Delegate failed: {:?}", e);
+                        let error_message = format!("DelegateFailed: {:?}", e).encode();
+                        env.write(&error_message, false, None)?;
+                        return Err(e);
+                    }
+                }
+            }
+
             // Handle unknown function IDs
             _ => {
                 error!("Called an unregistered `func_id`: {}", func_id);

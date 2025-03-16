@@ -30,6 +30,13 @@ pub trait ChainExtension {
         delegate_to: <CustomEnvironment as Environment>::AccountId
     ) -> Result<(), Error>;
 
+    /// Updates the stake owner of a contract which is owned by our contract
+    /// 
+    #[ink(function = 1006, handle_status = false)]
+    fn update_owner(
+        account_addr: <CustomEnvironment as Environment>::AccountId, 
+        new_owner: <CustomEnvironment as Environment>::AccountId
+    ) -> Result<(), Error>;
 
 }
 
@@ -37,8 +44,9 @@ pub trait ChainExtension {
 /// 
 #[derive(Debug, PartialEq, Eq, Encode, Decode, TypeInfo)]
 pub enum Error {
-    DelegateFail = 1,
-    UnknownError = 2,
+    DelegateUpdateFail = 1,
+    OwnerUpdateFail = 2,
+    UnknownError = 3,
 }
 
 impl From<parity_scale_codec::Error> for Error {
@@ -52,7 +60,8 @@ impl From<parity_scale_codec::Error> for Error {
 impl From<u8> for Error {
     fn from(value: u8) -> Self {
         match value {
-            1 => Error::DelegateFail,
+            1 => Error::DelegateUpdateFail,
+            2 => Error::OwnerUpdateFail,
             _ => Error::UnknownError,
         }
     }
@@ -65,7 +74,8 @@ impl FromStatusCode for Error {
     fn from_status_code(status_code: u32) -> Result<(), Self> {
         match status_code {
             0 => Ok(()),
-            1 => Err(Error::DelegateFail),
+            1 => Err(Error::DelegateUpdateFail),
+            2 => Err(Error::OwnerUpdateFail),
             _ => Err(Error::UnknownError),
         }
     }
@@ -140,7 +150,20 @@ mod update_delegate {
             self.env()
                 .extension()
                 .delegate(contract_addr, delegate_to)
-                .map_err(|_| Error::DelegateFail)?;
+                .map_err(|_| Error::DelegateUpdateFail)?;
+
+            Ok(())
+        }
+
+        /// Updates the stake owner of our contract owned contract
+        /// 
+        #[ink(message)]
+        pub fn update_owner(&mut self, contract_addr: AccountId, new_owner: AccountId ) -> Result<(), Error> {
+
+            self.env()
+                .extension()
+                .update_owner(contract_addr, new_owner)
+                .map_err(|_| Error::OwnerUpdateFail)?;
 
             Ok(())
         }
