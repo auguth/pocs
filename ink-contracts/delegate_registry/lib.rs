@@ -6,14 +6,14 @@ use ink::env::{chain_extension::FromStatusCode, Environment};
 use parity_scale_codec::{Decode, Encode};
 use scale_info::TypeInfo;
 
-/// PoCS FetchStakeInfo: Chain Extension with registered ID 1200
+/// PoCS ChainExtension: Chain Extension with registered ID 1200
 /// 
 #[ink::chain_extension(extension = 1200)]
-pub trait FetchStakeInfo {
+pub trait ChainExtension {
 
     /// The error type returned by the message functions
     /// 
-    type ErrorCode = StakeDelegateError;
+    type ErrorCode = Error;
 
     /// Retrieves the validator `AccountId` that the given contract is delegated to
     /// 
@@ -47,7 +47,7 @@ pub trait FetchStakeInfo {
 /// Represents possible errors that can occur in our contract
 /// 
 #[derive(Debug, PartialEq, Eq, Encode, Decode, TypeInfo)]
-pub enum StakeDelegateError {
+pub enum Error {
 
     // The provided contract address is not delegated to our contract
     InvalidDelegate = 1,
@@ -76,12 +76,12 @@ pub enum StakeDelegateError {
 
 /// Maps raw integer error codes into `Error` variants
 /// 
-impl From<u8> for StakeDelegateError {
+impl From<u8> for Error {
 
     fn from(value: u8) -> Self {
         match value {
-            1 => StakeDelegateError::InvalidDelegate,
-            _ => StakeDelegateError::UnknownError,
+            1 => Error::InvalidDelegate,
+            _ => Error::UnknownError,
         }
     }
 
@@ -90,13 +90,13 @@ impl From<u8> for StakeDelegateError {
 /// Maps `status_code` integer to `Error` variants
 /// A status code of `0` indicates success
 /// 
-impl FromStatusCode for StakeDelegateError {
+impl FromStatusCode for Error {
 
     fn from_status_code(status_code: u32) -> Result<(), Self> {
         match status_code {
             0 => Ok(()),
-            1 => Err(StakeDelegateError::InvalidDelegate),
-            _ => Err(StakeDelegateError::UnknownError),
+            1 => Err(Error::InvalidDelegate),
+            _ => Err(Error::UnknownError),
         }
     }
 
@@ -123,9 +123,9 @@ impl Environment for CustomEnvironment {
     type BlockNumber = <ink::env::DefaultEnvironment as Environment>::BlockNumber;
     type Timestamp = <ink::env::DefaultEnvironment as Environment>::Timestamp;
 
-    /// Defines `FetchStakeInfo` as ChainExtension
+    /// Defines `ChainExtension` as ChainExtension
     /// 
-    type ChainExtension = FetchStakeInfo;
+    type ChainExtension = ChainExtension;
 
 }
 
@@ -185,7 +185,7 @@ mod delegate_registry {
         /// 5. Updates the total stake pool by adding the contract's stake score
         ///
         #[ink(message)]
-        pub fn register(&mut self, contract: AccountId) -> Result<(), StakeDelegateError> {
+        pub fn register(&mut self, contract: AccountId) -> Result<(), Error> {
 
             // Ensure that the caller is the contract owner
             self.owner_check(contract)?;
@@ -217,7 +217,7 @@ mod delegate_registry {
         /// 5. Updates the stored delegation data with the new stake score
         ///
         #[ink(message)]
-        pub fn claim(&mut self, contract: AccountId) -> Result<(), StakeDelegateError> {
+        pub fn claim(&mut self, contract: AccountId) -> Result<(), Error> {
 
             // Ensure that the caller is the owner of the contract
             self.owner_check(contract)?;
@@ -239,7 +239,7 @@ mod delegate_registry {
         }
 
         #[ink(message)]
-        pub fn cancel(&mut self, contract: AccountId) -> Result<(), StakeDelegateError> {
+        pub fn cancel(&mut self, contract: AccountId) -> Result<(), Error> {
             self.claim(contract)?;
             self.delegates.remove(contract);
             Ok(())
@@ -254,13 +254,13 @@ mod delegate_registry {
             &mut self, 
             contract: AccountId, 
             new_stake_score: u128,
-            old_stake_score: u128) -> Result<(), StakeDelegateError>
+            old_stake_score: u128) -> Result<(), Error>
         {
             // Calculate the difference in stake score
             let difference = new_stake_score.saturating_sub(old_stake_score);
 
             // If no stake increase, return an error (no rewards allocated)
-            if difference < 1 { return Err(StakeDelegateError::NoRewardAllocated)}
+            if difference < 1 { return Err(Error::NoRewardAllocated)}
 
             // Increase the total stake pool
             self.pool = self.pool.saturating_add(difference);
@@ -278,7 +278,7 @@ mod delegate_registry {
         fn transfer(
             &mut self, 
             contract:AccountId, 
-            difference: u128) -> Result<(), StakeDelegateError>
+            difference: u128) -> Result<(), Error>
         {
             // Fetch the contract owner
             let owner = self.env().extension().owner(contract)?;
@@ -288,7 +288,7 @@ mod delegate_registry {
             let minimum_balance = self.env().minimum_balance();
 
              // If the contract balance is at the minimum (existential deposit), no rewards can be transferred
-            if balance == minimum_balance {return Err(StakeDelegateError::InsufficientFunds)}
+            if balance == minimum_balance {return Err(Error::InsufficientFunds)}
 
             // Calculate the transferable reward amount using a proportional distribution formula:
             // to_transfer = ((Balance * Stake Score) + (Pool / 2)) / Pool
@@ -308,7 +308,7 @@ mod delegate_registry {
 
             // Attempt to transfer the calculated reward to the owner
             self.env().transfer(owner, final_transfer_amount)
-                .map_err(|_| StakeDelegateError::TransferFailed)?;
+                .map_err(|_| Error::TransferFailed)?;
 
             // Deduct the transferred amount from the pool
             self.pool = self.pool.saturating_sub(difference);
@@ -322,12 +322,12 @@ mod delegate_registry {
         /// This helper function ensures that only the owner of a contract can carry on operations,
         /// such as registering or claiming rewards.
         /// 
-        fn owner_check(&mut self, contract:AccountId) -> Result<(), StakeDelegateError>{
+        fn owner_check(&mut self, contract:AccountId) -> Result<(), Error>{
 
             // Fetch the registered owner of the contract from the chain extension
             // Compare with the caller of the transaction
             if self.env().extension().owner(contract)? != self.env().caller() {
-                return Err(StakeDelegateError::InvalidContractOwner)
+                return Err(Error::InvalidContractOwner)
             }
 
             Ok(())
@@ -341,11 +341,11 @@ mod delegate_registry {
         /// - If the contract exists in the `delegates` mapping
         /// - If the contract's delegation info is consistent with the latest chain extension data
         /// 
-        fn registration_check(&mut self, contract:AccountId) -> Result<(u32,u128), StakeDelegateError>{
+        fn registration_check(&mut self, contract:AccountId) -> Result<(u32,u128), Error>{
 
             // Ensure the contract is present in the local delegate registry
             if !self.delegates.contains(contract) {
-                return Err(StakeDelegateError::InvalidDelegate);
+                return Err(Error::InvalidDelegate);
             }
 
             // Retrieve stored delegation data (block number & stake score)
@@ -363,7 +363,7 @@ mod delegate_registry {
             // The previous stake score's rewards remain unclaimed and cannot be retrieved, 
             //
             if delegate_at != new_delegate_at {
-                return Err(StakeDelegateError::InvalidRegistration);
+                return Err(Error::InvalidRegistration);
             }
 
             Ok((delegate_at,stake_score))
@@ -373,12 +373,12 @@ mod delegate_registry {
         /// Checks if a given contract is delegated to our contract as a validator
         /// This ensures that only contracts properly delegated to our contract can interact with us
         /// 
-        fn delegate_check(&mut self, contract:AccountId) -> Result<(), StakeDelegateError>{
+        fn delegate_check(&mut self, contract:AccountId) -> Result<(), Error>{
 
             // Fetch the delegate information for the contract from the chain extension
             // Verify that the contract is delegated to this contract instance
             if self.env().extension().delegate_of(contract)? != self.env().account_id(){
-                return Err(StakeDelegateError::InvalidDelegate)
+                return Err(Error::InvalidDelegate)
             }
 
             Ok(())

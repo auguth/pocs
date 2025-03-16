@@ -171,6 +171,7 @@ FLIPPER_CODEHASH=$(echo "$UPLOAD_FLIPPER" | jq -r '.code_hash')
 UPDATE_DELEGATE_CONTRACT="$CONTRACTS_PATH/update_delegate.contract"
 UPDATE_DELEGATE_FUNCTION="update_delegate"
 DEPLOY_FUNCTION="deploy_contract"
+UPDATE_OWNER_FUNCTION="update_owner"
 
 # Tests if Update Delegate Contract is missing
 if [ ! -f "$UPDATE_DELEGATE_CONTRACT" ]; then
@@ -215,7 +216,7 @@ DEPLOY_FLIPPER=$(
     --args "$FLIPPER_CODEHASH" "$SALT" \
     --skip-confirm \
     --output-json \
-    "$UPDATE_DELEGATE_CONTRACT" 2>&1\
+    "$UPDATE_DELEGATE_CONTRACT" 2>/dev/null \
 )
 
 # Get Flipper Contract Instantiation Block Number (For Assertion)
@@ -224,11 +225,8 @@ INSTANTIATE_FLIPPER_BLOCK_NUM=$((16#$(curl -s -H "Content-Type: application/json
     http://localhost:9944 | jq -r '.result.block.header.number | ltrimstr("0x")')))
 
 
-# Clear Warnings from Call Result
-CLEAN_WARNINGS=$(echo "$DEPLOY_FLIPPER" | sed '1{/^Warning:/d;}' | jq .)
-
 # Extract Flipper Address
-FLIPPER_ADDRESS=$(echo "$CLEAN_WARNINGS" | jq -r '.[] | select(.pallet=="Contracts" and .name=="Instantiated") | .fields[] | select(.name=="contract") | .value.Literal')
+FLIPPER_ADDRESS=$(echo "$DEPLOY_FLIPPER" | jq -r '.[] | select(.pallet=="Contracts" and .name=="Instantiated") | .fields[] | select(.name=="contract") | .value.Literal')
 
 # Assertion
 assert_not_nil "$FLIPPER_ADDRESS" "update_delegate_upload_code_hash_message_works"
@@ -604,7 +602,7 @@ NO_STAKE_ERROR="NoStakeExists"
 # Assertion
 assert_str "$STAKE_SCORE_NON_CONTRACT_RESULT" "$NO_STAKE_ERROR" "stake_score_chain_extension_returns_error_for_eoa"
 
-# Call Stake Score
+# Call Stake Score, Expect Error
 CALL_STAKE_SCORE=$(
     cargo contract call \
     --suri //Bob \
@@ -744,7 +742,7 @@ CALL_FLIPPER=$(
 # Increase Reputation since a call is made
 ((REPUTATION++))
 
-# Update Delegate of Flipper to ALICE
+# Update Delegate of Flipper to Dry Flipper
 UPDATE_DELEGATE_FLIPPER=$(
     cargo contract call \
     --suri //Alice \
@@ -942,6 +940,133 @@ OWNER_DRY_CONTRACT_RESULT=$(echo "$CLEAN_WARNINGS" | jq -r '.module_error.error 
 
 # Assertion
 assert_str "$OWNER_DRY_CONTRACT_RESULT" "$NO_STAKE_ERROR" "owner_chain_extension_returns_error_for_non_instantiated_contract"
+
+
+
+#### INSTANTIATE DELAGATE REGISTRY (VALIDATOR REWARD) CONTRACT
+
+# Validator Contract to be tested
+VALIDATOR_CONTRACT="$CONTRACTS_PATH/delegate_registry.contract"
+# Message call of Validator contract to be tested
+REGISTER_FUNCTION="register"
+# Message call of Validator contract to be tested
+CLAIM_FUNCTION="claim"
+# Message call of Validator contract to be tested
+CANCEL_FUNCTION="cancel"
+
+# Tests if Owner Contract is missing
+if [ ! -f "$VALIDATOR_CONTRACT" ]; then
+    echo "Contract Bundles Missing on $VALIDATOR_CONTRACT"
+    echo "Do you wish to build Contract Bundles for Running ink! E2E Tests? (y/n)"
+    read -r answer
+    if [[ "$answer" =~ ^[Yy]$ ]]; then
+        chmod +x pocs.sh && ./pocs.sh --build --contracts
+        echo -e "Ready to Run E2E Tests for Contracts"
+    else
+        echo -e "Exiting Tests..."
+        kill $NODE_PID
+        exit 1
+    fi
+fi
+
+# Instantiate Owner Contract for Testing
+INSTANTIATE_VALIDATOR_CONTRACT=$(
+    cargo contract instantiate \
+    --suri //Bob \
+    --execute \
+    --skip-confirm \
+    --output-json \
+    "$VALIDATOR_CONTRACT" 2>/dev/null \
+)
+
+# Get Owner Contract Address
+VALIDATOR_ADDRESS=$(echo "$INSTANTIATE_VALIDATOR_CONTRACT" | jq -r '.contract')
+
+# Call Validator Contract, Register From Non Owner as Signer, Expect Error
+REGISTER_FROM_NON_OWNER=$(
+    cargo contract call \
+    --suri //Alice \
+    --contract "$VALIDATOR_ADDRESS" \
+    --message "$REGISTER_FUNCTION" \
+    --args "$FLIPPER_ADDRESS" \
+    --skip-confirm \
+    --output-json \
+    "$VALIDATOR_CONTRACT" 2>&1 \
+)
+
+# Clear Warnings from Call Result
+CLEAN_WARNINGS=$(echo "$REGISTER_FROM_NON_OWNER" | sed -n '/^{/,$p')
+
+# Extract Error Result of the recent call
+ERROR_RESULT=$(echo "$CLEAN_WARNINGS" | jq -r '.data.Tuple.values[0].Tuple.values[0].Tuple.ident')
+
+# Error for Non Owner trying to register a contract to validator contract
+INVALID_CONTRACT_OWNER_ERROR="InvalidContractOwner"
+
+# Assertion
+assert_str "$ERROR_RESULT" "$INVALID_CONTRACT_OWNER_ERROR" "validator_contract_throws_error_on_non_owner_of_contract"
+
+## Another Test Can be conducted by Calling Extrinsic to Expect an Error NotADelegate 
+## Before invoking the upcoming call to update delegate to validator address of the flipper contract
+## Since we are only testing contract based e2e tests once the owner is updated from Contract owner to Alice 
+## an extrinsic has to be signed, These tests are covered in pallet contracts stake i.e., pocs tests and need not be asserted here
+
+# Update Delegate of Flipper to Validator
+UPDATE_DELEGATE_FLIPPER=$(
+    cargo contract call \
+    --suri //Alice \
+    --execute \
+    --contract "$UPDATE_DELEGATE_ADDRESS" \
+    --message "$UPDATE_DELEGATE_FUNCTION" \
+    --args "$FLIPPER_ADDRESS" "$VALIDATOR_ADDRESS" \
+    --skip-confirm \
+    --output-json \
+    "$UPDATE_DELEGATE_CONTRACT"  2>/dev/null\
+)
+
+# Extract Flipper Address
+DELEGATED_ADDRESS=$(echo "$UPDATE_DELEGATE_FLIPPER" | jq -r '.[] | select(.pallet=="Contracts" and .name=="Delegated") | .fields[] | select(.name=="delegate_to") | .value.Literal')
+
+# Assertion 
+assert_str "$DELEGATED_ADDRESS" "$VALIDATOR_ADDRESS" "update_delegate_to_validator_reward_contract_works"
+
+# Call Update Delegate to update owner of its owned account
+UPDATE_OWNER_FLIPPER=$(
+    cargo contract call \
+    --suri //Alice \
+    --execute \
+    --contract "$UPDATE_DELEGATE_ADDRESS" \
+    --message "$UPDATE_OWNER_FUNCTION" \
+    --args "$FLIPPER_ADDRESS" "$ALICE" \
+    --skip-confirm \
+    --output-json \
+    "$UPDATE_DELEGATE_CONTRACT" 2>/dev/null\
+)
+
+# Retrieve the Owner of Flipper Contract after Update Owner
+NEW_OWNER_ADDRESS=$(echo "$UPDATE_OWNER_FLIPPER" | jq -r '.[] | select(.pallet=="Contracts" and .name=="StakeOwner") | .fields[] | select(.name=="new_owner") | .value.Literal')
+
+# Assertion
+assert_str "$NEW_OWNER_ADDRESS" "$ALICE" "update_owner_chain_extension_works"
+
+# Call Validator Contract, Register Flipper which is now owned by Alice
+REGISTER_FLIPPER=$(
+    cargo contract call \
+    --suri //Alice \
+    --execute \
+    --contract "$VALIDATOR_ADDRESS" \
+    --message "$REGISTER_FUNCTION" \
+    --args "$FLIPPER_ADDRESS" \
+    --skip-confirm \
+    --output-json \
+    "$VALIDATOR_CONTRACT"  2>/dev/null\
+)
+
+# Retrieve the Extrinsic Success Output to check which contract is called
+RECENTLY_CALLED_CONTRACT_ADDRESS=$(echo "$REGISTER_FLIPPER" | jq -r '.[] | select(.pallet == "Contracts" and .name == "Called") | .fields[] | select(.name == "contract") | .value.Literal')
+
+# Assertion
+assert_str "$RECENTLY_CALLED_CONTRACT_ADDRESS" "$VALIDATOR_ADDRESS" "validator_contract_register_delegate_successful"
 
 test_summary
 

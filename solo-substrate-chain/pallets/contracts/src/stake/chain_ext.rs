@@ -195,8 +195,8 @@ where
                         env.write(&[], false, None)?;
                     }
                     Err(e) => {
-                        error!("Delegate failed: {:?}", e);
-                        let error_message = format!("DelegateFailed: {:?}", e).encode();
+                        error!("UpdateOwnerFailed: {:?}", e);
+                        let error_message = format!("UpdateOwnerFailed: {:?}", e).encode();
                         env.write(&error_message, false, None)?;
                         return Err(e);
                     }

@@ -142,6 +142,29 @@ mod update_delegate {
             Self {}
         }
 
+        
+        /// Instantiates an already uploaded code hash contract
+        ///
+        #[ink(message)]
+        pub fn deploy_contract(&mut self, code_hash: Hash, salt: i32)-> AccountId{
+
+            let contract_ref: FlipperRef = build_create::<FlipperRef>()
+                .instantiate_v1()                          
+                .code_hash(code_hash)                       
+                .gas_limit(0)                               
+                .endowment(0)                   
+                .exec_input(
+                    ExecutionInput::new(Selector::new(ink::selector_bytes!("new")))
+                        .push_arg(salt)                
+                )
+                .salt_bytes(&[0xDE, 0xAD, 0xBE, 0xEF])      
+                .returns::<FlipperRef>()             
+                .instantiate();                 
+
+            contract_ref.to_account_id()
+
+        }
+        
         /// Updates the delegate information of our contract owned contract
         /// 
         #[ink(message)]
@@ -166,28 +189,6 @@ mod update_delegate {
                 .map_err(|_| Error::OwnerUpdateFail)?;
 
             Ok(())
-        }
-
-        /// Instantiates an already uploaded code hash contract
-        ///
-        #[ink(message)]
-        pub fn deploy_contract(&mut self, code_hash: Hash, salt: i32)-> AccountId{
-
-            let contract_ref: FlipperRef = build_create::<FlipperRef>()
-                .instantiate_v1()                          
-                .code_hash(code_hash)                       
-                .gas_limit(0)                               
-                .endowment(0)                   
-                .exec_input(
-                    ExecutionInput::new(Selector::new(ink::selector_bytes!("new")))
-                        .push_arg(salt)                
-                )
-                .salt_bytes(&[0xDE, 0xAD, 0xBE, 0xEF])      
-                .returns::<FlipperRef>()             
-                .instantiate();                 
-
-            contract_ref.to_account_id()
-
         }
 
     }
