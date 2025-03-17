@@ -152,6 +152,8 @@ mod delegate_registry {
         /// Maps to total balance of our contract excluding minimum balance (existential deposit)
         /// 
         pool: u128,
+
+        total_funds: Balance,
     }
 
     impl Default for DelegateRegistry {
@@ -167,11 +169,12 @@ mod delegate_registry {
 
         /// Initializes a new `DelegateRegistry` instance during instantiation of our contract
         /// 
-        #[ink(constructor)]
+        #[ink(constructor, payable)]
         pub fn new() -> Self {
             Self {
                 delegates: Mapping::default(),
-                pool: 0,
+                pool: Self::env().transferred_value(),
+                total_funds: Self::env().transferred_value(),
             }
         }
 
