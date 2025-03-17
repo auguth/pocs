@@ -2,12 +2,7 @@ name: PoCS Build
 
 on:
   push:
-    branches:
-      - chain_ext_v2
-    paths:
-      - 'solo-substrate-chain/**'
-  pull_request:
-    branches: ["master"]
+    branches: ["chain_ext_v2"]
     paths:
       - 'solo-substrate-chain/**'
 
