@@ -974,6 +974,7 @@ INSTANTIATE_VALIDATOR_CONTRACT=$(
     cargo contract instantiate \
     --suri //Bob \
     --execute \
+    --value 10000000000000000 \
     --skip-confirm \
     --output-json \
     "$VALIDATOR_CONTRACT" 2>/dev/null \
@@ -1068,10 +1069,11 @@ RECENTLY_CALLED_CONTRACT_ADDRESS=$(echo "$REGISTER_FLIPPER" | jq -r '.[] | selec
 # Assertion
 assert_str "$RECENTLY_CALLED_CONTRACT_ADDRESS" "$VALIDATOR_ADDRESS" "validator_contract_register_delegate_successful"
 
-# Call Flipper to Increase Stake Score before Registering 
+
+# Call Flipper, Increase Stake Score 
 CALL_FLIPPER=$(
     cargo contract call \
-    --suri //Alice \
+    --suri //Bob \
     --execute \
     --contract "$FLIPPER_ADDRESS" \
     --message "$FLIPPER_FUNCTION" \
@@ -1080,37 +1082,68 @@ CALL_FLIPPER=$(
     "$FLIPPER_CONTRACT"  2>/dev/null\
 )
 
-# To increase reputation which multiplies Stake Score
-sleep 5
+sleep 5 
 
-# Call Flipper to Increase Stake Score before Registering 
+# Call Flipper, Increase Stake Score 
 CALL_FLIPPER=$(
     cargo contract call \
-    --suri //Alice \
+    --suri //Bob \
     --execute \
     --contract "$FLIPPER_ADDRESS" \
     --message "$FLIPPER_FUNCTION" \
     --skip-confirm \
     --output-json \
-    "$FLIPPER_CONTRACT" \
+    "$FLIPPER_CONTRACT"  2>/dev/null\
 )
 
-# To increase reputation which multiplies Stake Score
-sleep 5
-
-# Call Flipper to Increase Stake Score before Registering 
-CALL_FLIPPER=$(
+# Call Validator Contract, Claim Reward For Delegated Stake Score
+CLAIM_REWARD=$(
     cargo contract call \
     --suri //Alice \
     --execute \
-    --contract "$FLIPPER_ADDRESS" \
-    --message "$FLIPPER_FUNCTION" \
+    --contract "$VALIDATOR_ADDRESS" \
+    --message "$CLAIM_FUNCTION" \
+    --args "$FLIPPER_ADDRESS" \
     --skip-confirm \
     --output-json \
-    "$FLIPPER_CONTRACT" \
+    "$VALIDATOR_CONTRACT"  2>/dev/null\
 )
 
+# Retrieve the Transfer Outputs to Assert If Transfer From Reward Contract to Flipper is Successful
+TRANSFER_FROM=$(echo "$CLAIM_REWARD" | jq -r '.[] | select(.pallet == "Balances" and .name == "Transfer") | .fields[] | select(.name == "from").value.Literal')
 
+TRANSFER_TO=$(echo "$CLAIM_REWARD" | jq -r '.[] | select(.pallet == "Balances" and .name == "Transfer") | .fields[] | select(.name == "to").value.Literal')
+
+# Assertion
+if [ "$TRANSFER_FROM" == "$VALIDATOR_ADDRESS" ]; then
+    assert_str "$TRANSFER_TO" "$ALICE" "validator_reward_claim_transfer_works"
+else 
+    assert_str "1" "0" "validator_reward_claim_transfer_works"
+fi
+
+# Call Validator Contract, Cancel Registration For Delegated Stake Score
+CANCEL_REGISTRATION_FAILS=$(
+    cargo contract call \
+    --suri //Alice \
+    --contract "$VALIDATOR_ADDRESS" \
+    --message "$CANCEL_FUNCTION" \
+    --args "$FLIPPER_ADDRESS" \
+    --skip-confirm \
+    --output-json \
+    "$VALIDATOR_CONTRACT"  2>&1\
+)
+
+# Clear Warnings from Call Result
+CLEAN_WARNINGS=$(echo "$CANCEL_REGISTRATION_FAILS" | sed -n '/^{/,$p')
+
+# Extract Error Result of the recent call
+ERROR_RESULT=$(echo "$CLEAN_WARNINGS" | jq -r '.data.Tuple.values[0].Tuple.values[0].Tuple.ident')
+
+# Since No Calls to Flipper Made, There'll be No Stake Score Hence No Reward
+NO_REWARD_ALLOCATED="NoRewardAllocated"
+
+# Assertion
+assert_str "$ERROR_RESULT" "$NO_REWARD_ALLOCATED" "validator_contract_claiming_throws_error_if_no_stake_score"
 
 test_summary
 

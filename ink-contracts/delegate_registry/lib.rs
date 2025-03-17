@@ -153,7 +153,6 @@ mod delegate_registry {
         /// 
         pool: u128,
 
-        total_funds: Balance,
     }
 
     impl Default for DelegateRegistry {
@@ -173,8 +172,7 @@ mod delegate_registry {
         pub fn new() -> Self {
             Self {
                 delegates: Mapping::default(),
-                pool: Self::env().transferred_value(),
-                total_funds: Self::env().transferred_value(),
+                pool: 0,
             }
         }
 
