@@ -2,13 +2,8 @@ name: Build Ink! Contracts
 
 on:
   push:
-    branches: ["master"]
-    paths:
-      - 'ink-contracts/**'
-  pull_request:
-    branches: ["master"]
-    paths:
-      - 'ink-contracts/**'
+    branches: ["ci/cd"]
+
 
 env:
   CARGO_TERM_COLOR: always
@@ -18,29 +13,55 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      # Checkout the repository
       - name: Checkout Repository
         uses: actions/checkout@v3
 
-      - name: Install Stable Rust Toolchain
-        uses: actions-rs/toolchain@v1
-        with:
-          profile: minimal
-          toolchain: stable
-          components: rustfmt, clippy
-          override: true
+      # Navigate to the ink-contracts directory
+      - name: Change to ink-contracts Directory
+        working-directory: ink-contracts
+        run: pwd
 
+      # Install system dependencies
+      - name: Install Dependencies
+        working-directory: ink-contracts
+        run: |
+          sudo apt-get update && \
+          sudo apt-get install -y \
+          build-essential \
+          clang \
+          curl \
+          libssl-dev \
+          protobuf-compiler
+
+      # Install Rust and set up environment
+      - name: Install Rust
+        working-directory: ink-contracts
+        run: |
+          curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
+          echo "$HOME/.cargo/bin" >> $GITHUB_PATH
+
+
+      # Install Nightly Rust Toolchain
       - name: Install Nightly Rust Toolchain
+        working-directory: ink-contracts
         run: rustup install nightly && rustup default nightly
 
+      # Add WebAssembly Target
       - name: Add WebAssembly Target
+        working-directory: ink-contracts
         run: rustup target add wasm32-unknown-unknown --toolchain nightly
 
+      # Install cargo-contract
       - name: Install cargo-contract
+        working-directory: ink-contracts
         run: cargo install cargo-contract --force --locked
-      
+
+      # Build All Ink! Contracts
       - name: Build All Ink! Contracts
+        working-directory: ink-contracts
         run: |
-          for dir in ink-contracts/*/; do
+          for dir in */; do
             if [ -f "$dir/Cargo.toml" ]; then
               echo "Building contract in $dir"
               (cd "$dir" && cargo contract build)

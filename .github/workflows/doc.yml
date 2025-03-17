@@ -2,13 +2,8 @@ name: RustDocs
 
 on:
   push:
-    branches: ["master"]
-    paths:
-      - 'solo-substrate-chain/**'
-  pull_request:
-    branches: ["master"]
-    paths:
-      - 'solo-substrate-chain/**'
+    branches: ["ci/cd"]
+
 
 jobs:
   build:
