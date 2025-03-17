@@ -6,7 +6,7 @@
 
 The Contracts module provides functionality for the runtime to deploy and execute WebAssembly smart-contracts.
 
-### [`/src/lib.rs`](https://github.com/auguth/pocs/blob/bf21e8f7cf119bd69d7ad8f942159d6e399fd08d/solo-substrate-chain/pallets/contracts/src/lib.rs)
+### [`/src/lib.rs`](https://github.com/auguth/pocs/blob/w3f_milestone_3/solo-substrate-chain/pallets/contracts/src/lib.rs)
 
 #### Storage Additions
 
@@ -64,7 +64,7 @@ The Contracts module provides functionality for the runtime to deploy and execut
 Benchmarks for the two functions `delegate()` and `update_owner()` is written in `pallet_contracts::src::benchmarking::mod`
 
 
-### [`/src/exec.rs`](https://github.com/auguth/pocs/blob/bf21e8f7cf119bd69d7ad8f942159d6e399fd08d/solo-substrate-chain/pallets/contracts/src/exec.rs)
+### [`/src/exec.rs`](https://github.com/auguth/pocs/blob/w3f_milestone_3/solo-substrate-chain/pallets/contracts/src/exec.rs)
 
 #### `fn run()`
 
@@ -89,6 +89,7 @@ Benchmarks for the two functions `delegate()` and `update_owner()` is written in
 - **Calls the `stake` function** from the `StakeRequest` implementation.
 - This ensures the contract's execution is recorded for Proof of Contract Stake (PoCS).
 
+<a id="breaking-changes"></a>
 >
 > ⚠️ **Important Note**: 
 >
@@ -109,7 +110,7 @@ Benchmarks for the two functions `delegate()` and `update_owner()` is written in
 
 ---
 
-### [`/src/stake/..`](https://github.com/auguth/pocs/tree/bf21e8f7cf119bd69d7ad8f942159d6e399fd08d/solo-substrate-chain/pallets/contracts/src/stake)
+### [`/src/stake/..`](https://github.com/auguth/pocs/tree/w3f_milestone_3/solo-substrate-chain/pallets/contracts/src/stake)
 
 #### `stake` Module
 
@@ -164,9 +165,17 @@ Facilitates contract-level read and update operations on delegate and stake data
 
 ---
 
-### [`src/tests.rs`](https://github.com/auguth/pocs/blob/bf21e8f7cf119bd69d7ad8f942159d6e399fd08d/solo-substrate-chain/pallets/contracts/src/tests.rs)
+### [`src/tests.rs`](https://github.com/auguth/pocs/blob/w3f_milestone_3/solo-substrate-chain/pallets/contracts/src/tests.rs)
 
+Comprehensive tests have been implemented to cover all functionalities within the `pallet-contracts` module. These tests include integrated checks for `stake/mod.rs` and `exec.rs`. All the test for PoCS will start with the prefix `pocs_` While the chain extension (`chain-ext.rs`) is excluded from these tests, dedicated tests for it are provided within the contracts directory.
 
+**Test's that are Failing**
+- `benchmarking::bench_seal_caller_is_root`
+- `test exec::tests::root_caller_succeeds`
+- `exec::tests::root_caller_succeeds_with_consecutive_calls`
+- `tests::root_can_call`
+
+These test are failing due to the [Breaking changes](#breaking-changes) made in the `pallet-contracts`. 
 
 ---
 
@@ -175,7 +184,7 @@ Facilitates contract-level read and update operations on delegate and stake data
 >**⚠️ Important Note:**
 The changes made in `src/pallet/mod.rs` and `src/tests.rs` are Breaking changes. These changes are temporary and will be corrected or revised in further development. As this was the only method that may couple PoCS and NPoS logic.
 
-### [`src/pallet/mod.rs`](https://github.com/auguth/pocs/blob/bf21e8f7cf119bd69d7ad8f942159d6e399fd08d/solo-substrate-chain/pallets/staking/src/pallet/mod.rs)
+### [`src/pallet/mod.rs`](https://github.com/auguth/pocs/blob/w3f_milestone_3/solo-substrate-chain/pallets/staking/src/pallet/mod.rs)
 
 - **Commented out checks related to minimum balance requirement:**
 
@@ -191,7 +200,7 @@ The changes made in `src/pallet/mod.rs` and `src/tests.rs` are Breaking changes.
 
 To treat the stake score as a balance and allow the creation of an empty bond.
 
-### [`src/test.rs`](https://github.com/auguth/pocs/blob/bf21e8f7cf119bd69d7ad8f942159d6e399fd08d/solo-substrate-chain/pallets/staking/src/pallet/mod.rs)
+### [`src/test.rs`](https://github.com/auguth/pocs/blob/w3f_milestone_3/solo-substrate-chain/pallets/staking/src/tests.rs)
 
 - **Commented out Tests:**
 
