@@ -1,4 +1,7 @@
-# Proof of Contract Stake (PoCS): A Developer-Centric Blockchain Consensus Mechanism
+# Proof of Contract Stake (PoCS v0.1 Experimental)
+#### A Developer-Centric Blockchain Consensus Mechanism
+
+[Source Repository](https::/github.com/auguth/pocs)
 
 ### Introduction
 
@@ -49,20 +52,6 @@ PoCS is designed to mitigate key attack vectors through built-in safeguards:
 
 By addressing these vulnerabilities, PoCS ensures a resilient staking framework that is harder to manipulate than traditional PoS models.
 
-### Technical Implementation on Substrate
-
-The PoCS mechanism is implemented on the **Substrate** framework due to its modular design and compatibility with the **Polkadot** ecosystem. The core modifications include changes to `pallet-contracts` and `pallet-staking` to introduce new staking fields and logic.
-
-1. **Contract Storage Additions**:
-   - **AccountStakeInfo**: Contains contract owner, delegate address, and block height.
-   - **ContractScarcityInfo**: Tracks contract reputation and recent block activity to calculate the stake score.
-
-2. **Validator Reward Contract**: A middleware contract that facilitates fair reward distribution based on the contract’s stake score.
-
-3. **Governance Integration**: PoCS supports on-chain governance where contract owners can propose and vote on network upgrades using their stake scores.
-
-This technical integration enables seamless tracking of contract activity while maintaining compatibility with existing Substrate consensus protocols.
-
 ### Broader Implications of PoCS
 
 PoCS brings transformative benefits to the blockchain ecosystem:
@@ -85,9 +74,9 @@ If you want to know more about the project, below are the link to the documents
 
 | Document        | Description                                     |Link                  | 
 |-----------------|-------------------------------------------------|----------------------|
-|Litepaper        | Conceptual overview of the PoCS protocol        |[pocs-litepaper.pdf](litepaper/pocs-litepaper.pdf) |
-|Research Model   | In-depth technical design and theoretical model |[pocs-research.pdf](research-model/pocs-research.pdf)|
-|Specification    | Detailed system architecture and implementation |[pocs-spec.pdf](specification/pocs-spec.pdf)|
+|Litepaper        | Conceptual overview of the PoCS protocol        |[pocs-litepaper.pdf](https://github.com/auguth/pocs/blob/master/litepaper/pocs-litepaper.pdf) |
+|Research Model   | In-depth technical design and theoretical model |[pocs-research.pdf](https://github.com/auguth/pocs/blob/master/research-model/pocs-research.pdf)|
+|Specification    | Detailed system architecture and implementation |[pocs-spec.pdf](https://github.com/auguth/pocs/blob/master/specification/pocs-spec.pdf)|
 
 ### Web3 Foundation Grant Support
 
@@ -106,6 +95,3 @@ The development of the PoCS mechanism is supported by the **Web3 Foundation (W3F
 Proof of Contract Stake (PoCS) offers a groundbreaking alternative to traditional staking mechanisms. By anchoring validator eligibility to contract execution history, PoCS enhances security, decentralization, and developer participation. Its unique approach resolves critical vulnerabilities in PoS while promoting a more inclusive and resilient blockchain ecosystem.
 
 As the PoCS model continues to evolve, its implementation on Substrate and potential integration with Polkadot sets the stage for a new era of blockchain consensus—one where active contributors, not passive token holders, secure the network. This paradigm shift holds the promise of fairer, more sustainable, and more secure public blockchains for the future.
-
-
-
