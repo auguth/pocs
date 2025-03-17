@@ -2,13 +2,15 @@ name: PoCS Build
 
 on:
   push:
-    branches: ["master"]
+    branches:
+      - chain_ext_v2
     paths:
       - 'solo-substrate-chain/**'
   pull_request:
     branches: ["master"]
     paths:
       - 'solo-substrate-chain/**'
+
 env:
   CARGO_TERM_COLOR: always
 
@@ -17,27 +19,51 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout repository
+      # Checkout the repository
+      - name: Checkout Repository
         uses: actions/checkout@v3
 
-      - name: Install Rust nightly toolchain
-        uses: actions-rs/toolchain@v1
-        with:
-          profile: minimal
-          toolchain: nightly-2023-12-21
-          components: rustfmt, clippy
-          override: true
+      # Install system dependencies
+      - name: Install Dependencies
+        run: |
+          sudo apt-get update && \
+          sudo apt-get install -y \
+          build-essential \
+          clang \
+          curl \
+          libssl-dev \
+          protobuf-compiler
 
-      - name: Add WebAssembly target
-        run: rustup target add wasm32-unknown-unknown
+      # Install Rust and set up environment
+      - name: Install Rust
+        run: |
+          curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
+          echo "$HOME/.cargo/bin" >> $GITHUB_PATH
 
-      - name: Install Protocol Buffers Compiler
-        run: sudo apt-get install -y protobuf-compiler
+      # Set Rust stable as the default and update toolchains
+      - name: Set Rust Stable and Update
+        run: |
+          rustup default stable
+          rustup update
 
-      - name: Set PROTOC Environment Variable
-        run: echo "PROTOC=$(which protoc)" >> $GITHUB_ENV
+      # Install Rust nightly version (2023-12-21) and wasm target
+      - name: Install Rust Nightly and wasm32 Target
+        run: |
+          rustup install nightly-2023-12-21
+          rustup target add wasm32-unknown-unknown --toolchain nightly-2023-12-21
 
-      - name: Build PoCS Substrate Node
+      # Set project to use Rust nightly-2023-12-21
+      - name: Override to Nightly
+        run: rustup override set nightly-2023-12-21
+
+      # Set additional environment variables
+      - name: Set Environment Variables
+        run: |
+          echo "PROTOC=$(which protoc)" >> $GITHUB_ENV
+          echo "RUSTFLAGS=-C target-cpu=native" >> $GITHUB_ENV
+
+      # Build the PoCS Substrate Node
+      - name: Build PoCS Node
         run: |
           cd solo-substrate-chain
           cargo build --release
