@@ -4,7 +4,6 @@ on:
   push:
     branches: ["ci/cd"]
 
-
 env:
   CARGO_TERM_COLOR: always
 
@@ -33,23 +32,19 @@ jobs:
 
       # Install Nightly Rust Toolchain with rust-src
       - name: Install Nightly Rust Toolchain (with rust-src)
-        working-directory: ink-contracts
         run: |
           rustup install nightly
           rustup component add rust-src --toolchain nightly
-          rustup default nightly
 
-      # Add WebAssembly Target
+      # Add WebAssembly Target to Nightly
       - name: Add WebAssembly Target
-        working-directory: ink-contracts
         run: rustup target add wasm32-unknown-unknown --toolchain nightly
 
       # Install cargo-contract
       - name: Install cargo-contract
-        working-directory: ink-contracts
         run: cargo install cargo-contract --force --locked
 
-      # Build All Ink! Contracts
+      # Build All Ink! Contracts (Force Nightly Toolchain)
       - name: Build All Ink! Contracts
         working-directory: ink-contracts
         run: |
