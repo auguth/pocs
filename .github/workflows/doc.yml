@@ -66,14 +66,24 @@ jobs:
         - name: Generate docs
           working-directory: solo-substrate-chain       
           run: cargo doc -p pallet-contracts
-        
+
+        - name: Validate Documentation
+          working-directory: solo-substrate-chain
+          run: |
+            if [ ! -d "target/doc" ]; then
+              echo "❌ Documentation was not generated!"
+              exit 1
+            fi
+  
         - name: Copy documentation files to root
-          run: cp -R solo-substrate-chain/target/doc .
+          working-directory: solo-substrate-chain       
+          run: cp -R target/doc .
 
         - name: Create index.html file
           run: echo '<meta http-equiv=refresh content=0;url=target/doc/pallet_contracts/index.html>' > index.html
 
         - name: Deploy to GitHub Pages
+          working-directory: solo-substrate-chain       
           run: |
             git show-ref --verify --quiet refs/heads/gh-pages || git checkout --orphan gh-pages
             git rm -rf .
