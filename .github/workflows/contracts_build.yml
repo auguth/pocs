@@ -2,7 +2,14 @@ name: Build Ink! Contracts
 
 on:
   push:
-    branches: ["ci/cd"]
+    branches: ["master"]
+    paths:
+      - 'ink-contracts/**'
+  pull_request:
+    branches: ["master"]
+    paths:
+      - 'ink-contracts/**'
+  workflow_dispatch:
 
 env:
   CARGO_TERM_COLOR: always
