@@ -2,7 +2,14 @@ name: PoCS Build
 
 on:
   push:
-    branches: ["ci/cd"]
+    branches: ["master"]
+    paths:
+      - 'solo-substrate-chain/**'
+  pull_request:
+    branches: ["master"]
+    paths:
+      - 'solo-substrate-chain/**'
+  workflow_dispatch:
 
 env:
   CARGO_TERM_COLOR: always
