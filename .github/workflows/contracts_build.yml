@@ -2,8 +2,13 @@ name: Build Ink! Contracts
 
 on:
   push:
-    branches: ["ci/cd"]
-
+    branches: ["master"]
+    paths:
+      - 'ink-contracts/**'
+  pull_request:
+    branches: ["master"]
+    paths:
+      - 'ink-contracts/**'
 
 env:
   CARGO_TERM_COLOR: always
@@ -22,30 +27,22 @@ jobs:
         working-directory: ink-contracts
         run: pwd
 
-      # Install system dependencies
-      - name: Install Dependencies
+      # Install Stable Rust Toolchain
+      - name: Install Stable Rust Toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: stable
+          components: rustfmt, clippy
+          override: true
+
+      # Install Nightly Rust Toolchain with rust-src
+      - name: Install Nightly Rust Toolchain (with rust-src)
         working-directory: ink-contracts
         run: |
-          sudo apt-get update && \
-          sudo apt-get install -y \
-          build-essential \
-          clang \
-          curl \
-          libssl-dev \
-          protobuf-compiler
-
-      # Install Rust and set up environment
-      - name: Install Rust
-        working-directory: ink-contracts
-        run: |
-          curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
-          echo "$HOME/.cargo/bin" >> $GITHUB_PATH
-
-
-      # Install Nightly Rust Toolchain
-      - name: Install Nightly Rust Toolchain
-        working-directory: ink-contracts
-        run: rustup install nightly && rustup default nightly
+          rustup install nightly
+          rustup component add rust-src --toolchain nightly
+          rustup default nightly
 
       # Add WebAssembly Target
       - name: Add WebAssembly Target

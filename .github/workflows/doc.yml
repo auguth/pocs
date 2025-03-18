@@ -4,66 +4,97 @@ on:
   push:
     branches: ["ci/cd"]
 
+permissions:
+  contents: write
 
 jobs:
   build:
-    runs-on: macos-latest
+    runs-on: ubuntu-latest
 
     steps:
+      # Checkout the repository
+      - name: Checkout Repository
+        uses: actions/checkout@v3
 
-    - name: Checkout code
-      uses: actions/checkout@v3
+      # Navigate to solo-substrate-chain
+      - name: Change to solo-substrate-chain
+        working-directory: solo-substrate-chain
+        run: pwd
 
-    - name: Install Rust nightly toolchain
-      uses: actions-rs/toolchain@v1
-      with:
-        profile: minimal
-        toolchain: nightly-2023-12-21
-        components: rustfmt, rustc-dev, rust-docs
-        override: true
+      # Install system dependencies
+      - name: Install Dependencies
+        run: |
+          sudo apt-get update && \
+          sudo apt-get install -y \
+          build-essential \
+          clang \
+          curl \
+          libssl-dev \
+          protobuf-compiler
 
-    - name: Install Protocol Buffers Compiler
-      run: brew install protobuf
+      # Install Rust and set up environment
+      - name: Install Rust
+        run: |
+          curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
+          echo "$HOME/.cargo/bin" >> $GITHUB_PATH
 
-    - name: Set PROTOC Environment Variable
-      run: echo "PROTOC=$(which protoc)" >> $GITHUB_ENV
+      # Set Rust stable as the default and update toolchains
+      - name: Set Rust Stable and Update
+        run: |
+          rustup default stable
+          rustup update
 
-    - name: Install wasm32-unknown-unknown target
-      run: rustup target add wasm32-unknown-unknown
+      # Install Rust nightly version (2023-12-21) and wasm target
+      - name: Install Rust Nightly and wasm32 Target
+        run: |
+          rustup install nightly-2023-12-21
+          rustup target add wasm32-unknown-unknown --toolchain nightly-2023-12-21
 
-    - name: Generate docs
-      run: |
-        cd solo-substrate-chain
-        cargo doc -p pallet-contracts --no-deps --document-private-items
+      # Set project to use Rust nightly-2023-12-21
+      - name: Override to Nightly
+        working-directory: solo-substrate-chain
+        run: rustup override set nightly-2023-12-21
 
-    - name: Ensure target/doc exists
-      run: |
-        if [ ! -d "solo-substrate-chain/target/doc" ]; then
-          echo "Documentation was not generated!"
-          exit 1
-        fi
+      # Set additional environment variables
+      - name: Set Environment Variables
+        run: |
+          echo "PROTOC=$(which protoc)" >> $GITHUB_ENV
+          echo "RUSTFLAGS=-C target-cpu=native" >> $GITHUB_ENV
 
-    - name: Copy documentation files to root
-      run: cp -R solo-substrate-chain/target/doc .
+      - name: Generate docs
+        working-directory: solo-substrate-chain
+        run: |
+          cargo doc -p pallet-contracts --no-deps --document-private-items
 
-    - name: Create index.html file
-      run: echo '<meta http-equiv="refresh" content="0;url=target/doc/pallet_contracts/index.html">' > index.html
+      - name: Ensure target/doc exists
+        working-directory: solo-substrate-chain
+        run: |
+          if [ ! -d "target/doc" ]; then
+            echo "Documentation was not generated!"
+            exit 1
+          fi
 
-    - name: Deploy to GitHub Pages
-      run: |
-        git config --global user.name "github-actions"
-        git config --global user.email "github-actions@github.com"
-        
-        if ! git show-ref --verify --quiet refs/heads/gh-pages; then
-          git checkout --orphan gh-pages
-        else
-          git checkout gh-pages
-        fi
-        
-        git rm -rf . || true
-        cp -R target/doc ./
-        cp index.html ./
-        git add .
-        
-        git commit -m "Update documentation" || echo "No changes to commit"
-        git push -f origin gh-pages
+      - name: Copy documentation files to root
+        run: cp -R solo-substrate-chain/target/doc .
+
+      - name: Create index.html file
+        run: echo '<meta http-equiv="refresh" content="0;url=target/doc/pallet_contracts/index.html">' > index.html
+
+      - name: Deploy to GitHub Pages
+        run: |
+          git config --global user.name "github-actions"
+          git config --global user.email "github-actions@github.com"
+
+          if ! git show-ref --verify --quiet refs/heads/gh-pages; then
+            git checkout --orphan gh-pages
+          else
+            git checkout gh-pages
+          fi
+
+          git rm -rf . || true
+          cp -R target/doc ./
+          cp index.html ./
+          git add .
+
+          git commit -m "Update documentation" || echo "No changes to commit"
+          git push -f origin gh-pages
