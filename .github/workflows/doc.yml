@@ -83,23 +83,18 @@ jobs:
           run: |
            echo '<meta http-equiv=refresh content=0;url=target/doc/pallet_contracts/index.html>' > index.html
            ls -lh index.html
-
+           
+        - name: Stash index.html
+          working-directory: solo-substrate-chain
+          run: git stash --include-untracked
+         
         - name: Deploy to GitHub Pages
-          working-directory: solo-substrate-chain       
+          working-directory: solo-substrate-chain
           run: |
-            git fetch origin gh-pages
-            git checkout gh-pages
-
-            rsync -av --delete solo-substrate-chain/target/doc/ ./docs/
-
-            cp solo-substrate-chain/index.html ./index.html
-
-            git add ./docs ./index.html
-            if ! git diff --cached --quiet; then
-              git config user.name "github-actions"
-              git config user.email "github-actions@github.com"
-              git commit -m "Update Rust documentation"
-              git push origin gh-pages
-            else
-              echo "No changes to commit."
-            fi
+             git fetch origin gh-pages
+             git checkout --orphan gh-pages
+             git rm -rf .
+             git stash pop
+             git add -f target/doc index.html
+             git commit -m "Update documentation"
+             git push -f origin gh-pages
