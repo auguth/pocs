@@ -8,7 +8,7 @@ env:
   CARGO_TERM_COLOR: always
 
 jobs:
-  build-ink:
+  build:
     runs-on: ubuntu-latest
 
     steps:
@@ -16,33 +16,50 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v3
 
-      # Navigate to the ink-contracts directory
+      # Navigate to solo-substrate-chain
       - name: Change to ink-contracts Directory
         working-directory: ink-contracts
         run: pwd
 
-      # Install Stable Rust Toolchain
-      - name: Install Stable Rust Toolchain
-        uses: actions-rs/toolchain@v1
-        with:
-          profile: minimal
-          toolchain: stable
-          components: rustfmt, clippy
-          override: true
+      # Install system dependencies
+      - name: Install Dependencies
+        working-directory: ink-contracts
+        run: |
+          sudo apt-get update && \
+          sudo apt-get install -y \
+          build-essential \
+          clang \
+          curl \
+          libssl-dev \
+          protobuf-compiler
 
-      # Install Nightly Rust Toolchain with rust-src
-      - name: Install Nightly Rust Toolchain (with rust-src)
+      # Install Rust and set up environment
+      - name: Install Rust
+        working-directory: ink-contracts
+        run: |
+          curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
+          echo "$HOME/.cargo/bin" >> $GITHUB_PATH
+
+      # Set Rust stable as the default and update toolchains
+      - name: Set Rust Stable and Update
+        working-directory: ink-contracts
+        run: |
+          rustup default stable
+          rustup update
+
+      # Install Rust nightly version (2023-12-21) and wasm target
+      - name: Install Rust Nightly and wasm32 Target
+        working-directory: ink-contracts
         run: |
           rustup install nightly
-          rustup component add rust-src --toolchain nightly
-
-      # Add WebAssembly Target to Nightly
-      - name: Add WebAssembly Target
-        run: rustup target add wasm32-unknown-unknown --toolchain nightly
+          rustup target add wasm32-unknown-unknown --toolchain nightly
 
       # Install cargo-contract
       - name: Install cargo-contract
-        run: cargo install cargo-contract --force --locked
+        working-directory: ink-contracts
+        run: |
+          rustup component add rust-src
+          cargo install --force --locked cargo-contract
 
       # Build All Ink! Contracts (Force Nightly Toolchain)
       - name: Build All Ink! Contracts
