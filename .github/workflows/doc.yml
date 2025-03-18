@@ -75,7 +75,7 @@ jobs:
           fi
 
       - name: Copy documentation files to root
-        run: cp -R solo-substrate-chain/target/doc .
+        run: cp -R target/doc ../
 
       - name: Create index.html file
         run: echo '<meta http-equiv="refresh" content="0;url=target/doc/pallet_contracts/index.html">' > index.html
