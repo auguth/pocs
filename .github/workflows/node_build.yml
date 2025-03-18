@@ -2,13 +2,7 @@ name: PoCS Build
 
 on:
   push:
-    branches: ["master"]
-    paths:
-      - 'solo-substrate-chain/**'
-  pull_request:
-    branches: ["master"]
-    paths:
-      - 'solo-substrate-chain/**'
+    branches: ["ci/cd"]
 
 env:
   CARGO_TERM_COLOR: always
@@ -22,8 +16,14 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v3
 
+      # Navigate to solo-substrate-chain
+      - name: Change to solo-substrate-chain
+        working-directory: solo-substrate-chain
+        run: pwd
+
       # Install system dependencies
       - name: Install Dependencies
+        working-directory: solo-substrate-chain
         run: |
           sudo apt-get update && \
           sudo apt-get install -y \
@@ -35,34 +35,38 @@ jobs:
 
       # Install Rust and set up environment
       - name: Install Rust
+        working-directory: solo-substrate-chain
         run: |
           curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
           echo "$HOME/.cargo/bin" >> $GITHUB_PATH
 
       # Set Rust stable as the default and update toolchains
       - name: Set Rust Stable and Update
+        working-directory: solo-substrate-chain
         run: |
           rustup default stable
           rustup update
 
       # Install Rust nightly version (2023-12-21) and wasm target
       - name: Install Rust Nightly and wasm32 Target
+        working-directory: solo-substrate-chain
         run: |
           rustup install nightly-2023-12-21
           rustup target add wasm32-unknown-unknown --toolchain nightly-2023-12-21
 
       # Set project to use Rust nightly-2023-12-21
       - name: Override to Nightly
+        working-directory: solo-substrate-chain
         run: rustup override set nightly-2023-12-21
 
       # Set additional environment variables
       - name: Set Environment Variables
+        working-directory: solo-substrate-chain
         run: |
           echo "PROTOC=$(which protoc)" >> $GITHUB_ENV
           echo "RUSTFLAGS=-C target-cpu=native" >> $GITHUB_ENV
 
       # Build the PoCS Substrate Node
       - name: Build PoCS Node
-        run: |
-          cd solo-substrate-chain
-          cargo build --release
+        working-directory: solo-substrate-chain
+        run: cargo build --release
