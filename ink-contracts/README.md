@@ -2,7 +2,7 @@
 
 This directory contains all **Ink! smart contracts** used in the PoCS (Proof-of-Concept Substrate) project. You can build, test, and clean these contracts using the `pocs.sh` script.
 
-Some contracts may include custom Chain Extension from [solo-substrate-chain](../solo-substrate-chain/pallets/contracts/src/chain_extension.rs).
+Some contracts may include custom Chain Extension from [solo-substrate-chain](../solo-substrate-chain/pallets/contracts/src/stake/chain_ext.rs).
 
 ## Setup Instructions
 Ensure you have the following prerequisites:
