@@ -112,20 +112,20 @@ Benchmarks for the two functions `delegate()` and `update_owner()` is written in
 
 ### [`/src/stake/..`](https://github.com/auguth/pocs/tree/w3f_milestone_3/solo-substrate-chain/pallets/contracts/src/stake)
 
-#### `stake` Module
+#### Stake Module
 
   Encapsulates PoCS-specific logic in a self-contained module, improving modularity, testability, and maintainability.
 
 - **Structure:**
-  - `mod.rs` – Centralized all PoCS functionalities, providing a cohesive and loosely coupled design.
-  - `chain_ext.rs` – Implements two chain extensions for querying and updating stake and delegate information.
+  - [`mod.rs`](https://github.com/auguth/pocs/blob/w3f_milestone_3/solo-substrate-chain/pallets/contracts/src/stake/mod.rs) – Centralized all PoCS functionalities, providing a cohesive and loosely coupled design.
+  - [`chain_ext.rs`](https://github.com/auguth/pocs/blob/w3f_milestone_3/solo-substrate-chain/pallets/contracts/src/stake/chain_ext.rs) – Implements two chain extensions for querying and updating stake and delegate information.
 
 - **Key Features:**
   - All struct fields are accessed via dedicated methods.
   - Comprehensive error handling for all operations.
 
 
-#### `mod.rs` Overview
+#### Module Overview
 
 - **Core Functionalities:**
   - Implements stake/delegate/validator requests and management based on [PoCS specification](./specification/pocs-spec.pdf).
@@ -136,7 +136,7 @@ Benchmarks for the two functions `delegate()` and `update_owner()` is written in
   - Uses `DispatchError` where appropriate, ensuring accurate error propagation to existing disptachable functions.
 
 
-#### `chain_ext.rs` Overview
+#### Chain Extensions Overview
 
 Facilitates contract-level read and update operations on delegate and stake data while ensuring security and maintaining consistency with PoCS mappings.
 
@@ -213,46 +213,46 @@ These tests were downgraded since the minimum bond check is removed in PoCS.
 
 ## Ink-Contracts
 
-For each chain extension and its function id, corresponding Ink! contracts are provided. The `flipper` and `simple_caller` contracts are extras, with `flipper` serving as a dummy contract.
+For each chain extension and its function id, corresponding Ink! contracts are provided. 
+
+> The `flipper` and `simple_caller` contracts are extras, with `flipper` serving as a dummy contract.
 
 ### Custom Chain Extension (ID 1200)
 
   Added five key functions for validator and delegation management which are also given as each seperate contracts:
 
-  - `delegate_of`: Retrieves the delegate of a given account (Func ID: 1000)
+  - [`delegate_to`](https://github.com/auguth/pocs/blob/w3f_milestone_3/ink-contracts/delegate_to/lib.rs): Retrieves the delegate of a given account (Func ID: 1000)
 
-  - `delegate_at`: Returns the block number when the delegation was last updated (Func ID: 1001)
+  - [`delegate_at`](https://github.com/auguth/pocs/blob/w3f_milestone_3/ink-contracts/delegate_at/lib.rs): Returns the block number when the delegation was last updated (Func ID: 1001)
 
-  - `stake_score`: Retrieves the stake score of a given contract (Func ID: 1002)
+  - [`stake_score`](https://github.com/auguth/pocs/blob/w3f_milestone_3/ink-contracts/stake_score/lib.rs): Retrieves the stake score of a given contract (Func ID: 1002)
 
-  - `reputation`: Fetches the reputation score (Func ID: 1003)
+  - [`reputation`](https://github.com/auguth/pocs/blob/w3f_milestone_3/ink-contracts/reputation/lib.rs): Fetches the reputation score (Func ID: 1003)
 
-  - `owner`: Returns the owner of a given contract (Func ID: 1004)
+  - [`owner`](https://github.com/auguth/pocs/blob/w3f_milestone_3/ink-contracts/owner/lib.rs): Returns the owner of a given contract (Func ID: 1004)
 
 ### Custom Chain Extension (ID 1300)
 
   Added functions for advanced delegation and validator updates:
+
+  > Both functions are integrated into a single contract, as a contract is required to deploy/instantiate a contract to become its owner to call the below chain extension functions.
   
-  - `update_delegate`: Updates the delegate for a given account and ensures synchronization with stake data (Func ID: 1005)
-  - `update_owner`: 
+  - [`update_delegate`](https://github.com/auguth/pocs/blob/w3f_milestone_3/ink-contracts/update_delegate/lib.rs): Updates the delegate for a given contract account and ensures synchronization with stake data (Func ID: 1005)
+  - [`update_owner`](https://github.com/auguth/pocs/blob/w3f_milestone_3/ink-contracts/update_delegate/lib.rs): Updates the owner for a given contract account and ensures synchronization with stake data (Func ID: 1006)
 
-### Delegate Registry Contract `delegate_registry`
+### Delegate Registry Contract (Validator Reward Contract)
 
-  - Implements a reward distribution mechanism by tracking stake scores and delegation.
-  - Validates contract ownership using the `owner_check` method.
-  - Ensures delegation consistency with the `delegate_check` method.
-  - Supports contract registration, reward claiming, and cancellation.
-  - Uses `CustomEnvironment` to integrate with the chain extension.
+[`delegate_registry`](https://github.com/auguth/pocs/blob/w3f_milestone_3/ink-contracts/delegate_registry/lib.rs): Implements a reward distribution mechanism by tracking stake scores and delegation using PoCS chain extensions. The contract supports contract registration, reward claiming, and cancellation.
 
-  **Key Methods**:
-  - `register`: Registers a contract and updates the stake pool.
-  - `claim`: Claims rewards based on updated stake scores.
-  - `cancel`: Removes a contract from the registry after claiming.
+  **Callable Functions**:
+  - `fn register()`: Registers a contract and updates the stake pool.
+  - `fn claim()`: Claims rewards based on updated stake scores.
+  - `fn cancel()`: Removes a contract from the registry along with claiming existing reward.
 
 
 ### Automated End-to-End (E2E) Testing
 
-  - The E2E testing is automated using the `e2e_test.sh` script. 
+  - The E2E testing is automated using the [`e2e_test.sh`](https://github.com/auguth/pocs/blob/w3f_milestone_3/ink-contracts/e2e_test.sh) script. 
   - This script spins up the PoCS node and manages test cases for all Ink! contracts and chain extensions in the project as a combined test. 
   - It ensures comprehensive validation across the contract lifecycle, including deployment, delegation updates, and ownership transfers.
     
